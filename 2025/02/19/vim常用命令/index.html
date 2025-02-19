@@ -1,7 +1,7 @@
 
 
 <!DOCTYPE html>
-<html lang="en" data-default-color-scheme=auto>
+<html lang="zh-CN" data-default-color-scheme=auto>
 
 
 
@@ -19,21 +19,22 @@
   <meta name="author" content="John Doe">
   <meta name="keywords" content="">
   
-    <meta name="description" content="Welcome to Hexo! This is your very first post. Check documentation for more info. If you get any problems when using Hexo, you can find the answer in troubleshooting or you can ask me on GitHub. Quick">
+    <meta name="description" content="Vim 常用命令指南模式切换   命令 描述    i 进入插入模式（当前光标前）   a 进入插入模式（当前光标后）   o 在当前行下方新建插入行   O 在当前行上方新建插入行   v 进入可视模式（字符选择）   V 进入可视模式（行选择）   Esc 返回普通模式   光标移动基础移动   命令 描述    h 左移   j 下移   k 上移   l 右移   w 跳到下一个单词开头">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Hello World">
-<meta property="og:url" content="http://example.com/2025/02/18/hello-world/index.html">
+<meta property="og:title" content="vim常用命令">
+<meta property="og:url" content="http://example.com/2025/02/19/vim%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/index.html">
 <meta property="og:site_name" content="Hexo">
-<meta property="og:description" content="Welcome to Hexo! This is your very first post. Check documentation for more info. If you get any problems when using Hexo, you can find the answer in troubleshooting or you can ask me on GitHub. Quick">
-<meta property="og:locale" content="en_US">
-<meta property="article:published_time" content="2025-02-18T09:34:11.105Z">
-<meta property="article:modified_time" content="2025-02-18T09:32:08.993Z">
+<meta property="og:description" content="Vim 常用命令指南模式切换   命令 描述    i 进入插入模式（当前光标前）   a 进入插入模式（当前光标后）   o 在当前行下方新建插入行   O 在当前行上方新建插入行   v 进入可视模式（字符选择）   V 进入可视模式（行选择）   Esc 返回普通模式   光标移动基础移动   命令 描述    h 左移   j 下移   k 上移   l 右移   w 跳到下一个单词开头">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-02-19T09:31:03.000Z">
+<meta property="article:modified_time" content="2025-02-19T09:35:19.748Z">
 <meta property="article:author" content="John Doe">
+<meta property="article:tag" content="vim">
 <meta name="twitter:card" content="summary_large_image">
   
   
   
-  <title>Hello World - Hexo</title>
+  <title>vim常用命令 - Hexo</title>
 
   <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
 
@@ -117,7 +118,7 @@
             <li class="nav-item">
               <a class="nav-link" href="/" target="_self">
                 <i class="iconfont icon-home-fill"></i>
-                <span>主页</span>
+                <span>首页</span>
               </a>
             </li>
           
@@ -129,7 +130,7 @@
             <li class="nav-item">
               <a class="nav-link" href="/archives/" target="_self">
                 <i class="iconfont icon-archive-fill"></i>
-                <span>档案</span>
+                <span>归档</span>
               </a>
             </li>
           
@@ -141,7 +142,7 @@
             <li class="nav-item">
               <a class="nav-link" href="/categories/" target="_self">
                 <i class="iconfont icon-category-fill"></i>
-                <span>类别</span>
+                <span>分类</span>
               </a>
             </li>
           
@@ -199,7 +200,7 @@
       <div class="banner-text text-center fade-in-up">
         <div class="h2">
           
-            <span id="subtitle" data-typed-text="Hello World"></span>
+            <span id="subtitle" data-typed-text="vim常用命令"></span>
           
         </div>
 
@@ -210,8 +211,8 @@
     
       <span class="post-meta">
         <i class="iconfont icon-date-fill" aria-hidden="true"></i>
-        <time datetime="2025-02-18 17:34" pubdate>
-          February 18, 2025 pm
+        <time datetime="2025-02-19 17:31" pubdate>
+          2025年2月19日 下午
         </time>
       </span>
     
@@ -222,7 +223,7 @@
       <span class="post-meta mr-2">
         <i class="iconfont icon-chart"></i>
         
-          18 words
+          494 字
         
       </span>
     
@@ -233,7 +234,7 @@
         
         
         
-          1 mins
+          5 分钟
         
       </span>
     
@@ -270,24 +271,276 @@
       <div class="container nopadding-x-md" id="board-ctn">
         <div id="board">
           <article class="post-content mx-auto">
-            <h1 id="seo-header">Hello World</h1>
+            <h1 id="seo-header">vim常用命令</h1>
             
             
               <div class="markdown-body">
                 
-                <p>Welcome to <a target="_blank" rel="noopener" href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a target="_blank" rel="noopener" href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a target="_blank" rel="noopener" href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a target="_blank" rel="noopener" href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">$ hexo new <span class="hljs-string">&quot;My New Post&quot;</span><br></code></pre></td></tr></table></figure>
-
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/writing.html">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">$ hexo server<br></code></pre></td></tr></table></figure>
-
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/server.html">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">$ hexo generate<br></code></pre></td></tr></table></figure>
-
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/generating.html">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">$ hexo deploy<br></code></pre></td></tr></table></figure>
-
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>
+                <h1 id="Vim-常用命令指南"><a href="#Vim-常用命令指南" class="headerlink" title="Vim 常用命令指南"></a>Vim 常用命令指南</h1><h2 id="模式切换"><a href="#模式切换" class="headerlink" title="模式切换"></a>模式切换</h2><table>
+<thead>
+<tr>
+<th>命令</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>i</code></td>
+<td>进入插入模式（当前光标前）</td>
+</tr>
+<tr>
+<td><code>a</code></td>
+<td>进入插入模式（当前光标后）</td>
+</tr>
+<tr>
+<td><code>o</code></td>
+<td>在当前行下方新建插入行</td>
+</tr>
+<tr>
+<td><code>O</code></td>
+<td>在当前行上方新建插入行</td>
+</tr>
+<tr>
+<td><code>v</code></td>
+<td>进入可视模式（字符选择）</td>
+</tr>
+<tr>
+<td><code>V</code></td>
+<td>进入可视模式（行选择）</td>
+</tr>
+<tr>
+<td><code>Esc</code></td>
+<td>返回普通模式</td>
+</tr>
+</tbody></table>
+<h2 id="光标移动"><a href="#光标移动" class="headerlink" title="光标移动"></a>光标移动</h2><h3 id="基础移动"><a href="#基础移动" class="headerlink" title="基础移动"></a>基础移动</h3><table>
+<thead>
+<tr>
+<th>命令</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>h</code></td>
+<td>左移</td>
+</tr>
+<tr>
+<td><code>j</code></td>
+<td>下移</td>
+</tr>
+<tr>
+<td><code>k</code></td>
+<td>上移</td>
+</tr>
+<tr>
+<td><code>l</code></td>
+<td>右移</td>
+</tr>
+<tr>
+<td><code>w</code></td>
+<td>跳到下一个单词开头</td>
+</tr>
+<tr>
+<td><code>b</code></td>
+<td>跳到上一个单词开头</td>
+</tr>
+</tbody></table>
+<h3 id="快速跳转"><a href="#快速跳转" class="headerlink" title="快速跳转"></a>快速跳转</h3><table>
+<thead>
+<tr>
+<th>命令</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>gg</code></td>
+<td>跳转到文件开头</td>
+</tr>
+<tr>
+<td><code>G</code></td>
+<td>跳转到文件末尾</td>
+</tr>
+<tr>
+<td><code>:n</code></td>
+<td>跳转到第n行（n为数字）</td>
+</tr>
+<tr>
+<td><code>0</code></td>
+<td>跳转到行首</td>
+</tr>
+<tr>
+<td><code>$</code></td>
+<td>跳转到行尾</td>
+</tr>
+<tr>
+<td><code>Ctrl+f</code></td>
+<td>向下翻页</td>
+</tr>
+<tr>
+<td><code>Ctrl+b</code></td>
+<td>向上翻页</td>
+</tr>
+</tbody></table>
+<h2 id="文本编辑"><a href="#文本编辑" class="headerlink" title="文本编辑"></a>文本编辑</h2><h3 id="删除操作"><a href="#删除操作" class="headerlink" title="删除操作"></a>删除操作</h3><table>
+<thead>
+<tr>
+<th>命令</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>x</code></td>
+<td>删除当前字符</td>
+</tr>
+<tr>
+<td><code>dw</code></td>
+<td>删除到单词末尾</td>
+</tr>
+<tr>
+<td><code>dd</code></td>
+<td>删除整行</td>
+</tr>
+<tr>
+<td><code>D</code></td>
+<td>删除到行尾</td>
+</tr>
+</tbody></table>
+<h3 id="复制粘贴"><a href="#复制粘贴" class="headerlink" title="复制粘贴"></a>复制粘贴</h3><table>
+<thead>
+<tr>
+<th>命令</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>yy</code></td>
+<td>复制当前行</td>
+</tr>
+<tr>
+<td><code>p</code></td>
+<td>粘贴到光标后</td>
+</tr>
+<tr>
+<td><code>P</code></td>
+<td>粘贴到光标前</td>
+</tr>
+<tr>
+<td><code>yiw</code></td>
+<td>复制当前单词</td>
+</tr>
+</tbody></table>
+<h3 id="撤销-重做"><a href="#撤销-重做" class="headerlink" title="撤销&#x2F;重做"></a>撤销&#x2F;重做</h3><table>
+<thead>
+<tr>
+<th>命令</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>u</code></td>
+<td>撤销操作</td>
+</tr>
+<tr>
+<td><code>Ctrl+r</code></td>
+<td>重做操作</td>
+</tr>
+</tbody></table>
+<h2 id="搜索替换"><a href="#搜索替换" class="headerlink" title="搜索替换"></a>搜索替换</h2><table>
+<thead>
+<tr>
+<th>命令</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>/keyword</code></td>
+<td>向下搜索关键字</td>
+</tr>
+<tr>
+<td><code>?keyword</code></td>
+<td>向上搜索关键字</td>
+</tr>
+<tr>
+<td><code>n</code></td>
+<td>跳转到下一个匹配项</td>
+</tr>
+<tr>
+<td><code>N</code></td>
+<td>跳转到上一个匹配项</td>
+</tr>
+<tr>
+<td><code>:%s/old/new/g</code></td>
+<td>全局替换（加<code>c</code>确认每个替换）</td>
+</tr>
+</tbody></table>
+<h2 id="文件操作"><a href="#文件操作" class="headerlink" title="文件操作"></a>文件操作</h2><table>
+<thead>
+<tr>
+<th>命令</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>:w</code></td>
+<td>保存文件</td>
+</tr>
+<tr>
+<td><code>:q</code></td>
+<td>退出</td>
+</tr>
+<tr>
+<td><code>:wq</code> &#x2F; <code>:x</code></td>
+<td>保存并退出</td>
+</tr>
+<tr>
+<td><code>:q!</code></td>
+<td>强制退出不保存</td>
+</tr>
+<tr>
+<td><code>:e filename</code></td>
+<td>打开新文件</td>
+</tr>
+<tr>
+<td><code>:saveas filename</code></td>
+<td>另存为</td>
+</tr>
+</tbody></table>
+<h2 id="分屏操作"><a href="#分屏操作" class="headerlink" title="分屏操作"></a>分屏操作</h2><table>
+<thead>
+<tr>
+<th>命令</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>:sp</code> &#x2F; <code>:split</code></td>
+<td>水平分屏</td>
+</tr>
+<tr>
+<td><code>:vsp</code></td>
+<td>垂直分屏</td>
+</tr>
+<tr>
+<td><code>Ctrl+w hjkl</code></td>
+<td>切换分屏窗口</td>
+</tr>
+<tr>
+<td><code>Ctrl+w c</code></td>
+<td>关闭当前分屏</td>
+</tr>
+<tr>
+<td><code>Ctrl+w o</code></td>
+<td>关闭其他分屏</td>
+</tr>
+</tbody></table>
+<h2 id="其他实用技巧"><a href="#其他实用技巧" class="headerlink" title="其他实用技巧"></a>其他实用技巧</h2><ol>
+<li>显示行号：<code>:set number</code>（取消用<code>:set nonumber</code>）</li>
+<li>批量缩进：可视模式选中文本后按<code>&gt;</code>或<code>&lt;</code></li>
+<li>重复命令：<code>数字 + 命令</code>（如<code>3dd</code>删除3行）</li>
+<li>执行外部命令：<code>:!command</code>（如<code>:!ls</code>）</li>
+</ol>
+<blockquote>
+<p>提示：Vim 的强大之处在于命令组合，例如 <code>d2w</code> &#x3D; 删除2个单词，<code>ci&quot;</code> &#x3D; 修改引号内的内容</p>
+</blockquote>
 
                 
               </div>
@@ -297,6 +550,13 @@
               <div class="post-metas my-3">
   
   
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/vim/" class="print-no-link">#vim</a>
+      
+    </div>
+  
 </div>
 
 
@@ -305,32 +565,32 @@
 
   <div class="license-box my-3">
     <div class="license-title">
-      <div>Hello World</div>
-      <div>http://example.com/2025/02/18/hello-world/</div>
+      <div>vim常用命令</div>
+      <div>http://example.com/2025/02/19/vim常用命令/</div>
     </div>
     <div class="license-meta">
       
         <div class="license-meta-item">
-          <div>Author</div>
+          <div>作者</div>
           <div>John Doe</div>
         </div>
       
       
         <div class="license-meta-item license-meta-date">
-          <div>Posted on</div>
-          <div>February 18, 2025</div>
+          <div>发布于</div>
+          <div>2025年2月19日</div>
         </div>
       
       
       
         <div class="license-meta-item">
-          <div>Licensed under</div>
+          <div>许可协议</div>
           <div>
             
               
               
                 <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
-                  <span class="hint--top hint--rounded" aria-label="BY - Attribution">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
                     <i class="iconfont icon-cc-by"></i>
                   </span>
                 </a>
@@ -350,15 +610,15 @@
                   <article class="post-prev col-6">
                     
                     
-                      <a href="/2025/02/19/Docker%E5%AE%B9%E5%99%A8%E6%8A%80%E6%9C%AF%E8%AF%A6%E8%A7%A3/" title="Docker容器技术详解">
-                        <i class="iconfont icon-arrowleft"></i>
-                        <span class="hidden-mobile">Docker容器技术详解</span>
-                        <span class="visible-mobile">Previous</span>
-                      </a>
-                    
                   </article>
                   <article class="post-next col-6">
                     
+                    
+                      <a href="/2025/02/19/linux%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/" title="linux常用命令">
+                        <span class="hidden-mobile">linux常用命令</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
                     
                   </article>
                 </div>
@@ -377,7 +637,7 @@
     <div id="toc">
   <p class="toc-header">
     <i class="iconfont icon-list"></i>
-    <span>Table of Contents</span>
+    <span>目录</span>
   </p>
   <div class="toc-body" id="toc-body"></div>
 </div>
@@ -433,7 +693,7 @@
   <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
     <div class="modal-content">
       <div class="modal-header text-center">
-        <h4 class="modal-title w-100 font-weight-bold">Search</h4>
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
         <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
@@ -441,7 +701,7 @@
       <div class="modal-body mx-3">
         <div class="md-form mb-5">
           <input type="text" id="local-search-input" class="form-control validate">
-          <label data-error="x" data-success="v" for="local-search-input">Keyword</label>
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
         </div>
         <div class="list-group" id="local-search-result"></div>
       </div>
@@ -619,7 +879,7 @@
   
 
   <noscript>
-    <div class="noscript-warning">Blog works best with JavaScript enabled</div>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
   </noscript>
 </body>
 </html>
