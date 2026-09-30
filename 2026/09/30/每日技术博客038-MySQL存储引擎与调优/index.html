@@ -1,0 +1,1104 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-09-30 · 第 038 篇 MySQL 系列第一篇。InnoDB 的 Buffer Pool 与三种日志、真正值得动的参数，以及性能与安全的取舍。  📚 MySQL 系列目录   章节 主题 状态    一 存储引擎与参数调优 本篇   二 主从复制与高可用 已发布    开场：值得动的参数只有几个调参之前先确认问题不在 SQL 和容量上。绝大多数「数据库慢」的">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 038 · MySQL（一）：存储引擎与参数调优">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2038-MySQL%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E%E4%B8%8E%E8%B0%83%E4%BC%98/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-09-30 · 第 038 篇 MySQL 系列第一篇。InnoDB 的 Buffer Pool 与三种日志、真正值得动的参数，以及性能与安全的取舍。  📚 MySQL 系列目录   章节 主题 状态    一 存储引擎与参数调优 本篇   二 主从复制与高可用 已发布    开场：值得动的参数只有几个调参之前先确认问题不在 SQL 和容量上。绝大多数「数据库慢」的">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-09-30T13:40:00.000Z">
+<meta property="article:modified_time" content="2026-09-30T05:47:12.165Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="mysql">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 038 · MySQL（一）：存储引擎与参数调优 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 038 · MySQL（一）：存储引擎与参数调优"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-09-30 21:40" pubdate>
+          2026年9月30日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          1.8k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          16 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 038 · MySQL（一）：存储引擎与参数调优</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-09-30 · 第 038 篇</p>
+<p>MySQL 系列第一篇。InnoDB 的 Buffer Pool 与三种日志、真正值得动的参数，以及性能与安全的取舍。</p>
+</blockquote>
+<h2 id="📚-MySQL-系列目录"><a href="#📚-MySQL-系列目录" class="headerlink" title="📚 MySQL 系列目录"></a>📚 MySQL 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>存储引擎与参数调优</td>
+<td><strong>本篇</strong></td>
+</tr>
+<tr>
+<td>二</td>
+<td>主从复制与高可用</td>
+<td>已发布</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：值得动的参数只有几个"><a href="#开场：值得动的参数只有几个" class="headerlink" title="开场：值得动的参数只有几个"></a>开场：值得动的参数只有几个</h2><p>调参之前先确认问题<strong>不在 SQL 和容量上</strong>。绝大多数「数据库慢」的根因是慢查询和索引，不是参数。</p>
+<p>在 InnoDB 上真正值得反复权衡的参数：</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>影响</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>innodb_buffer_pool_size</code></td>
+<td>命中率，<strong>唯一必须调的内存参数</strong></td>
+</tr>
+<tr>
+<td><code>innodb_flush_log_at_trx_commit</code></td>
+<td>崩溃时的数据安全 vs 写入吞吐</td>
+</tr>
+<tr>
+<td><code>sync_binlog</code></td>
+<td>binlog 落盘时机，同上</td>
+</tr>
+<tr>
+<td><code>innodb_redo_log_capacity</code></td>
+<td>写入突发时的缓冲能力</td>
+</tr>
+<tr>
+<td><code>max_connections</code></td>
+<td>连接数上限，<strong>不是越大越好</strong></td>
+</tr>
+<tr>
+<td><code>sql_mode</code></td>
+<td>严格模式，决定脏数据能不能写进来</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 参数改完要观察<strong>至少一个完整业务周期</strong>（含日终批处理）再下结论。单次压测的结果往往不可迁移。</p>
+</blockquote>
+<h2 id="一、InnoDB-vs-MyISAM"><a href="#一、InnoDB-vs-MyISAM" class="headerlink" title="一、InnoDB vs MyISAM"></a>一、InnoDB vs MyISAM</h2><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>InnoDB</th>
+<th>MyISAM</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>事务</td>
+<td>✅ ACID</td>
+<td>❌ 不支持</td>
+</tr>
+<tr>
+<td>锁粒度</td>
+<td>行锁（默认），间隙锁防幻读</td>
+<td>表锁</td>
+</tr>
+<tr>
+<td>MVCC</td>
+<td>✅</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>崩溃恢复</td>
+<td>✅ redo log 自动恢复</td>
+<td>⚠️ 需 <code>myisamchk</code> 手工修</td>
+</tr>
+<tr>
+<td>外键</td>
+<td>✅</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>全文索引</td>
+<td>✅ 5.6 起支持</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>COUNT(*)</code> 无 <code>WHERE</code></td>
+<td>需扫描（MVCC 导致）</td>
+<td>直接读计数器，<strong>极快</strong></td>
+</tr>
+<tr>
+<td>存储文件</td>
+<td><code>.ibd</code> 表空间</td>
+<td><code>.MYD</code> + <code>.MYI</code></td>
+</tr>
+</tbody></table>
+<p>结论：<strong>新表一律 InnoDB</strong>。MySQL 8.0 起系统表已全部改为 InnoDB，MyISAM 只剩历史包袱 —— 唯一值得留意的是它在 <code>COUNT(*)</code> 上的优势，用计数表或缓存就能替代。</p>
+<blockquote>
+<p>⚠️ 迁移老库里的 MyISAM 表时注意三点：<code>AUTO_INCREMENT</code> 语义差异、表锁下的并发写、以及<strong>没有崩溃恢复能力</strong>。</p>
+</blockquote>
+<h2 id="二、Buffer-Pool：唯一必须调的内存参数"><a href="#二、Buffer-Pool：唯一必须调的内存参数" class="headerlink" title="二、Buffer Pool：唯一必须调的内存参数"></a>二、Buffer Pool：唯一必须调的内存参数</h2><p><code>innodb_buffer_pool_size</code> <strong>默认 134217728 字节（128MB）</strong>，官方建议专用数据库服务器上设为物理内存的 **80%**。</p>
+<p>它缓存的是<strong>表和索引的数据页</strong>，命中率直接决定查询是否读盘。</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs sql"><span class="hljs-keyword">SHOW</span> VARIABLES <span class="hljs-keyword">LIKE</span> <span class="hljs-string">&#x27;innodb_buffer_pool_size&#x27;</span>;<br><br><span class="hljs-comment">-- 命中率：越接近 1 越好</span><br><span class="hljs-keyword">SELECT</span><br>  (<span class="hljs-number">1</span> <span class="hljs-operator">-</span> variable_value <span class="hljs-operator">/</span> (<span class="hljs-keyword">SELECT</span> variable_value<br>     <span class="hljs-keyword">FROM</span> performance_schema.global_status<br>     <span class="hljs-keyword">WHERE</span> variable_name <span class="hljs-operator">=</span> <span class="hljs-string">&#x27;Innodb_buffer_pool_read_requests&#x27;</span>)) <span class="hljs-keyword">AS</span> hit_ratio<br><span class="hljs-keyword">FROM</span> performance_schema.global_status<br><span class="hljs-keyword">WHERE</span> variable_name <span class="hljs-operator">=</span> <span class="hljs-string">&#x27;Innodb_buffer_pool_reads&#x27;</span>;<br></code></pre></td></tr></table></figure>
+
+<p>配套参数：</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>默认值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>innodb_buffer_pool_size</code></td>
+<td><code>134217728</code>（128MB）</td>
+<td>必须是 <code>chunk_size × instances</code> 的整数倍</td>
+</tr>
+<tr>
+<td><code>innodb_buffer_pool_instances</code></td>
+<td>buffer pool ≥ 1GB 时为 8，否则 1</td>
+<td>拆成多个实例，减少互斥锁争用</td>
+</tr>
+<tr>
+<td><code>innodb_buffer_pool_chunk_size</code></td>
+<td><code>134217728</code>（128MB）</td>
+<td>在线调整的粒度</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>innodb_buffer_pool_size</code> 支持在线调整，但扩容时按 chunk 逐个分配，<strong>期间可能有性能抖动</strong>。生产环境尽量在低峰期改，且必须按 chunk 对齐，否则实例起不来。</p>
+</blockquote>
+<h2 id="三、redo-log-undo-log-binlog"><a href="#三、redo-log-undo-log-binlog" class="headerlink" title="三、redo log &#x2F; undo log &#x2F; binlog"></a>三、redo log &#x2F; undo log &#x2F; binlog</h2><p>三者的职责完全不同，混在一起记是常见误区。</p>
+<table>
+<thead>
+<tr>
+<th>日志</th>
+<th>层次</th>
+<th>作用</th>
+<th>写入时机</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>redo log</td>
+<td>InnoDB 引擎层</td>
+<td><strong>崩溃恢复</strong>：保证已提交事务不丢</td>
+<td>事务执行中持续写</td>
+</tr>
+<tr>
+<td>undo log</td>
+<td>InnoDB 引擎层</td>
+<td><strong>MVCC + 回滚</strong>：保留旧版本</td>
+<td>事务执行中持续写</td>
+</tr>
+<tr>
+<td>binlog</td>
+<td>Server 层</td>
+<td><strong>复制 + 时间点恢复</strong></td>
+<td>事务提交时写</td>
+</tr>
+</tbody></table>
+<h3 id="刷盘参数：性能与安全的分界线"><a href="#刷盘参数：性能与安全的分界线" class="headerlink" title="刷盘参数：性能与安全的分界线"></a>刷盘参数：性能与安全的分界线</h3><p><code>innodb_flush_log_at_trx_commit</code>（<strong>默认 1</strong>）：</p>
+<table>
+<thead>
+<tr>
+<th>值</th>
+<th>行为</th>
+<th>崩溃丢失</th>
+<th>性能</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>1</code></td>
+<td>每次提交都刷 redo log 并 <code>fsync</code></td>
+<td>不丢</td>
+<td>最低</td>
+</tr>
+<tr>
+<td><code>2</code></td>
+<td>每次提交写 OS 缓存，每秒 <code>fsync</code></td>
+<td>丢约 1 秒（OS 崩溃时）</td>
+<td>中</td>
+</tr>
+<tr>
+<td><code>0</code></td>
+<td>每秒写 + 刷一次</td>
+<td>丢约 1 秒（MySQL 崩溃也丢）</td>
+<td>最高</td>
+</tr>
+</tbody></table>
+<p><code>sync_binlog</code>（<strong>默认 1</strong>）：</p>
+<table>
+<thead>
+<tr>
+<th>值</th>
+<th>行为</th>
+<th>崩溃丢失</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>1</code></td>
+<td>每次提交都 <code>fsync</code> binlog</td>
+<td>不丢</td>
+</tr>
+<tr>
+<td><code>0</code></td>
+<td>交给 OS 决定</td>
+<td>可能丢</td>
+</tr>
+<tr>
+<td><code>N</code></td>
+<td>每 N 次提交 <code>fsync</code> 一次</td>
+<td>最多丢 N 个事务</td>
+</tr>
+</tbody></table>
+<p>常见组合：</p>
+<table>
+<thead>
+<tr>
+<th>组合</th>
+<th>场景</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>1</code> + <code>1</code></td>
+<td><strong>默认，金融级</strong></td>
+<td>两边都不丢，吞吐最低</td>
+</tr>
+<tr>
+<td><code>1</code> + <code>N</code>（如 1000）</td>
+<td>一般业务</td>
+<td>redo 不丢，binlog 可能丢，主从可能不一致</td>
+</tr>
+<tr>
+<td><code>2</code> + <code>1000</code></td>
+<td>高吞吐、可容忍秒级丢失</td>
+<td>常见于日志类写入</td>
+</tr>
+<tr>
+<td><code>0</code> + <code>0</code></td>
+<td>只用于压测 &#x2F; 可重建数据</td>
+<td>崩溃会丢数据</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>innodb_flush_log_at_trx_commit = 1</code> 配 <code>sync_binlog = 0</code> 是<strong>最危险的组合</strong>：崩溃后 redo 里的数据和 binlog 对不上，主从直接不一致。要么两个都是 1，要么明确接受丢失窗口。</p>
+</blockquote>
+<h3 id="redo-log-容量"><a href="#redo-log-容量" class="headerlink" title="redo log 容量"></a>redo log 容量</h3><p><code>innodb_log_file_size</code> 和 <code>innodb_log_files_in_group</code> <strong>在 MySQL 8.4 已弃用</strong>，由 <code>innodb_redo_log_capacity</code> 取代（8.0.30 引入，支持在线调整）。</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs sql"><span class="hljs-keyword">SHOW</span> VARIABLES <span class="hljs-keyword">LIKE</span> <span class="hljs-string">&#x27;innodb_redo_log_capacity&#x27;</span>;<br><span class="hljs-keyword">SET</span> <span class="hljs-keyword">GLOBAL</span> innodb_redo_log_capacity <span class="hljs-operator">=</span> <span class="hljs-number">4294967296</span>;   <span class="hljs-comment">-- 4GB</span><br></code></pre></td></tr></table></figure>
+
+<p>容量太小时，写突发会频繁触发 checkpoint，出现周期性的写入抖动。</p>
+<blockquote>
+<p>⚠️ 如果同时配置了 <code>innodb_redo_log_capacity</code> 和旧的 <code>innodb_log_file_size</code>，<strong>以前者为准</strong>；旧参数只在 <code>innodb_redo_log_capacity</code> 未定义时才参与容量计算。</p>
+</blockquote>
+<h2 id="四、连接与包大小"><a href="#四、连接与包大小" class="headerlink" title="四、连接与包大小"></a>四、连接与包大小</h2><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>默认值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>max_connections</code></td>
+<td><code>151</code></td>
+<td>最大并发连接数</td>
+</tr>
+<tr>
+<td><code>max_allowed_packet</code></td>
+<td><code>64M</code>（8.0 起）</td>
+<td>单个网络包上限，影响大字段和大批量导入</td>
+</tr>
+<tr>
+<td><code>wait_timeout</code></td>
+<td><code>28800</code>（8 小时）</td>
+<td>非交互连接空闲超时</td>
+</tr>
+<tr>
+<td><code>interactive_timeout</code></td>
+<td><code>28800</code></td>
+<td>交互式连接空闲超时</td>
+</tr>
+<tr>
+<td><code>thread_cache_size</code></td>
+<td>8.0 起按 <code>max_connections</code> 自动推算</td>
+<td>线程复用</td>
+</tr>
+</tbody></table>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs sql"><span class="hljs-keyword">SHOW</span> STATUS <span class="hljs-keyword">LIKE</span> <span class="hljs-string">&#x27;Threads_connected&#x27;</span>;<br><span class="hljs-keyword">SHOW</span> STATUS <span class="hljs-keyword">LIKE</span> <span class="hljs-string">&#x27;Max_used_connections&#x27;</span>;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>max_connections</code> 不是越大越好。每个连接都有独立的内存开销（排序缓冲、连接缓冲等），拉满会导致内存耗尽和上下文切换开销。<strong>用连接池控制并发，而不是靠调大上限。</strong></p>
+</blockquote>
+<p><code>max_allowed_packet</code> 的坑：客户端和服务端<strong>各有一份，取两者的较小值</strong>。导入大 SQL 文件报 <code>Packet too large</code> 时，两边都要调。</p>
+<h2 id="五、字符集与排序规则"><a href="#五、字符集与排序规则" class="headerlink" title="五、字符集与排序规则"></a>五、字符集与排序规则</h2><p>MySQL 8.0 起默认 <code>utf8mb4</code> + <code>utf8mb4_0900_ai_ci</code>。</p>
+<table>
+<thead>
+<tr>
+<th>字符集</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>utf8mb4</code></td>
+<td>✅ 真 UTF-8，支持 emoji 和 4 字节字符</td>
+</tr>
+<tr>
+<td><code>utf8mb3</code>（别名 <code>utf8</code>）</td>
+<td>⚠️ 最多 3 字节，<strong>别再用</strong></td>
+</tr>
+<tr>
+<td><code>latin1</code></td>
+<td>只适用于纯 ASCII 遗留库</td>
+</tr>
+</tbody></table>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs sql"><span class="hljs-keyword">SHOW</span> VARIABLES <span class="hljs-keyword">LIKE</span> <span class="hljs-string">&#x27;character_set_server&#x27;</span>;<br><span class="hljs-keyword">SHOW</span> VARIABLES <span class="hljs-keyword">LIKE</span> <span class="hljs-string">&#x27;collation_server&#x27;</span>;<br><br><span class="hljs-comment">-- 建库建表时显式指定，别依赖默认值</span><br><span class="hljs-keyword">CREATE</span> DATABASE app<br>  <span class="hljs-keyword">DEFAULT</span> <span class="hljs-keyword">CHARACTER SET</span> utf8mb4<br>  <span class="hljs-keyword">DEFAULT</span> <span class="hljs-keyword">COLLATE</span> utf8mb4_0900_ai_ci;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>排序规则不同的列之间无法走索引 JOIN</strong>。老库从 <code>utf8mb3</code> 迁到 <code>utf8mb4</code> 时，如果只改了部分表，关联查询会突然变慢 —— 因为比较时发生了隐式转换。</p>
+</blockquote>
+<h2 id="六、sql-mode-的严格模式"><a href="#六、sql-mode-的严格模式" class="headerlink" title="六、sql_mode 的严格模式"></a>六、sql_mode 的严格模式</h2><p>MySQL 8.4 默认 <code>sql_mode</code> 包含 6 个模式：</p>
+<figure class="highlight autohotkey"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs autohotkey"><span class="hljs-built_in">ONLY_FULL_GROUP_BY,</span>STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>模式</th>
+<th>作用</th>
+<th>关掉的风险</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>ONLY_FULL_GROUP_BY</code></td>
+<td><code>SELECT</code> 里的非聚合列必须在 <code>GROUP BY</code> 中</td>
+<td>查询结果不确定，<strong>最常被关掉的一个</strong></td>
+</tr>
+<tr>
+<td><code>STRICT_TRANS_TABLES</code></td>
+<td>非法值直接报错而非截断</td>
+<td>超长字符串被静默截断、数值溢出变边界值</td>
+</tr>
+<tr>
+<td><code>NO_ZERO_IN_DATE</code> &#x2F; <code>NO_ZERO_DATE</code></td>
+<td>禁止 <code>&#39;0000-00-00&#39;</code> 类日期</td>
+<td>写入无效日期，后续查询报错</td>
+</tr>
+<tr>
+<td><code>ERROR_FOR_DIVISION_BY_ZERO</code></td>
+<td>除零报错</td>
+<td>静默得到 <code>NULL</code></td>
+</tr>
+<tr>
+<td><code>NO_ENGINE_SUBSTITUTION</code></td>
+<td>引擎不可用时报错而非替换</td>
+<td>建表悄悄变成别的引擎</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 为了兼容老代码把 <code>sql_mode</code> 清空，是在<strong>把错误推迟到生产</strong>。另外 <code>NO_ZERO_IN_DATE</code>、<code>NO_ZERO_DATE</code>、<code>ERROR_FOR_DIVISION_BY_ZERO</code> 已被标记弃用，未来会并入严格模式 —— 依赖非严格行为的代码迟早要改。</p>
+</blockquote>
+<h2 id="七、参数组合的取舍"><a href="#七、参数组合的取舍" class="headerlink" title="七、参数组合的取舍"></a>七、参数组合的取舍</h2><table>
+<thead>
+<tr>
+<th>场景</th>
+<th><code>innodb_flush_log_at_trx_commit</code></th>
+<th><code>sync_binlog</code></th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>交易 &#x2F; 支付</td>
+<td><code>1</code></td>
+<td><code>1</code></td>
+<td>不允许丢</td>
+</tr>
+<tr>
+<td>常规业务</td>
+<td><code>1</code></td>
+<td><code>1</code></td>
+<td>默认即可，先把 SQL 优化好</td>
+</tr>
+<tr>
+<td>日志 &#x2F; 埋点</td>
+<td><code>2</code></td>
+<td><code>1000</code></td>
+<td>可容忍秒级丢失</td>
+</tr>
+<tr>
+<td>只读从库</td>
+<td><code>1</code></td>
+<td>—</td>
+<td>写入少，重点在 Buffer Pool</td>
+</tr>
+<tr>
+<td>压测 &#x2F; 临时库</td>
+<td><code>0</code></td>
+<td><code>0</code></td>
+<td><strong>绝不上生产</strong></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 用 <code>2</code> 或 <code>0</code> 换来的吞吐提升通常只有百分之几十，而一次崩溃丢数据是<strong>不可逆</strong>的。除非业务明确说「丢了可以重建」，否则保持默认。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 还没排查慢查询就先动参数</li>
+<li><input disabled="" type="checkbox"> <code>innodb_buffer_pool_size</code> 保持默认 128MB 跑生产</li>
+<li><input disabled="" type="checkbox"> <code>innodb_buffer_pool_size</code> 改完没按 chunk 对齐，实例起不来</li>
+<li><input disabled="" type="checkbox"> <code>innodb_flush_log_at_trx_commit = 1</code> 配 <code>sync_binlog = 0</code></li>
+<li><input disabled="" type="checkbox"> 还在用已弃用的 <code>innodb_log_file_size</code></li>
+<li><input disabled="" type="checkbox"> 为了「提升并发」盲目调大 <code>max_connections</code></li>
+<li><input disabled="" type="checkbox"> <code>max_allowed_packet</code> 只调了服务端，客户端没调</li>
+<li><input disabled="" type="checkbox"> 新表还用 <code>utf8</code>（即 <code>utf8mb3</code>）</li>
+<li><input disabled="" type="checkbox"> 字符集 &#x2F; 排序规则不一致导致 JOIN 不走索引</li>
+<li><input disabled="" type="checkbox"> 为了兼容老代码把 <code>sql_mode</code> 清空</li>
+<li><input disabled="" type="checkbox"> 改了参数没观察完整业务周期就下结论</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://dev.mysql.com/doc/refman/8.4/en/innodb-parameters.html">MySQL 8.4 · InnoDB 参数</a> · <a target="_blank" rel="noopener" href="https://dev.mysql.com/doc/refman/8.4/en/server-system-variables.html">MySQL 8.4 · 服务器系统变量</a> · <a target="_blank" rel="noopener" href="https://dev.mysql.com/doc/refman/8.4/en/sql-mode.html">MySQL 8.4 · 服务器 SQL 模式</a> · <a target="_blank" rel="noopener" href="https://dev.mysql.com/doc/refman/8.4/en/innodb-redo-log.html">MySQL 8.4 · Redo Log</a> · <a target="_blank" rel="noopener" href="https://dev.mysql.com/doc/refman/8.4/en/innodb-storage-engine.html">MySQL 8.4 · InnoDB 存储引擎</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/mysql/" class="category-chain-item">mysql</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/mysql/" class="print-no-link">#mysql</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 038 · MySQL（一）：存储引擎与参数调优</div>
+      <div>https://ethan-iopasd.github.io/2026/09/30/每日技术博客038-MySQL存储引擎与调优/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年9月30日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2039-MySQL%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6/" title="每日技术博客 039 · MySQL（二）：主从复制与高可用">
+                        <span class="hidden-mobile">每日技术博客 039 · MySQL（二）：主从复制与高可用</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

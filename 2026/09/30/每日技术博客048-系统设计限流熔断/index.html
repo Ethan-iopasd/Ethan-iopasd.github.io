@@ -1,0 +1,1064 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-09-30 · 第 048 篇 系统设计系列第一篇。四种限流算法的差别在哪、熔断的三个状态怎么切、重试为什么必须加抖动 —— 这三个是「服务被自己人打挂」的主要成因。  📚 系统设计 系列目录   章节 主题 状态    一 限流、熔断与降级 本篇   二 消息队列与最终一致性 已发布    开场：稳定性三件套的分工   手段 解决的问题 生效位置    限流 别让">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 048 · 系统设计（一）：限流、熔断与降级">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2048-%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%E9%99%90%E6%B5%81%E7%86%94%E6%96%AD/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-09-30 · 第 048 篇 系统设计系列第一篇。四种限流算法的差别在哪、熔断的三个状态怎么切、重试为什么必须加抖动 —— 这三个是「服务被自己人打挂」的主要成因。  📚 系统设计 系列目录   章节 主题 状态    一 限流、熔断与降级 本篇   二 消息队列与最终一致性 已发布    开场：稳定性三件套的分工   手段 解决的问题 生效位置    限流 别让">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-09-30T15:20:00.000Z">
+<meta property="article:modified_time" content="2026-09-30T05:54:47.330Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="system-design">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 048 · 系统设计（一）：限流、熔断与降级 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 048 · 系统设计（一）：限流、熔断与降级"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-09-30 23:20" pubdate>
+          2026年9月30日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          3.1k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          26 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 048 · 系统设计（一）：限流、熔断与降级</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-09-30 · 第 048 篇</p>
+<p>系统设计系列第一篇。四种限流算法的差别在哪、熔断的三个状态怎么切、重试为什么必须加抖动 —— 这三个是「服务被自己人打挂」的主要成因。</p>
+</blockquote>
+<h2 id="📚-系统设计-系列目录"><a href="#📚-系统设计-系列目录" class="headerlink" title="📚 系统设计 系列目录"></a>📚 系统设计 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>限流、熔断与降级</td>
+<td><strong>本篇</strong></td>
+</tr>
+<tr>
+<td>二</td>
+<td>消息队列与最终一致性</td>
+<td>已发布</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：稳定性三件套的分工"><a href="#开场：稳定性三件套的分工" class="headerlink" title="开场：稳定性三件套的分工"></a>开场：稳定性三件套的分工</h2><table>
+<thead>
+<tr>
+<th>手段</th>
+<th>解决的问题</th>
+<th>生效位置</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>限流</strong></td>
+<td>别让请求<strong>进来</strong>太多</td>
+<td>入口 &#x2F; 网关 &#x2F; 单接口</td>
+</tr>
+<tr>
+<td><strong>熔断</strong></td>
+<td>下游挂了别<strong>陪着一起挂</strong></td>
+<td>调用方</td>
+</tr>
+<tr>
+<td><strong>降级</strong></td>
+<td>挂了也要<strong>返回点东西</strong></td>
+<td>调用方 &#x2F; 业务层</td>
+</tr>
+</tbody></table>
+<p>顺序是：<strong>限流挡在门口 → 熔断断开坏依赖 → 降级给出兜底响应。</strong></p>
+<h2 id="一、四种限流算法"><a href="#一、四种限流算法" class="headerlink" title="一、四种限流算法"></a>一、四种限流算法</h2><table>
+<thead>
+<tr>
+<th>算法</th>
+<th>原理</th>
+<th>优点</th>
+<th>缺陷</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>固定窗口</td>
+<td>按时间窗口计数，窗口切换清零</td>
+<td>实现最简单（一个计数器）</td>
+<td><strong>窗口边界双倍突发</strong>：0.9s 打满 100，1.1s 又打满 100</td>
+</tr>
+<tr>
+<td>滑动窗口</td>
+<td>用多个小窗口（或 Redis ZSET）算最近 N 秒</td>
+<td>边界平滑，可调精度</td>
+<td>内存 &#x2F; 计算开销大，精度与格子数成正比</td>
+</tr>
+<tr>
+<td>漏桶 Leaky Bucket</td>
+<td>请求进桶，以<strong>恒定速率</strong>流出</td>
+<td>输出速率绝对平滑</td>
+<td><strong>无法应对突发</strong>（有容量时也只能匀速出）</td>
+</tr>
+<tr>
+<td>令牌桶 Token Bucket</td>
+<td>以固定速率发令牌，请求取令牌</td>
+<td><strong>允许突发</strong>（桶里有存量令牌就能一次放行）</td>
+<td>需要处理桶容量与速率的配合</td>
+</tr>
+</tbody></table>
+<figure class="highlight tap"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs tap">固定窗口边界问题：<br>  窗口1 [0s ─────────── 1s]  窗口2 [1s ─────────── 2s]<br>        0.9s 放行<span class="hljs-number"> 100 </span>条          1.1s 放行<span class="hljs-number"> 100 </span>条<br>        → 0.9s ~ 1.1s 这 200ms 内实际放行了<span class="hljs-number"> 200 </span>条，是限额的<span class="hljs-number"> 2 </span>倍<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-comment">// 令牌桶：Guava RateLimiter 是单机实现，桶容量 = maxBurstSeconds * permitsPerSecond</span><br><span class="hljs-type">RateLimiter</span> <span class="hljs-variable">limiter</span> <span class="hljs-operator">=</span> RateLimiter.create(<span class="hljs-number">100</span>);      <span class="hljs-comment">// 100 QPS</span><br>limiter.acquire();                                  <span class="hljs-comment">// 阻塞直到拿到令牌</span><br><span class="hljs-keyword">if</span> (limiter.tryAcquire(<span class="hljs-number">200</span>, TimeUnit.MILLISECONDS)) &#123;  <span class="hljs-comment">// 带超时</span><br>    <span class="hljs-comment">// 处理</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>固定窗口的边界双倍突发是它的硬伤，不是「可以忽略的误差」。</strong> 只要流量是脉冲式的（秒杀、定时任务触发），它就一定会漏。要么用滑动窗口，要么在固定窗口里额外加一个「上一窗口的尾部计数」（Redis 的 <code>INCR</code> + <code>EXPIRE</code> 做不了，得用 ZSET）。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>RateLimiter.create(100)</code> 得到的桶容量默认是 100（1 秒的存量）</strong>，也就是<strong>允许一次性放行 100 个请求</strong>。要限制突发就显式指定 <code>warmupPeriod</code>，或者用 <code>SmoothBursty</code> 的容量控制。很多人以为设了 100 QPS 就永远不会超过 100，其实瞬间能过 100。</p>
+</blockquote>
+<h3 id="限流维度"><a href="#限流维度" class="headerlink" title="限流维度"></a>限流维度</h3><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>实现</th>
+<th>注意</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>IP</td>
+<td>网关按 <code>X-Forwarded-For</code> 第一段计数</td>
+<td><strong>NAT 后面一整个公司共享 IP</strong>，容易误伤</td>
+</tr>
+<tr>
+<td>用户</td>
+<td>按 userId &#x2F; token 计数</td>
+<td>未登录用户怎么算（按 IP + UA 兜底）</td>
+</tr>
+<tr>
+<td>接口</td>
+<td>每个 path 独立配额</td>
+<td>同一 path 不同参数要不要拆（如按商品 ID）</td>
+</tr>
+<tr>
+<td>租户</td>
+<td>多租户 SaaS 必做</td>
+<td>防止单个租户吃光全局配额</td>
+</tr>
+<tr>
+<td>全局</td>
+<td>集群总配额</td>
+<td>需要中心化存储，见下</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>X-Forwarded-For</code> 可以伪造。</strong> 只信任<strong>最后一跳可信代理</strong>写入的值，取倒数第一个（或按已知代理层数从右往左数），<strong>绝不能直接取最左边那个</strong>。取错等于限流形同虚设。</p>
+</blockquote>
+<h3 id="单机-vs-分布式限流"><a href="#单机-vs-分布式限流" class="headerlink" title="单机 vs 分布式限流"></a>单机 vs 分布式限流</h3><table>
+<thead>
+<tr>
+<th>方案</th>
+<th>精度</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>单机内存（Guava &#x2F; Sentinel 单机模式）</td>
+<td><code>集群QPS / 节点数</code> 近似</td>
+<td>节点数固定、要求不严</td>
+</tr>
+<tr>
+<td>Redis + Lua</td>
+<td>全局精确</td>
+<td>需要严格全局配额</td>
+</tr>
+<tr>
+<td>网关层限流（Nginx <code>limit_req</code> &#x2F; APISIX &#x2F; Sentinel 集群流控）</td>
+<td>全局精确</td>
+<td>推荐，把限流推到最外层</td>
+</tr>
+</tbody></table>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs lua"><span class="hljs-comment">-- 滑动窗口：Redis ZSET，key 维度自由组合（user:123 或 ip:1.2.3.4）</span><br><span class="hljs-comment">-- KEYS[1] = 限流 key   ARGV[1] = 窗口毫秒  ARGV[2] = 限额  ARGV[3] = 当前时间戳ms</span><br><span class="hljs-keyword">local</span> now = <span class="hljs-built_in">tonumber</span>(ARGV[<span class="hljs-number">3</span>])<br><span class="hljs-keyword">local</span> window = <span class="hljs-built_in">tonumber</span>(ARGV[<span class="hljs-number">1</span>])<br><span class="hljs-keyword">local</span> limit = <span class="hljs-built_in">tonumber</span>(ARGV[<span class="hljs-number">2</span>])<br>redis.call(<span class="hljs-string">&#x27;ZREMRANGEBYSCORE&#x27;</span>, KEYS[<span class="hljs-number">1</span>], <span class="hljs-number">0</span>, now - window)   <span class="hljs-comment">-- 清理过期</span><br><span class="hljs-keyword">local</span> count = redis.call(<span class="hljs-string">&#x27;ZCARD&#x27;</span>, KEYS[<span class="hljs-number">1</span>])<br><span class="hljs-keyword">if</span> count &lt; limit <span class="hljs-keyword">then</span><br>    redis.call(<span class="hljs-string">&#x27;ZADD&#x27;</span>, KEYS[<span class="hljs-number">1</span>], now, now .. <span class="hljs-string">&#x27;-&#x27;</span> .. <span class="hljs-built_in">math</span>.<span class="hljs-built_in">random</span>(<span class="hljs-number">100000</span>))<br>    redis.call(<span class="hljs-string">&#x27;PEXPIRE&#x27;</span>, KEYS[<span class="hljs-number">1</span>], window)<br>    <span class="hljs-keyword">return</span> <span class="hljs-number">1</span><br><span class="hljs-keyword">end</span><br><span class="hljs-keyword">return</span> <span class="hljs-number">0</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>必须用 Lua 保证「读计数 + 判断 + 写入」的原子性。</strong> 分两条命令做的话，并发下会超发。另外 ZSET 的 member 要带随机后缀，否则同一毫秒的请求会互相覆盖（<code>ZADD</code> 同 member 是更新 score）。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>Redis 限流本身会成为瓶颈和单点。</strong> 每次请求一次 Redis 往返，高 QPS 下 Redis 先被打满。<strong>工程上的做法是「本地令牌桶 + 定期向 Redis 批量领令牌」</strong> —— 精度略降，但把 Redis 压力降到 1&#x2F;N。</p>
+</blockquote>
+<h3 id="限流后的响应"><a href="#限流后的响应" class="headerlink" title="限流后的响应"></a>限流后的响应</h3><figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs http"><span class="hljs-meta">HTTP/1.1</span> <span class="hljs-number">429</span> Too Many Requests<br><span class="hljs-attribute">Retry-After</span><span class="hljs-punctuation">: </span>30<br><span class="hljs-attribute">X-RateLimit-Limit</span><span class="hljs-punctuation">: </span>100<br><span class="hljs-attribute">X-RateLimit-Remaining</span><span class="hljs-punctuation">: </span>0<br><span class="hljs-attribute">X-RateLimit-Reset</span><span class="hljs-punctuation">: </span>1696147200<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>限流必须返回 429 + <code>Retry-After</code>，不要返回 403 或 200。</strong> 客户端和 SDK 靠 429 决定退避重试；返回 403 会让客户端认为「永久无权限」直接放弃，或者更糟 —— 一直重试。</p>
+</blockquote>
+<h2 id="二、熔断"><a href="#二、熔断" class="headerlink" title="二、熔断"></a>二、熔断</h2><h3 id="三个状态"><a href="#三个状态" class="headerlink" title="三个状态"></a>三个状态</h3><figure class="highlight inform7"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs inform7">         失败率超阈值<br><span class="hljs-keyword">CLOSED</span> ───────────────▶ <span class="hljs-keyword">OPEN</span><br>  ▲                      │ 等待 waitDuration<br>  │  探测成功             ▼<br>  └──────────────── HALF_OPEN<br>     探测失败 → 回 <span class="hljs-keyword">OPEN</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>状态</th>
+<th>行为</th>
+<th>切换条件</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>CLOSED</strong></td>
+<td>正常放行，统计失败率</td>
+<td>窗口内失败率 ≥ 阈值 → OPEN</td>
+</tr>
+<tr>
+<td><strong>OPEN</strong></td>
+<td><strong>直接失败，不发起调用</strong>（这是熔断的核心价值）</td>
+<td>等待 <code>waitDurationInOpenState</code> → HALF_OPEN</td>
+</tr>
+<tr>
+<td><strong>HALF_OPEN</strong></td>
+<td>放行少量探测请求</td>
+<td>达到阈值成功率 → CLOSED；否则 → OPEN</td>
+</tr>
+</tbody></table>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-comment"># Resilience4j 默认值（不配就是这些）</span><br><span class="hljs-attr">resilience4j.circuitbreaker:</span><br>  <span class="hljs-attr">instances:</span><br>    <span class="hljs-attr">backend:</span><br>      <span class="hljs-attr">slidingWindowType:</span> <span class="hljs-string">COUNT_BASED</span><br>      <span class="hljs-attr">slidingWindowSize:</span> <span class="hljs-number">100</span>                    <span class="hljs-comment"># 最近 100 次调用</span><br>      <span class="hljs-attr">minimumNumberOfCalls:</span> <span class="hljs-number">100</span>                 <span class="hljs-comment"># 样本不足不熔断</span><br>      <span class="hljs-attr">failureRateThreshold:</span> <span class="hljs-number">50</span>                  <span class="hljs-comment"># 失败率 ≥ 50% 就熔断</span><br>      <span class="hljs-attr">slowCallRateThreshold:</span> <span class="hljs-number">100</span>                <span class="hljs-comment"># 慢调用占比阈值</span><br>      <span class="hljs-attr">slowCallDurationThreshold:</span> <span class="hljs-string">60s</span>            <span class="hljs-comment"># 超过这个算慢调用</span><br>      <span class="hljs-attr">permittedNumberOfCallsInHalfOpenState:</span> <span class="hljs-number">10</span> <span class="hljs-comment"># 半开放行 10 个</span><br>      <span class="hljs-attr">waitDurationInOpenState:</span> <span class="hljs-string">60s</span>              <span class="hljs-comment"># OPEN 停留 60 秒</span><br>      <span class="hljs-attr">automaticTransitionFromOpenToHalfOpenEnabled:</span> <span class="hljs-literal">false</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>minimumNumberOfCalls</code> 是最容易被忽略的参数。</strong> 如果它等于窗口大小（默认 100），那么在只有 3 个请求时<strong>永远不会熔断</strong>。低流量接口必须显式调小这个值，否则熔断器形同虚设。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>OPEN</code> 状态必须「快速失败」，不能「等待超时」。</strong> 熔断的意义是<strong>立刻返回错误</strong>，省掉连接建立、等待超时的开销。如果 OPEN 后还去发起调用等 3 秒超时，那和没熔断一样 —— 线程照样被占满。</p>
+</blockquote>
+<h3 id="阈值怎么设"><a href="#阈值怎么设" class="headerlink" title="阈值怎么设"></a>阈值怎么设</h3><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>设太小的后果</th>
+<th>设太大的后果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>failureRateThreshold</code></td>
+<td>偶发抖动就熔断，误伤</td>
+<td>下游已经挂了才熔断，保护太晚</td>
+</tr>
+<tr>
+<td><code>slidingWindowSize</code></td>
+<td>样本太少，统计噪声大</td>
+<td>反应迟钝，滞后</td>
+</tr>
+<tr>
+<td><code>waitDurationInOpenState</code></td>
+<td>下游还没恢复就放流量，反复打挂</td>
+<td>恢复后长时间不恢复流量</td>
+</tr>
+<tr>
+<td>慢调用阈值</td>
+<td>正常慢请求被判为失败</td>
+<td>慢到拖垮线程池也不熔断</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>熔断要按「依赖」而不是按「接口」配置。</strong> 同一个下游服务的所有接口共用一个熔断器（否则一个接口的故障不会触发保护）；反过来，<strong>不同下游必须用不同熔断器</strong>，否则 A 挂了会连累对 B 的调用被一起断掉。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>超时（Timeout）必须在熔断之前生效。</strong> 没有超时，请求会一直挂在连接上，熔断器根本统计不到「失败」。<strong>超时是熔断的前置条件</strong>，先设 <code>connectTimeout</code> &#x2F; <code>readTimeout</code>，再谈熔断。</p>
+</blockquote>
+<h3 id="隔离"><a href="#隔离" class="headerlink" title="隔离"></a>隔离</h3><table>
+<thead>
+<tr>
+<th>方式</th>
+<th>机制</th>
+<th>特点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>线程池隔离</strong></td>
+<td>每个依赖一个独立线程池</td>
+<td>强隔离，支持超时中断；<strong>线程切换开销大</strong></td>
+</tr>
+<tr>
+<td><strong>信号量隔离</strong></td>
+<td>计数器限并发</td>
+<td>无额外线程，开销小；<strong>无法中断阻塞调用</strong></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>信号量隔离对「阻塞式 IO 超时」无能为力</strong> —— 信号量只能限制并发数，线程还是卡在那里等。要能主动中断，必须用线程池隔离。Hystrix 默认线程池隔离，Sentinel 默认信号量，<strong>这个差别决定了它们对慢调用的处理能力。</strong></p>
+</blockquote>
+<h2 id="三、降级"><a href="#三、降级" class="headerlink" title="三、降级"></a>三、降级</h2><table>
+<thead>
+<tr>
+<th>策略</th>
+<th>做法</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>兜底数据</strong></td>
+<td>返回缓存 &#x2F; 默认值 &#x2F; 空集合</td>
+<td>推荐位挂了返回热门榜</td>
+</tr>
+<tr>
+<td><strong>功能降级</strong></td>
+<td>关掉非核心功能</td>
+<td>关闭实时库存，只显示「有货&#x2F;无货」</td>
+</tr>
+<tr>
+<td><strong>读降级</strong></td>
+<td>降级到只读</td>
+<td>写入口关掉，读走缓存</td>
+</tr>
+<tr>
+<td><strong>异步化</strong></td>
+<td>同步改异步，先返回「处理中」</td>
+<td>下单先返回，异步扣库存</td>
+</tr>
+<tr>
+<td><strong>开关</strong></td>
+<td>配置中心热开关</td>
+<td>一键关掉某功能</td>
+</tr>
+</tbody></table>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">try</span> &#123;<br>    <span class="hljs-keyword">return</span> remoteService.getRecommend(userId);<br>&#125; <span class="hljs-keyword">catch</span> (Exception e) &#123;<br>    <span class="hljs-comment">// 降级：返回兜底数据，必须也有超时，不能无限等</span><br>    <span class="hljs-keyword">return</span> fallbackCache.get(userId, () -&gt; Collections.emptyList());<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>降级路径必须比主路径更可靠。</strong> 兜底数据来自同一个挂掉的依赖，或者降级逻辑本身还会抛异常，那降级就是灾难放大器。<strong>降级分支里的代码要尽可能简单：内存缓存 + 静态默认值，不要有远程调用。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>降级要能观测。</strong> 每次降级都打点（metric + 日志），否则「接口一直返回空列表」会持续几周没人发现 —— 因为从监控上看**成功率是 100%**。</p>
+</blockquote>
+<h2 id="四、重试的正确姿势"><a href="#四、重试的正确姿势" class="headerlink" title="四、重试的正确姿势"></a>四、重试的正确姿势</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># 指数退避 + 抖动（full jitter）+ 上限</span><br><span class="hljs-keyword">import</span> random, time<br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">retry</span>(<span class="hljs-params">fn, max_attempts=<span class="hljs-number">4</span>, base=<span class="hljs-number">0.1</span>, cap=<span class="hljs-number">5.0</span></span>):<br>    <span class="hljs-keyword">for</span> attempt <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(max_attempts):<br>        <span class="hljs-keyword">try</span>:<br>            <span class="hljs-keyword">return</span> fn()<br>        <span class="hljs-keyword">except</span> RetryableError:<br>            <span class="hljs-keyword">if</span> attempt == max_attempts - <span class="hljs-number">1</span>:<br>                <span class="hljs-keyword">raise</span><br>            ceiling = <span class="hljs-built_in">min</span>(cap, base * (<span class="hljs-number">2</span> ** attempt))<br>            time.sleep(random.uniform(<span class="hljs-number">0</span>, ceiling))   <span class="hljs-comment"># full jitter</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>要点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>只重试幂等操作</strong></td>
+<td>GET &#x2F; PUT &#x2F; DELETE 可以，POST 要谨慎（需幂等键）</td>
+</tr>
+<tr>
+<td><strong>只重试可重试错误</strong></td>
+<td>5xx、超时、连接失败可以；<strong>4xx 绝不重试</strong>（重试也不会成功）</td>
+</tr>
+<tr>
+<td><strong>指数退避</strong></td>
+<td>间隔 <code>base * 2^n</code>，避免持续施压</td>
+</tr>
+<tr>
+<td><strong>加抖动</strong></td>
+<td>所有客户端同时重试 &#x3D; <strong>重试风暴</strong>，会把下游彻底打挂</td>
+</tr>
+<tr>
+<td><strong>限制次数和总时长</strong></td>
+<td>重试预算不能超过上游超时</td>
+</tr>
+<tr>
+<td><strong>限制重试放大倍数</strong></td>
+<td>3 层调用各重试 3 次 &#x3D; 27 倍流量</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>不加抖动的指数退避和没退避差不多。</strong> 下游刚恢复，所有客户端在同一时刻（第 1s、第 2s、第 4s）一起重试，形成周期性的脉冲洪峰，直接把下游再打挂一次 —— 这叫<strong>重试风暴 &#x2F; 惊群</strong>。**<code>full jitter</code>（<code>random(0, ceiling)</code>）是最简单有效的解法。**</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>重试必须在最外层做，不能在每一层都做。</strong> 网关重试 + 服务重试 + SDK 重试，一次用户请求可能变成 27 次下游调用。<strong>约定「只在调用方的最外层重试一次」</strong>，或者用 <code>Retry-After</code> &#x2F; 请求头传递重试预算。</p>
+</blockquote>
+<h3 id="超时预算"><a href="#超时预算" class="headerlink" title="超时预算"></a>超时预算</h3><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-comment"># 用户请求总超时 3s，逐层递减</span><br><span class="hljs-attr">gateway:  timeout:</span> <span class="hljs-string">3000ms</span><br><span class="hljs-attr">service:  timeout:</span> <span class="hljs-string">2500ms</span><br><span class="hljs-attr">cache:    timeout:</span> <span class="hljs-string">100ms</span><br><span class="hljs-attr">db:       timeout:</span> <span class="hljs-string">500ms</span><br><span class="hljs-attr">upstream: timeout:</span> <span class="hljs-string">1000ms</span>     <span class="hljs-comment"># 含 1 次重试：500ms + 500ms</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>原则</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>总超时 &lt; 上游超时</strong></td>
+<td>每层都要比调用自己的那一层短</td>
+</tr>
+<tr>
+<td><strong>留出预算</strong></td>
+<td>别把 3s 全给下游，自己还要序列化、写日志</td>
+</tr>
+<tr>
+<td><strong>超时必须可配</strong></td>
+<td>硬编码的超时在故障时会成为新的故障点</td>
+</tr>
+<tr>
+<td><strong>超时要小于上游的容忍度</strong></td>
+<td>用户能等 3 秒，你就不能设 10 秒</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>「每层设 3 秒」是最常见的错误。</strong> 网关 3s、服务 3s、DB 3s，那么最坏情况下一个请求要 9 秒才返回，而用户早就走了 —— 但线程还被占着，连接池被耗尽，<strong>雪崩就是这么来的</strong>。<strong>超时必须逐层递减。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>重试次数 × 单次超时 ≤ 上层超时。</strong> 上游给你 1 秒，你设「超时 800ms + 重试 2 次」，最坏要 2.4 秒，上层早就超时了 —— 你还在重试，白烧资源，还可能触发上层的熔断。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 用固定窗口限流，秒杀场景下边界处放行双倍流量</li>
+<li><input disabled="" type="checkbox"> 以为设了 <code>RateLimiter.create(100)</code> 就不会有突发（桶里默认有 1 秒存量）</li>
+<li><input disabled="" type="checkbox"> 直接取 <code>X-Forwarded-For</code> 最左边的 IP 做限流（可伪造）</li>
+<li><input disabled="" type="checkbox"> 分布式限流不用 Lua，并发下超发</li>
+<li><input disabled="" type="checkbox"> 每次请求都打 Redis 做限流，把 Redis 变成瓶颈</li>
+<li><input disabled="" type="checkbox"> 限流返回 403 而不是 429，客户端不知道要退避</li>
+<li><input disabled="" type="checkbox"> 熔断器 <code>minimumNumberOfCalls</code> 没调小，低流量接口永远不熔断</li>
+<li><input disabled="" type="checkbox"> 熔断后还去发起调用等超时（应该立即失败）</li>
+<li><input disabled="" type="checkbox"> 所有下游共用一个熔断器，一个挂了全断</li>
+<li><input disabled="" type="checkbox"> 没设超时就想靠熔断保护（熔断统计不到没有超时的失败）</li>
+<li><input disabled="" type="checkbox"> 用信号量隔离却期望能中断阻塞的 IO 调用</li>
+<li><input disabled="" type="checkbox"> 降级兜底数据来自同一个挂掉的依赖，降级也失败</li>
+<li><input disabled="" type="checkbox"> 降级不打点，接口一直返回空值却没人发现</li>
+<li><input disabled="" type="checkbox"> 对 4xx 也做重试</li>
+<li><input disabled="" type="checkbox"> 指数退避不加抖动，形成重试风暴把下游二次打挂</li>
+<li><input disabled="" type="checkbox"> 每层都重试，放大成 N 倍流量</li>
+<li><input disabled="" type="checkbox"> 各层超时都设成同一个值，最坏耗时叠加导致线程池耗尽</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://resilience4j.readme.io/docs/circuitbreaker">Resilience4j · CircuitBreaker 配置</a> · <a target="_blank" rel="noopener" href="https://resilience4j.readme.io/docs/ratelimiter">Resilience4j · RateLimiter 配置</a> · <a target="_blank" rel="noopener" href="https://sre.google/sre-book/handling-overload/">Google SRE Book · Handling Overload</a> · <a target="_blank" rel="noopener" href="https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/">AWS · Exponential Backoff And Jitter</a> · <a target="_blank" rel="noopener" href="https://sentinelguard.io/zh-cn/docs/flow-control.html">Sentinel · 流量控制</a> · <a target="_blank" rel="noopener" href="https://www.rfc-editor.org/rfc/rfc9110.html">RFC 9110 · 429 Too Many Requests</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/system-design/" class="category-chain-item">system-design</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/system-design/" class="print-no-link">#system-design</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 048 · 系统设计（一）：限流、熔断与降级</div>
+      <div>https://ethan-iopasd.github.io/2026/09/30/每日技术博客048-系统设计限流熔断/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年9月30日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2049-%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/" title="每日技术博客 049 · 系统设计（二）：消息队列与最终一致性">
+                        <span class="hidden-mobile">每日技术博客 049 · 系统设计（二）：消息队列与最终一致性</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

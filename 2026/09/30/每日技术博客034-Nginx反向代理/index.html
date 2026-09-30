@@ -1,0 +1,1104 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-09-30 · 第 034 篇 proxy_pass 那个斜杠到底加不加、必须透传哪些头、upstream 怎么选后端、WebSocket 怎么升 —— Nginx 反代最容易踩的几处。  📚 Nginx 系列目录   章节 主题 状态    一 反向代理与负载均衡 本篇   二 性能调优与故障排查 已发布    开场：proxy_pass 的斜杠决定一切locat">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 034 · Nginx（一）：反向代理与负载均衡">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2034-Nginx%E5%8F%8D%E5%90%91%E4%BB%A3%E7%90%86/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-09-30 · 第 034 篇 proxy_pass 那个斜杠到底加不加、必须透传哪些头、upstream 怎么选后端、WebSocket 怎么升 —— Nginx 反代最容易踩的几处。  📚 Nginx 系列目录   章节 主题 状态    一 反向代理与负载均衡 本篇   二 性能调优与故障排查 已发布    开场：proxy_pass 的斜杠决定一切locat">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-09-30T13:00:00.000Z">
+<meta property="article:modified_time" content="2026-09-30T05:42:25.696Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="nginx">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 034 · Nginx（一）：反向代理与负载均衡 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 034 · Nginx（一）：反向代理与负载均衡"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-09-30 21:00" pubdate>
+          2026年9月30日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.6k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          22 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 034 · Nginx（一）：反向代理与负载均衡</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-09-30 · 第 034 篇</p>
+<p><code>proxy_pass</code> 那个斜杠到底加不加、必须透传哪些头、upstream 怎么选后端、WebSocket 怎么升 —— Nginx 反代最容易踩的几处。</p>
+</blockquote>
+<h2 id="📚-Nginx-系列目录"><a href="#📚-Nginx-系列目录" class="headerlink" title="📚 Nginx 系列目录"></a>📚 Nginx 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>反向代理与负载均衡</td>
+<td><strong>本篇</strong></td>
+</tr>
+<tr>
+<td>二</td>
+<td>性能调优与故障排查</td>
+<td>已发布</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：proxy-pass-的斜杠决定一切"><a href="#开场：proxy-pass-的斜杠决定一切" class="headerlink" title="开场：proxy_pass 的斜杠决定一切"></a>开场：<code>proxy_pass</code> 的斜杠决定一切</h2><p><code>location</code> 匹配到的那段路径，是<strong>被替换掉</strong>还是<strong>原样透传</strong>，只取决于 <code>proxy_pass</code> 里<strong>有没有写 URI</strong>。这就是那个被反复问的「斜杠问题」的答案。</p>
+<h2 id="一、正向代理-vs-反向代理"><a href="#一、正向代理-vs-反向代理" class="headerlink" title="一、正向代理 vs 反向代理"></a>一、正向代理 vs 反向代理</h2><table>
+<thead>
+<tr>
+<th></th>
+<th>正向代理</th>
+<th>反向代理</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>代表谁</td>
+<td><strong>客户端</strong></td>
+<td><strong>服务端</strong></td>
+</tr>
+<tr>
+<td>客户端知道目标吗</td>
+<td>知道，但连不上，让代理去连</td>
+<td>不知道，以为代理就是服务端</td>
+</tr>
+<tr>
+<td>典型场景</td>
+<td>科学上网、公司出口代理</td>
+<td>Nginx 暴露后端服务</td>
+</tr>
+<tr>
+<td>配置方</td>
+<td>客户端</td>
+<td>服务端</td>
+</tr>
+</tbody></table>
+<figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><code class="hljs nginx"><span class="hljs-comment"># 正向代理（客户端把完整 URL 发给代理）</span><br><span class="hljs-section">server</span> &#123;<br>    <span class="hljs-attribute">listen</span> <span class="hljs-number">8080</span>;<br>    <span class="hljs-section">location</span> / &#123;<br>        <span class="hljs-attribute">resolver</span> <span class="hljs-number">8.8.8.8</span>;<br>        <span class="hljs-attribute">proxy_pass</span> <span class="hljs-variable">$scheme</span>://<span class="hljs-variable">$http_host</span><span class="hljs-variable">$request_uri</span>;<br>    &#125;<br>&#125;<br><br><span class="hljs-comment"># 反向代理（客户端只知道 Nginx 的地址）</span><br><span class="hljs-section">server</span> &#123;<br>    <span class="hljs-attribute">listen</span> <span class="hljs-number">80</span>;<br>    <span class="hljs-section">location</span> /api/ &#123;<br>        <span class="hljs-attribute">proxy_pass</span> http://127.0.0.1:8080/;<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<h2 id="二、proxy-pass-的-URI-规则"><a href="#二、proxy-pass-的-URI-规则" class="headerlink" title="二、proxy_pass 的 URI 规则"></a>二、<code>proxy_pass</code> 的 URI 规则</h2><p>判定依据只有一个：**<code>proxy_pass</code> 后面有没有写路径**。</p>
+<table>
+<thead>
+<tr>
+<th>写法</th>
+<th>传递到上游的 URI</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>proxy_pass http://host;</code>（<strong>无 URI</strong>）</td>
+<td>客户端原始 URI <strong>原样透传</strong></td>
+</tr>
+<tr>
+<td><code>proxy_pass http://host/;</code>（有 URI，是 <code>/</code>）</td>
+<td>location 匹配的部分被替换成 <code>/</code></td>
+</tr>
+<tr>
+<td><code>proxy_pass http://host/remote/;</code></td>
+<td>location 匹配的部分被替换成 <code>/remote/</code></td>
+</tr>
+<tr>
+<td><code>proxy_pass http://host$request_uri;</code>（用变量）</td>
+<td>按变量展开后的值<strong>原样</strong>传给上游，替换原始 URI</td>
+</tr>
+<tr>
+<td>正则 &#x2F; 命名 location 里</td>
+<td><strong>必须不带 URI</strong></td>
+</tr>
+</tbody></table>
+<p>看具体例子：</p>
+<figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><code class="hljs nginx"><span class="hljs-comment"># 无 URI：原样透传</span><br><span class="hljs-section">location</span> /api/ &#123;<br>    <span class="hljs-attribute">proxy_pass</span> http://backend;<br>&#125;<br><span class="hljs-comment"># /api/users  →  http://backend/api/users</span><br><br><span class="hljs-comment"># 有 URI：替换掉匹配到的 /api/</span><br><span class="hljs-section">location</span> /api/ &#123;<br>    <span class="hljs-attribute">proxy_pass</span> http://backend/;<br>&#125;<br><span class="hljs-comment"># /api/users  →  http://backend/users</span><br><br><span class="hljs-comment"># 有 URI：替换成另一个前缀</span><br><span class="hljs-section">location</span> /api/ &#123;<br>    <span class="hljs-attribute">proxy_pass</span> http://backend/v2/;<br>&#125;<br><span class="hljs-comment"># /api/users  →  http://backend/v2/users</span><br><br><span class="hljs-comment"># location 无尾斜杠 + proxy_pass 有尾斜杠：容易出意料之外的结果</span><br><span class="hljs-section">location</span> /api &#123;<br>    <span class="hljs-attribute">proxy_pass</span> http://backend/;<br>&#125;<br><span class="hljs-comment"># /api/users  →  http://backend//users     ← 注意多了一个斜杠</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>坑</th>
+<th>现象</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>location /api</code> + <code>proxy_pass http://b/</code></td>
+<td>拼出 <code>//users</code>，部分后端会把双斜杠当不同路由，404</td>
+</tr>
+<tr>
+<td><code>location /api/</code> + <code>proxy_pass http://b</code></td>
+<td>原样透传，上游收到 <code>/api/...</code>，如果上游没有 <code>/api</code> 前缀就 404</td>
+</tr>
+<tr>
+<td>正则 location 里写了 URI</td>
+<td>配置能加载，但 URI 处理行为不符合预期</td>
+</tr>
+</tbody></table>
+<figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs nginx"><span class="hljs-comment"># 正则 location：不要带 URI</span><br><span class="hljs-section">location</span> <span class="hljs-regexp">~ ^/user/(\d+)$</span> &#123;<br>    <span class="hljs-attribute">proxy_pass</span> http://backend;      <span class="hljs-comment"># ✓</span><br>    <span class="hljs-comment"># proxy_pass http://backend/;   # ✗ 别这么写</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>规则不是「斜杠」，而是「有没有 URI」。</strong> <code>proxy_pass http://backend/</code> 里的 <code>/</code> 就是一个 URI（根路径），所以触发替换逻辑。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ **<code>rewrite ... break</code> 之后再 <code>proxy_pass</code>**，<code>proxy_pass</code> 里写的 URI 会被忽略，传的是 rewrite 之后的完整 URI。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>用变量的 <code>proxy_pass</code> 不走 upstream 块，也不会在启动时解析域名</strong>，需要显式配 <code>resolver</code>，否则报 <code>no resolver defined</code>。</p>
+</blockquote>
+<h2 id="三、必须透传的头"><a href="#三、必须透传的头" class="headerlink" title="三、必须透传的头"></a>三、必须透传的头</h2><p>默认情况下，Nginx 转发时会把 <code>Host</code> 改成 <code>proxy_pass</code> 里的主机名，客户端真实 IP 也丢了。后端拿到的全是 <code>127.0.0.1</code>。</p>
+<figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs nginx"><span class="hljs-section">location</span> / &#123;<br>    <span class="hljs-attribute">proxy_pass</span> http://backend;<br><br>    <span class="hljs-attribute">proxy_set_header</span> Host              <span class="hljs-variable">$host</span>;                 <span class="hljs-comment"># 原始 Host（含端口用 $http_host）</span><br>    <span class="hljs-attribute">proxy_set_header</span> X-Real-IP         <span class="hljs-variable">$remote_addr</span>;          <span class="hljs-comment"># 直连客户端 IP</span><br>    <span class="hljs-attribute">proxy_set_header</span> X-Forwarded-For   <span class="hljs-variable">$proxy_add_x_forwarded_for</span>;  <span class="hljs-comment"># 代理链</span><br>    <span class="hljs-attribute">proxy_set_header</span> X-Forwarded-Proto <span class="hljs-variable">$scheme</span>;               <span class="hljs-comment"># 原始协议 http/https</span><br>    <span class="hljs-attribute">proxy_set_header</span> X-Forwarded-Host  <span class="hljs-variable">$host</span>;<br>    <span class="hljs-attribute">proxy_set_header</span> X-Forwarded-Port  <span class="hljs-variable">$server_port</span>;<br><br>    <span class="hljs-attribute">proxy_http_version</span> <span class="hljs-number">1</span>.<span class="hljs-number">1</span>;<br>    <span class="hljs-attribute">proxy_set_header</span> Connection <span class="hljs-string">&quot;&quot;</span>;                           <span class="hljs-comment"># 见第四节</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>头</th>
+<th>作用</th>
+<th>不透传的后果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Host</code></td>
+<td>后端做虚拟主机 &#x2F; 生成绝对 URL</td>
+<td>后端以为请求来自 <code>backend</code>，重定向跳错域名</td>
+</tr>
+<tr>
+<td><code>X-Real-IP</code></td>
+<td>单个客户端 IP</td>
+<td>日志里全是 Nginx 的 IP，限流按 IP 全打到一起</td>
+</tr>
+<tr>
+<td><code>X-Forwarded-For</code></td>
+<td>代理链，逗号分隔</td>
+<td>多级代理后拿不到真实来源</td>
+</tr>
+<tr>
+<td><code>X-Forwarded-Proto</code></td>
+<td>原始是 http 还是 https</td>
+<td>后端生成 <code>http://</code> 链接，浏览器报混合内容</td>
+</tr>
+<tr>
+<td><code>X-Forwarded-Host</code> &#x2F; <code>-Port</code></td>
+<td>原始 Host 和端口</td>
+<td>拼出的回调地址不对</td>
+</tr>
+</tbody></table>
+<p><code>X-Forwarded-For</code> 的累加过程：</p>
+<figure class="highlight dns"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs dns">客户端 <span class="hljs-number">1.2.3.4</span> → Nginx <span class="hljs-keyword">A</span> → Nginx B → 后端<br>后端看到 X-Forwarded-For: <span class="hljs-number">1.2.3.4</span>, &lt;Nginx <span class="hljs-keyword">A</span> 的 IP&gt;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>X-Forwarded-For</code> 的第一个值才是客户端 IP，但它可伪造。</strong> 只有在你信任的那一层代理之后取，才是可信的。取值用「从右往左数第 N 个」而不是「第一个」。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>$host</code> 与 <code>$http_host</code> 的区别</strong>：<code>$host</code> 是规范化后的小写主机名（不含端口），<code>$http_host</code> 是客户端原样发来的（含端口）。后端要按 Host 分流时用 <code>$host</code>，需要保留端口时用 <code>$http_host</code>。</p>
+</blockquote>
+<h2 id="四、upstream-负载均衡"><a href="#四、upstream-负载均衡" class="headerlink" title="四、upstream 负载均衡"></a>四、upstream 负载均衡</h2><figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs nginx"><span class="hljs-section">upstream</span> backend &#123;<br>    least_conn;                       <span class="hljs-comment"># 调度算法</span><br>    <span class="hljs-attribute">server</span> <span class="hljs-number">10.0.0.1:8080</span> weight=<span class="hljs-number">3</span>;    <span class="hljs-comment"># 权重</span><br>    <span class="hljs-attribute">server</span> <span class="hljs-number">10.0.0.2:8080</span>;<br>    <span class="hljs-attribute">server</span> <span class="hljs-number">10.0.0.3:8080</span> backup;      <span class="hljs-comment"># 备用，主节点全挂才用</span><br>    <span class="hljs-attribute">server</span> <span class="hljs-number">10.0.0.4:8080</span> down;        <span class="hljs-comment"># 手动下线</span><br><br>    <span class="hljs-attribute">keepalive</span> <span class="hljs-number">32</span>;                     <span class="hljs-comment"># 到上游的长连接池</span><br>    <span class="hljs-attribute">keepalive_requests</span> <span class="hljs-number">1000</span>;<br>    <span class="hljs-attribute">keepalive_timeout</span> <span class="hljs-number">60s</span>;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>算法</th>
+<th>指令</th>
+<th>特点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>轮询</td>
+<td>默认</td>
+<td>依次分发，<code>weight</code> 加权</td>
+</tr>
+<tr>
+<td>最少连接</td>
+<td><code>least_conn</code></td>
+<td>给当前连接数最少的节点，长连接场景更均衡</td>
+</tr>
+<tr>
+<td>IP 哈希</td>
+<td><code>ip_hash</code></td>
+<td>同一客户端固定落到同一后端（会话粘性）</td>
+</tr>
+<tr>
+<td>通用哈希</td>
+<td><code>hash $key [consistent]</code></td>
+<td>自定义键；加 <code>consistent</code> 用一致性哈希，扩缩容时迁移少</td>
+</tr>
+<tr>
+<td>随机</td>
+<td><code>random [two]</code></td>
+<td>随机；<code>two</code> 表示随机挑两个再按 <code>least_conn</code> 选一个</td>
+</tr>
+</tbody></table>
+<table>
+<thead>
+<tr>
+<th>server 参数</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>weight=n</code></td>
+<td>权重，默认 1</td>
+</tr>
+<tr>
+<td><code>max_conns=n</code></td>
+<td>该后端最大并发连接数，超出则不再分发</td>
+</tr>
+<tr>
+<td><code>max_fails=n</code></td>
+<td><code>fail_timeout</code> 内失败多少次算不可用，<strong>默认 1</strong></td>
+</tr>
+<tr>
+<td><code>fail_timeout=10s</code></td>
+<td>失败统计窗口 + 标记不可用后的冷却时长，<strong>默认 10s</strong></td>
+</tr>
+<tr>
+<td><code>backup</code></td>
+<td>备用节点</td>
+</tr>
+<tr>
+<td><code>down</code></td>
+<td>永久下线（配合 <code>ip_hash</code> 做灰度时有用）</td>
+</tr>
+<tr>
+<td><code>resolve</code></td>
+<td>动态解析域名（配合 <code>resolver</code>）</td>
+</tr>
+</tbody></table>
+<figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs nginx"><span class="hljs-comment"># 灰度：把一部分流量打到新版本</span><br><span class="hljs-section">upstream</span> backend &#123;<br>    <span class="hljs-attribute">server</span> <span class="hljs-number">10.0.0.1:8080</span> weight=<span class="hljs-number">9</span>;<br>    <span class="hljs-attribute">server</span> <span class="hljs-number">10.0.0.2:8080</span> weight=<span class="hljs-number">1</span>;   <span class="hljs-comment"># 10% 流量到新版本</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>max_fails=0</code> 表示关闭失败统计</strong>，即该节点永远不会被标记为不可用。别误以为是「不重试」。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>ip_hash</code> 与 <code>weight</code> 不能混用出你期望的效果</strong>，且节点增减时大量客户端会被重新映射，会话大面积失效。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>backup</code> 节点平时不接流量</strong>，只在所有主节点都不可用时才启用。所以它的代码版本可能很旧。</p>
+</blockquote>
+<h2 id="五、健康检查与-max-fails"><a href="#五、健康检查与-max-fails" class="headerlink" title="五、健康检查与 max_fails"></a>五、健康检查与 <code>max_fails</code></h2><p>Nginx 开源版的「健康检查」是<strong>被动</strong>的：只有请求失败才会标记节点。</p>
+<figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs nginx"><span class="hljs-section">upstream</span> backend &#123;<br>    <span class="hljs-attribute">server</span> <span class="hljs-number">10.0.0.1:8080</span> max_fails=<span class="hljs-number">3</span> fail_timeout=<span class="hljs-number">30s</span>;<br>    <span class="hljs-attribute">server</span> <span class="hljs-number">10.0.0.2:8080</span> max_fails=<span class="hljs-number">3</span> fail_timeout=<span class="hljs-number">30s</span>;<br>&#125;<br><br><span class="hljs-section">location</span> / &#123;<br>    <span class="hljs-attribute">proxy_pass</span> http://backend;<br>    <span class="hljs-attribute">proxy_next_upstream</span> <span class="hljs-literal">error</span> timeout http_502 http_503 http_504;<br>    <span class="hljs-attribute">proxy_next_upstream_tries</span> <span class="hljs-number">3</span>;        <span class="hljs-comment"># 最多试 3 次（默认 0 = 不限）</span><br>    <span class="hljs-attribute">proxy_next_upstream_timeout</span> <span class="hljs-number">10s</span>;    <span class="hljs-comment"># 重试总耗时上限（默认 0 = 不限）</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>默认值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>max_fails</code></td>
+<td><code>1</code></td>
+<td>窗口内失败次数达到就标记不可用</td>
+</tr>
+<tr>
+<td><code>fail_timeout</code></td>
+<td><code>10s</code></td>
+<td>既做失败统计窗口，也做不可用冷却时间</td>
+</tr>
+<tr>
+<td><code>proxy_next_upstream</code></td>
+<td><code>error timeout</code></td>
+<td>默认只对连接错误和超时重试</td>
+</tr>
+<tr>
+<td><code>proxy_next_upstream_tries</code></td>
+<td><code>0</code></td>
+<td>0 表示不限制尝试次数</td>
+</tr>
+</tbody></table>
+<p><code>proxy_next_upstream</code> 的取值：</p>
+<table>
+<thead>
+<tr>
+<th>值</th>
+<th>是否默认生效</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>error</code> &#x2F; <code>timeout</code> &#x2F; <code>invalid_header</code></td>
+<td><strong>始终算失败</strong>，不写也生效</td>
+</tr>
+<tr>
+<td><code>http_500</code> &#x2F; <code>http_502</code> &#x2F; <code>http_503</code> &#x2F; <code>http_504</code> &#x2F; <code>http_429</code></td>
+<td>只有显式写了才重试</td>
+</tr>
+<tr>
+<td><code>http_403</code> &#x2F; <code>http_404</code></td>
+<td><strong>永远不会被当成失败</strong></td>
+</tr>
+<tr>
+<td><code>non_idempotent</code></td>
+<td>允许重试 POST 等非幂等请求，<strong>谨慎开</strong></td>
+</tr>
+<tr>
+<td><code>off</code></td>
+<td>禁止转发到下一台</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>重试会放大写入风险。</strong> 默认不重试 POST 是有原因的：请求可能已经在后端执行成功了，只是响应超时，重试会写两次。要重试必须保证接口幂等。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>开源版没有主动健康检查</strong>（<code>health_check</code> 指令属于 Nginx Plus）。想主动探测要么上 Plus，要么用 <code>nginx_upstream_check_module</code> 之类的第三方模块。</p>
+</blockquote>
+<h2 id="六、try-files-与-SPA-兜底"><a href="#六、try-files-与-SPA-兜底" class="headerlink" title="六、try_files 与 SPA 兜底"></a>六、<code>try_files</code> 与 SPA 兜底</h2><figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs nginx"><span class="hljs-comment"># SPA：所有找不到的路径都返回 index.html</span><br><span class="hljs-section">location</span> / &#123;<br>    <span class="hljs-attribute">root</span> /usr/share/nginx/html;<br>    <span class="hljs-attribute">try_files</span> <span class="hljs-variable">$uri</span> <span class="hljs-variable">$uri</span>/ /index.html;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p><code>try_files</code> 按顺序尝试，<strong>最后一个参数是兜底</strong>（不再检查存在性，直接内部重定向或返回）。</p>
+<figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs nginx"><span class="hljs-comment"># 静态资源加缓存，SPA 兜底</span><br><span class="hljs-section">location</span> <span class="hljs-regexp">~* \.(js|css|png|jpg|woff2)$</span> &#123;<br>    <span class="hljs-attribute">root</span> /usr/share/nginx/html;<br>    <span class="hljs-attribute">expires</span> <span class="hljs-number">1y</span>;<br>    <span class="hljs-attribute">add_header</span> Cache-Control <span class="hljs-string">&quot;public, immutable&quot;</span>;<br>&#125;<br><br><span class="hljs-section">location</span> / &#123;<br>    <span class="hljs-attribute">root</span> /usr/share/nginx/html;<br>    <span class="hljs-attribute">try_files</span> <span class="hljs-variable">$uri</span> <span class="hljs-variable">$uri</span>/ /index.html;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs nginx"><span class="hljs-comment"># 反向代理场景：静态文件在本地，其余转给后端</span><br><span class="hljs-section">location</span> / &#123;<br>    <span class="hljs-attribute">root</span> /usr/share/nginx/html;<br>    <span class="hljs-attribute">try_files</span> <span class="hljs-variable">$uri</span> <span class="hljs-variable">@backend</span>;<br>&#125;<br><span class="hljs-section">location</span> <span class="hljs-variable">@backend</span> &#123;<br>    <span class="hljs-attribute">proxy_pass</span> http://backend;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>try_files ... /index.html</code> 会让所有 404 都变成 200。</strong> API 路径不要走这条 location，否则前端拿到一个 HTML 当 JSON 解析。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>try_files $uri $uri/ /index.html</code> 里的 <code>$uri/</code> 会尝试目录</strong>，如果目录存在但没有 <code>index</code> 文件，会返回 403 而不是兜底。SPA 通常只需要 <code>$uri /index.html</code>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>index.html</code> 别配长缓存</strong>，否则发版后用户拿到的还是旧 HTML，引用的旧 JS 哈希文件已经被删了。HTML 用 <code>no-cache</code>，带哈希的静态资源才用 <code>immutable</code>。</p>
+</blockquote>
+<h2 id="七、WebSocket-升级"><a href="#七、WebSocket-升级" class="headerlink" title="七、WebSocket 升级"></a>七、WebSocket 升级</h2><p>WebSocket 靠 <code>Upgrade</code> &#x2F; <code>Connection</code> 头做协议升级，必须显式透传：</p>
+<figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs nginx"><span class="hljs-section">location</span> /ws/ &#123;<br>    <span class="hljs-attribute">proxy_pass</span> http://backend;<br>    <span class="hljs-attribute">proxy_http_version</span> <span class="hljs-number">1</span>.<span class="hljs-number">1</span>;                       <span class="hljs-comment"># 必须 1.1，1.0 不支持 Upgrade</span><br>    <span class="hljs-attribute">proxy_set_header</span> Upgrade    <span class="hljs-variable">$http_upgrade</span>;    <span class="hljs-comment"># 关键</span><br>    <span class="hljs-attribute">proxy_set_header</span> Connection <span class="hljs-string">&quot;upgrade&quot;</span>;        <span class="hljs-comment"># 关键</span><br>    <span class="hljs-attribute">proxy_set_header</span> Host       <span class="hljs-variable">$host</span>;<br><br>    <span class="hljs-attribute">proxy_read_timeout</span> <span class="hljs-number">3600s</span>;                     <span class="hljs-comment"># 长连接别用默认 60s</span><br>    <span class="hljs-attribute">proxy_send_timeout</span> <span class="hljs-number">3600s</span>;<br>    <span class="hljs-attribute">proxy_buffering</span> <span class="hljs-literal">off</span>;                          <span class="hljs-comment"># 实时推送关掉缓冲</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>头</th>
+<th>值</th>
+<th>为什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Upgrade</code></td>
+<td><code>$http_upgrade</code></td>
+<td>透传客户端的 <code>websocket</code></td>
+</tr>
+<tr>
+<td><code>Connection</code></td>
+<td><code>&quot;upgrade&quot;</code></td>
+<td>固定字符串，不能用 <code>$http_connection</code></td>
+</tr>
+<tr>
+<td><code>proxy_http_version</code></td>
+<td><code>1.1</code></td>
+<td>HTTP&#x2F;1.0 没有 Upgrade 机制</td>
+</tr>
+<tr>
+<td><code>proxy_read_timeout</code></td>
+<td>调大</td>
+<td>空闲连接会被默认 60s 掐断</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>Connection</code> 必须硬编码成 <code>&quot;upgrade&quot;</code>。</strong> 用 <code>$http_connection</code> 会得到 <code>keep-alive, Upgrade</code> 之类的不规范值，部分后端直接拒绝升级。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>WebSocket 断线往往是 <code>proxy_read_timeout</code> 到期。</strong> 表现是「连上后正好 60 秒断一次」。</p>
+</blockquote>
+<h2 id="八、超时参数"><a href="#八、超时参数" class="headerlink" title="八、超时参数"></a>八、超时参数</h2><table>
+<thead>
+<tr>
+<th>指令</th>
+<th>默认值</th>
+<th>管哪一段</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>proxy_connect_timeout</code></td>
+<td><code>60s</code></td>
+<td>与上游<strong>建立连接</strong>的时间</td>
+</tr>
+<tr>
+<td><code>proxy_send_timeout</code></td>
+<td><code>60s</code></td>
+<td>向上游<strong>发送请求</strong>（两次写操作之间）</td>
+</tr>
+<tr>
+<td><code>proxy_read_timeout</code></td>
+<td><code>60s</code></td>
+<td>从上游<strong>读响应</strong>（两次读操作之间）</td>
+</tr>
+<tr>
+<td><code>send_timeout</code></td>
+<td><code>60s</code></td>
+<td>向客户端发送响应</td>
+</tr>
+<tr>
+<td><code>client_body_timeout</code></td>
+<td><code>60s</code></td>
+<td>读取客户端请求体</td>
+</tr>
+<tr>
+<td><code>keepalive_timeout</code></td>
+<td><code>75s</code></td>
+<td>客户端长连接空闲时间</td>
+</tr>
+</tbody></table>
+<figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs nginx"><span class="hljs-section">location</span> /api/ &#123;<br>    <span class="hljs-attribute">proxy_pass</span> http://backend;<br>    <span class="hljs-attribute">proxy_connect_timeout</span> <span class="hljs-number">5s</span>;<br>    <span class="hljs-attribute">proxy_send_timeout</span>    <span class="hljs-number">60s</span>;<br>    <span class="hljs-attribute">proxy_read_timeout</span>    <span class="hljs-number">60s</span>;<br><br>    <span class="hljs-attribute">proxy_buffering</span> <span class="hljs-literal">on</span>;<br>    <span class="hljs-attribute">proxy_buffer_size</span> <span class="hljs-number">16k</span>;<br>    <span class="hljs-attribute">proxy_buffers</span> <span class="hljs-number">8</span> <span class="hljs-number">16k</span>;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>超时不能大于前端（比如负载均衡、网关）的超时</strong>，否则前一层先断开，Nginx 还在傻等上游，日志上看到的是一堆无意义的 499。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>proxy_read_timeout</code> 是「两次读之间的间隔」，不是整个响应的总时长。</strong> 流式接口持续有数据返回就不会超时；反而是「处理后一次性返回」的慢接口容易被打断。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 以为规则是「加不加斜杠」，其实判定依据是「有没有写 URI」</li>
+<li><input disabled="" type="checkbox"> <code>location /api</code> 配 <code>proxy_pass http://b/</code>，拼出双斜杠导致 404</li>
+<li><input disabled="" type="checkbox"> 正则 location 里给 <code>proxy_pass</code> 带了 URI</li>
+<li><input disabled="" type="checkbox"> 没透传 <code>Host</code>，后端重定向跳到了内网域名</li>
+<li><input disabled="" type="checkbox"> 没透传 <code>X-Forwarded-Proto</code>，HTTPS 站点里后端生成 http 链接</li>
+<li><input disabled="" type="checkbox"> 直接把 <code>X-Forwarded-For</code> 的第一个值当真实 IP 用（可伪造）</li>
+<li><input disabled="" type="checkbox"> 用 <code>ip_hash</code> 做会话粘性，扩缩容时会话大面积失效</li>
+<li><input disabled="" type="checkbox"> 以为 <code>max_fails=0</code> 是「不重试」，其实是关闭失败统计</li>
+<li><input disabled="" type="checkbox"> 开了 <code>proxy_next_upstream http_500</code> 又没保证幂等，POST 被写两次</li>
+<li><input disabled="" type="checkbox"> WebSocket 的 <code>Connection</code> 用了 <code>$http_connection</code> 而不是硬编码 <code>&quot;upgrade&quot;</code></li>
+<li><input disabled="" type="checkbox"> WebSocket 每 60 秒断一次，没改 <code>proxy_read_timeout</code></li>
+<li><input disabled="" type="checkbox"> SPA 兜底规则把 API 的 404 也变成了 200 HTML</li>
+<li><input disabled="" type="checkbox"> <code>index.html</code> 配了长缓存，发版后用户拿到旧 HTML 引用已删除的资源</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://nginx.org/en/docs/http/ngx_http_proxy_module.html">ngx_http_proxy_module</a> · <a target="_blank" rel="noopener" href="https://nginx.org/en/docs/http/ngx_http_upstream_module.html">ngx_http_upstream_module</a> · <a target="_blank" rel="noopener" href="https://nginx.org/en/docs/http/ngx_http_core_module.html">ngx_http_core_module</a> · <a target="_blank" rel="noopener" href="https://nginx.org/en/docs/http/websocket.html">Nginx WebSocket 代理</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/nginx/" class="category-chain-item">nginx</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/nginx/" class="print-no-link">#nginx</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 034 · Nginx（一）：反向代理与负载均衡</div>
+      <div>https://ethan-iopasd.github.io/2026/09/30/每日技术博客034-Nginx反向代理/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年9月30日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2035-Nginx%E6%80%A7%E8%83%BD%E4%B8%8E%E6%8E%92%E6%9F%A5/" title="每日技术博客 035 · Nginx（二）：性能调优与故障排查">
+                        <span class="hidden-mobile">每日技术博客 035 · Nginx（二）：性能调优与故障排查</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

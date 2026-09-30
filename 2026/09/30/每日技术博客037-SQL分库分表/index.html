@@ -1,0 +1,1105 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-09-30 · 第 037 篇 SQL 系列第四篇。分片键怎么选、跨片查询贵在哪、主从延迟怎么兜 —— 以及为什么多数场景根本不该分。  📚 SQL 系列目录   章节 主题 状态    一 索引与执行计划 已发布   二 事务、隔离级别与锁 已发布   三 慢查询排查实战 已发布   四 分库分表与读写分离 本篇    开场：分片是最后手段，不是起点扩容的优先级从">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 037 · SQL（四）：分库分表与读写分离">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2037-SQL%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-09-30 · 第 037 篇 SQL 系列第四篇。分片键怎么选、跨片查询贵在哪、主从延迟怎么兜 —— 以及为什么多数场景根本不该分。  📚 SQL 系列目录   章节 主题 状态    一 索引与执行计划 已发布   二 事务、隔离级别与锁 已发布   三 慢查询排查实战 已发布   四 分库分表与读写分离 本篇    开场：分片是最后手段，不是起点扩容的优先级从">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-09-30T13:30:00.000Z">
+<meta property="article:modified_time" content="2026-09-30T05:47:01.300Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="sql">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 037 · SQL（四）：分库分表与读写分离 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 037 · SQL（四）：分库分表与读写分离"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-09-30 21:30" pubdate>
+          2026年9月30日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.4k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          20 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 037 · SQL（四）：分库分表与读写分离</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-09-30 · 第 037 篇</p>
+<p>SQL 系列第四篇。分片键怎么选、跨片查询贵在哪、主从延迟怎么兜 —— 以及为什么多数场景根本不该分。</p>
+</blockquote>
+<h2 id="📚-SQL-系列目录"><a href="#📚-SQL-系列目录" class="headerlink" title="📚 SQL 系列目录"></a>📚 SQL 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>索引与执行计划</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>事务、隔离级别与锁</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>慢查询排查实战</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td>分库分表与读写分离</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：分片是最后手段，不是起点"><a href="#开场：分片是最后手段，不是起点" class="headerlink" title="开场：分片是最后手段，不是起点"></a>开场：分片是最后手段，不是起点</h2><p>扩容的优先级从上到下，<strong>能停在上面一层就不要往下走</strong>：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs sql">垂直拆分 → 索引与 <span class="hljs-keyword">SQL</span> 优化 → 冷数据归档 → 缓存 → 读写分离 → 水平分片<br></code></pre></td></tr></table></figure>
+
+<p>水平分片一旦落地，跨片 JOIN、分布式事务、全局 ID、扩容迁移会同时变成长期成本。先确认前面几层都做完了。</p>
+<table>
+<thead>
+<tr>
+<th>手段</th>
+<th>解决什么</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>索引优化</td>
+<td>单表查询慢</td>
+<td>几乎为零，<strong>先做</strong></td>
+</tr>
+<tr>
+<td>冷数据归档</td>
+<td>单表行数膨胀</td>
+<td>需要业务定义「冷」的边界</td>
+</tr>
+<tr>
+<td>垂直拆分</td>
+<td>单库表太多 &#x2F; 单表列太多</td>
+<td>跨库 JOIN 消失，要拆事务</td>
+</tr>
+<tr>
+<td>读写分离</td>
+<td>读 QPS 压力</td>
+<td>主从延迟导致读不一致</td>
+</tr>
+<tr>
+<td>水平分片</td>
+<td>单表写入 &#x2F; 存储到顶</td>
+<td>跨片查询、全局 ID、迁移</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 「单表多少行必须分」没有标准答案。取决于<strong>单行大小、索引命中率、Buffer Pool 能否装下热数据</strong>。500 万行的高频小表，可能比 5000 万行的归档表更值得分片。</p>
+</blockquote>
+<h2 id="一、垂直拆分"><a href="#一、垂直拆分" class="headerlink" title="一、垂直拆分"></a>一、垂直拆分</h2><p>两个方向，建议<strong>先拆表再拆库</strong>。</p>
+<table>
+<thead>
+<tr>
+<th>方向</th>
+<th>做什么</th>
+<th>典型信号</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>拆表（拆列）</td>
+<td>把大字段 &#x2F; 低频字段挪到扩展表</td>
+<td>单行超过几 KB，<code>SELECT *</code> 拖慢一切</td>
+</tr>
+<tr>
+<td>拆库（业务域）</td>
+<td>按限界上下文拆成独立库</td>
+<td>单库连接数打满、DDL 互相影响</td>
+</tr>
+</tbody></table>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs sql"><span class="hljs-comment">-- 拆表：主表只留高频列，大字段挪走</span><br><span class="hljs-keyword">CREATE TABLE</span> product (<br>  id     <span class="hljs-type">BIGINT</span> <span class="hljs-keyword">PRIMARY KEY</span>,<br>  name   <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">128</span>) <span class="hljs-keyword">NOT NULL</span>,<br>  price  <span class="hljs-type">DECIMAL</span>(<span class="hljs-number">10</span>,<span class="hljs-number">2</span>) <span class="hljs-keyword">NOT NULL</span>,<br>  status TINYINT <span class="hljs-keyword">NOT NULL</span><br>);<br><br><span class="hljs-keyword">CREATE TABLE</span> product_detail (<br>  product_id  <span class="hljs-type">BIGINT</span> <span class="hljs-keyword">PRIMARY KEY</span>,<br>  description TEXT,<br>  spec_json   JSON<br>);<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 拆库之后就<strong>没有跨库 JOIN 了</strong>。要么在应用层拼装，要么冗余字段。这一步想不清楚，后面会反复返工。</p>
+</blockquote>
+<h2 id="二、水平分片：分片键怎么选"><a href="#二、水平分片：分片键怎么选" class="headerlink" title="二、水平分片：分片键怎么选"></a>二、水平分片：分片键怎么选</h2><p>分片键（sharding key）决定数据落在哪个分片，<strong>选错等于每次查询都打全部分片</strong>。</p>
+<table>
+<thead>
+<tr>
+<th>候选分片键</th>
+<th>优点</th>
+<th>缺点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>用户 ID</td>
+<td>同一用户数据全在一个分片，天然隔离</td>
+<td>大客户造成数据倾斜</td>
+</tr>
+<tr>
+<td>订单 ID</td>
+<td>分布均匀</td>
+<td>查「某用户的所有订单」要跨片</td>
+</tr>
+<tr>
+<td>时间</td>
+<td>范围查询友好、归档简单</td>
+<td><strong>最新数据全在一个分片 → 写热点</strong></td>
+</tr>
+<tr>
+<td>商户 ID</td>
+<td>同商户数据聚合</td>
+<td>头部商户倾斜严重</td>
+</tr>
+<tr>
+<td>组合键（用户 ID + 时间）</td>
+<td>兼顾均匀与聚合</td>
+<td>查询必须同时带上两个维度</td>
+</tr>
+</tbody></table>
+<p>三条判断原则：</p>
+<ol>
+<li><strong>高频查询条件</strong> —— 最常出现在 <code>WHERE</code> 里的维度优先</li>
+<li><strong>分布均匀</strong> —— 避开 <code>status</code>、<code>type</code> 这类低基数列</li>
+<li><strong>尽量单分片命中</strong> —— 一个请求只打一个分片，这是最重要的目标</li>
+</ol>
+<blockquote>
+<p>⚠️ 分片键一旦选定基本<strong>改不动</strong>（要全量重分布）。上线前用真实数据分布跑一遍倾斜度。</p>
+</blockquote>
+<h2 id="三、范围分片-vs-哈希分片"><a href="#三、范围分片-vs-哈希分片" class="headerlink" title="三、范围分片 vs 哈希分片"></a>三、范围分片 vs 哈希分片</h2><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>范围分片</th>
+<th>哈希分片</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>分布均匀度</td>
+<td>差，易倾斜</td>
+<td>好</td>
+</tr>
+<tr>
+<td>范围查询</td>
+<td>✅ 单分片</td>
+<td>❌ 打全部分片</td>
+</tr>
+<tr>
+<td>写热点</td>
+<td>容易出现（最新区间）</td>
+<td>无</td>
+</tr>
+<tr>
+<td>扩容</td>
+<td>只需拆一个分片</td>
+<td>通常要重分布</td>
+</tr>
+<tr>
+<td>归档</td>
+<td>简单，直接删旧分片</td>
+<td>困难</td>
+</tr>
+<tr>
+<td>典型场景</td>
+<td>时序数据、日志、账单</td>
+<td>用户中心、订单</td>
+</tr>
+</tbody></table>
+<p>哈希分片的关键技巧是<strong>预分片</strong>：一开始就切成远超当前需要的逻辑分片，再把这些逻辑分片映射到少量物理库上。</p>
+<figure class="highlight tap"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs tap">逻辑分片<span class="hljs-number"> 1024 </span>个   →  当前<span class="hljs-number"> 4 </span>个物理库，每库承载<span class="hljs-number"> 256 </span>个逻辑分片<br>扩容到<span class="hljs-number"> 8 </span>个物理库  →  只搬逻辑分片，不动分片算法<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>hash(key) % N</code> 这种取模分片，<strong>N 一变所有数据都要迁移</strong>。要么用预分片，要么用一致性哈希。</p>
+</blockquote>
+<h2 id="四、跨片查询与聚合的代价"><a href="#四、跨片查询与聚合的代价" class="headerlink" title="四、跨片查询与聚合的代价"></a>四、跨片查询与聚合的代价</h2><p>分片之后，「按非分片键查询」和「聚合统计」都会变贵。</p>
+<table>
+<thead>
+<tr>
+<th>操作</th>
+<th>分片后</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>按分片键等值查</td>
+<td>✅ 单分片，和单库一样快</td>
+</tr>
+<tr>
+<td>按分片键范围查</td>
+<td>范围分片 ✅ &#x2F; 哈希分片 ❌ 全片扫描</td>
+</tr>
+<tr>
+<td>按非分片键查</td>
+<td>❌ 广播到所有分片，再内存归并</td>
+</tr>
+<tr>
+<td><code>COUNT</code> &#x2F; <code>SUM</code> &#x2F; <code>AVG</code></td>
+<td>❌ 各分片算一遍，再二次聚合</td>
+</tr>
+<tr>
+<td><code>ORDER BY</code> + <code>LIMIT</code></td>
+<td>❌ 各分片各取前 N，再归并</td>
+</tr>
+<tr>
+<td>深翻页</td>
+<td>❌❌ 每片都要扫到 <code>offset + limit</code></td>
+</tr>
+<tr>
+<td>跨片 JOIN</td>
+<td>❌ 基本放弃</td>
+</tr>
+</tbody></table>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs sql"><span class="hljs-comment">-- 跨片分页的典型做法：每片各取前 (offset+limit)，应用层归并</span><br><span class="hljs-keyword">SELECT</span> <span class="hljs-operator">*</span> <span class="hljs-keyword">FROM</span> orders_1 <span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> created_at <span class="hljs-keyword">DESC</span> LIMIT <span class="hljs-number">100</span>;<br><span class="hljs-keyword">SELECT</span> <span class="hljs-operator">*</span> <span class="hljs-keyword">FROM</span> orders_2 <span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> created_at <span class="hljs-keyword">DESC</span> LIMIT <span class="hljs-number">100</span>;<br><span class="hljs-comment">-- 应用层归并后取第 [80, 100) 条</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 深翻页在分片下会放大 N 倍。要么改成<strong>游标分页</strong>（<code>WHERE created_at &lt; ?</code>），要么把列表数据同步到 ES 里查。</p>
+</blockquote>
+<h2 id="五、全局唯一-ID"><a href="#五、全局唯一-ID" class="headerlink" title="五、全局唯一 ID"></a>五、全局唯一 ID</h2><p>分片之后自增主键不再全局唯一，需要一个独立的发号方案。</p>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>有序性</th>
+<th>性能</th>
+<th>缺点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>UUID</td>
+<td>❌ 随机</td>
+<td>本地生成，无网络</td>
+<td>占空间、索引页分裂严重</td>
+</tr>
+<tr>
+<td>数据库自增 + 步长</td>
+<td>✅</td>
+<td>简单</td>
+<td>扩容要改步长，单点</td>
+</tr>
+<tr>
+<td>号段模式</td>
+<td>✅</td>
+<td>一次取一批，吞吐高</td>
+<td>服务重启会浪费号段</td>
+</tr>
+<tr>
+<td>雪花算法（Snowflake）</td>
+<td>✅ 趋势递增</td>
+<td>本地生成，无依赖</td>
+<td>依赖机器时钟</td>
+</tr>
+</tbody></table>
+<p>雪花算法的经典位布局（64 位）：</p>
+<figure class="highlight basic"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs basic"><span class="hljs-symbol">1 </span>位符号位（恒为 <span class="hljs-number">0</span>） | <span class="hljs-number">41</span> 位毫秒时间戳 | <span class="hljs-number">10</span> 位机器 ID | <span class="hljs-number">12</span> 位序列号<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>位数</th>
+<th>容量</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>时间戳</td>
+<td>41</td>
+<td>约 69 年</td>
+</tr>
+<tr>
+<td>机器 ID</td>
+<td>10</td>
+<td>最多 1024 个节点</td>
+</tr>
+<tr>
+<td>序列号</td>
+<td>12</td>
+<td>同一毫秒最多 4096 个 ID</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 雪花算法的唯一死穴是<strong>时钟回拨</strong>。回拨几毫秒就可能生成重复 ID。生成器里必须检测：回拨小则等待，回拨大则直接拒绝服务，绝不能硬生成。</p>
+</blockquote>
+<h2 id="六、读写分离与主从延迟"><a href="#六、读写分离与主从延迟" class="headerlink" title="六、读写分离与主从延迟"></a>六、读写分离与主从延迟</h2><p>读写分离把读流量分给从库，代价是<strong>从库可能落后于主库</strong>。「写后读」不一致是最高频的线上问题：</p>
+<figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs css">用户在 <span class="hljs-selector-tag">A</span> 服务写入 → 立刻跳到 <span class="hljs-selector-tag">B</span> 服务查列表 → 请求路由到从库 → 查不到刚写的数据<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>解法</th>
+<th>做法</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>强制走主库</td>
+<td>写后一段时间内的读打到主库</td>
+<td>单条记录详情页</td>
+</tr>
+<tr>
+<td>会话粘滞</td>
+<td>同一会话内写后读都走主库</td>
+<td>交互式流程</td>
+</tr>
+<tr>
+<td>位点校验</td>
+<td>记录写入的 binlog 位点，从库追上才读</td>
+<td>强一致要求</td>
+</tr>
+<tr>
+<td>半同步复制</td>
+<td>至少一个从库确认收到才返回</td>
+<td>降低延迟概率，不消除</td>
+</tr>
+<tr>
+<td>延迟感知路由</td>
+<td>监控从库延迟，超阈值自动摘除</td>
+<td>兜底</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># 会话粘滞的典型实现：写操作后把「走主库」标记打进上下文</span><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">get_db</span>(<span class="hljs-params">read_only=<span class="hljs-literal">True</span></span>):<br>    <span class="hljs-keyword">if</span> read_only <span class="hljs-keyword">and</span> <span class="hljs-keyword">not</span> ctx.force_master:<br>        <span class="hljs-keyword">return</span> replica_router.pick()<br>    <span class="hljs-keyword">return</span> master<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 主从延迟不是「配置问题」，是<strong>物理限制</strong>。大事务、DDL、从库单线程回放都会放大它。延迟超阈值时，正确做法是<strong>把从库摘出读池</strong>，不是等它追上。</p>
+</blockquote>
+<h2 id="七、中间件-vs-应用层"><a href="#七、中间件-vs-应用层" class="headerlink" title="七、中间件 vs 应用层"></a>七、中间件 vs 应用层</h2><table>
+<thead>
+<tr>
+<th>方案</th>
+<th>定位</th>
+<th>优点</th>
+<th>缺点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>ShardingSphere-JDBC</td>
+<td>客户端 SDK，跑在应用进程内</td>
+<td>无额外网络跳数</td>
+<td>和语言&#x2F;框架绑定，升级要改依赖</td>
+</tr>
+<tr>
+<td>ShardingSphere-Proxy</td>
+<td>独立代理进程，兼容 MySQL&#x2F;PG 协议</td>
+<td>应用零改动，语言无关</td>
+<td>多一跳网络，代理是瓶颈点</td>
+</tr>
+<tr>
+<td>Vitess</td>
+<td>面向 MySQL 的集群方案</td>
+<td>支持在线 resharding</td>
+<td>部署运维复杂度高</td>
+</tr>
+<tr>
+<td>应用层自研</td>
+<td>自己写路由和归并</td>
+<td>完全可控</td>
+<td><strong>工作量最大，最容易写错</strong></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 中间件能解决路由和归并，<strong>但解决不了「分片键选错」和「跨片事务」</strong>。这两个必须在设计阶段定下来。</p>
+</blockquote>
+<h2 id="八、扩容时的数据迁移"><a href="#八、扩容时的数据迁移" class="headerlink" title="八、扩容时的数据迁移"></a>八、扩容时的数据迁移</h2><p>标准流程是<strong>双写 + 增量同步 + 校验 + 切换</strong>，不要指望一次停机搞定。</p>
+<table>
+<thead>
+<tr>
+<th>步骤</th>
+<th>做什么</th>
+<th>关键点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1. 双写</td>
+<td>新写入同时写旧分片和新分片</td>
+<td>写入路径要幂等</td>
+</tr>
+<tr>
+<td>2. 存量迁移</td>
+<td>把旧数据按新规则搬到新分片</td>
+<td>分批 + 限速，别打满 I&#x2F;O</td>
+</tr>
+<tr>
+<td>3. 增量追平</td>
+<td>消费 binlog 补齐迁移期间的变更</td>
+<td>用位点校验是否追平</td>
+</tr>
+<tr>
+<td>4. 数据校验</td>
+<td>对比新旧分片的行数与校验和</td>
+<td>按分片键抽样全量比对</td>
+</tr>
+<tr>
+<td>5. 读切换</td>
+<td>灰度切读流量到新分片</td>
+<td>出问题能立刻切回</td>
+</tr>
+<tr>
+<td>6. 停双写</td>
+<td>确认稳定后只写新分片</td>
+<td>旧数据保留一段时间</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 迁移期间<strong>新旧分片的一致性由业务代码保证</strong>，数据库不会帮你。双写的任一侧失败必须有补偿，否则迁移完才发现数据对不上。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 单表刚过千万就急着分片，索引还没优化</li>
+<li><input disabled="" type="checkbox"> 分片键选了低基数列（<code>status</code>、<code>type</code>），数据严重倾斜</li>
+<li><input disabled="" type="checkbox"> 用 <code>hash(key) % N</code> 取模，扩容时全量迁移</li>
+<li><input disabled="" type="checkbox"> 分片键选完才发现最频繁的查询用不上它</li>
+<li><input disabled="" type="checkbox"> 按时间分片，最新分片成为写热点</li>
+<li><input disabled="" type="checkbox"> 分片后仍按非分片键查询，每次广播全部分片</li>
+<li><input disabled="" type="checkbox"> 深翻页在分片下放大 N 倍</li>
+<li><input disabled="" type="checkbox"> 用 UUID 做主键，索引页分裂、写入放大</li>
+<li><input disabled="" type="checkbox"> 雪花算法没处理时钟回拨</li>
+<li><input disabled="" type="checkbox"> 读写分离后没处理「写后读」，用户看不到自己刚提交的数据</li>
+<li><input disabled="" type="checkbox"> 从库延迟很高还留在读池里</li>
+<li><input disabled="" type="checkbox"> 迁移只做存量同步，没做增量追平和数据校验</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://dev.mysql.com/doc/refman/8.4/en/replication.html">MySQL 8.4 · 复制</a> · <a target="_blank" rel="noopener" href="https://shardingsphere.apache.org/document/current/en/overview/">Apache ShardingSphere 文档</a> · <a target="_blank" rel="noopener" href="https://vitess.io/docs/">Vitess 文档</a> · <a target="_blank" rel="noopener" href="https://www.postgresql.org/docs/current/ddl-partitioning.html">PostgreSQL · 表分区</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/sql/" class="category-chain-item">sql</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/sql/" class="print-no-link">#sql</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 037 · SQL（四）：分库分表与读写分离</div>
+      <div>https://ethan-iopasd.github.io/2026/09/30/每日技术博客037-SQL分库分表/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年9月30日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2036-SQL%E6%85%A2%E6%9F%A5%E8%AF%A2%E6%8E%92%E6%9F%A5/" title="每日技术博客 036 · SQL（三）：慢查询排查实战">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 036 · SQL（三）：慢查询排查实战</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

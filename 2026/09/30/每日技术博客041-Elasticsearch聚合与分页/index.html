@@ -1,0 +1,1231 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-09-30 · 第 041 篇 ES 系列第二篇。深分页为什么慢、聚合的误差从哪来、以及写入吞吐和查询缓存的几个开关。  📚 ES 系列目录   章节 主题 状态    一 倒排索引与查询 DSL 已发布   二 聚合、分页与性能优化 本篇    开场：三个数字先记住   参数 默认值 作用    index.max_result_window 10000 from">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 041 · Elasticsearch（二）：聚合、分页与性能优化">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2041-Elasticsearch%E8%81%9A%E5%90%88%E4%B8%8E%E5%88%86%E9%A1%B5/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-09-30 · 第 041 篇 ES 系列第二篇。深分页为什么慢、聚合的误差从哪来、以及写入吞吐和查询缓存的几个开关。  📚 ES 系列目录   章节 主题 状态    一 倒排索引与查询 DSL 已发布   二 聚合、分页与性能优化 本篇    开场：三个数字先记住   参数 默认值 作用    index.max_result_window 10000 from">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-09-30T14:10:00.000Z">
+<meta property="article:modified_time" content="2026-09-30T05:50:17.462Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="elasticsearch">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 041 · Elasticsearch（二）：聚合、分页与性能优化 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 041 · Elasticsearch（二）：聚合、分页与性能优化"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-09-30 22:10" pubdate>
+          2026年9月30日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          3.3k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          28 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 041 · Elasticsearch（二）：聚合、分页与性能优化</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-09-30 · 第 041 篇</p>
+<p>ES 系列第二篇。深分页为什么慢、聚合的误差从哪来、以及写入吞吐和查询缓存的几个开关。</p>
+</blockquote>
+<h2 id="📚-ES-系列目录"><a href="#📚-ES-系列目录" class="headerlink" title="📚 ES 系列目录"></a>📚 ES 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>倒排索引与查询 DSL</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>聚合、分页与性能优化</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：三个数字先记住"><a href="#开场：三个数字先记住" class="headerlink" title="开场：三个数字先记住"></a>开场：三个数字先记住</h2><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>默认值</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>index.max_result_window</code></td>
+<td><code>10000</code></td>
+<td><code>from + size</code> 的硬上限，超过直接报错</td>
+</tr>
+<tr>
+<td><code>search.max_buckets</code></td>
+<td><code>65536</code></td>
+<td>单次响应允许创建的聚合桶总数</td>
+</tr>
+<tr>
+<td><code>index.refresh_interval</code></td>
+<td><code>1s</code></td>
+<td>写入多久后对搜索可见</td>
+</tr>
+</tbody></table>
+<p>性能问题几乎都落在这三条线附近：分页越过了 10000、聚合桶数爆了 <code>max_buckets</code>、或者 refresh 太频繁导致写入吞吐上不去。</p>
+<h2 id="一、from-size-为什么越翻越慢"><a href="#一、from-size-为什么越翻越慢" class="headerlink" title="一、from + size 为什么越翻越慢"></a>一、<code>from + size</code> 为什么越翻越慢</h2><p>查询是<strong>分片级执行 + 协调节点归并</strong>。每个分片都要取出 <code>from + size</code> 条命中，把<strong>前 <code>from</code> 条全部丢弃</strong>，只把剩下的 <code>size</code> 条连同排序值交给协调节点。</p>
+<figure class="highlight tap"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs tap">from=10000, size=10,<span class="hljs-number"> 5 </span>个分片<br>每个分片：取<span class="hljs-number"> 10010 </span>条 → 丢<span class="hljs-number"> 10000 </span>条 → 上报<span class="hljs-number"> 10 </span>条<br>协调节点：拿到<span class="hljs-number"> 50 </span>条 → 归并排序 → 返回<span class="hljs-number"> 10 </span>条<br></code></pre></td></tr></table></figure>
+
+<p>代价不在返回多少，而在<strong>每个分片都要在内存里维护 <code>from + size</code> 大小的优先队列</strong>。</p>
+<table>
+<thead>
+<tr>
+<th>分页深度</th>
+<th>每分片实际加载</th>
+<th>5 分片总量</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>from=0, size=10</code></td>
+<td>10</td>
+<td>50</td>
+</tr>
+<tr>
+<td><code>from=1000, size=10</code></td>
+<td>1010</td>
+<td>5050</td>
+</tr>
+<tr>
+<td><code>from=10000, size=10</code></td>
+<td>10010</td>
+<td>50050</td>
+</tr>
+<tr>
+<td><code>from=100000, size=10</code></td>
+<td>100010</td>
+<td>500050</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 翻到第 10000 页不会变慢，是<strong>直接报错</strong>：<code>Result window is too large, from + size must be less than or equal to: [10000]</code>。调大 <code>max_result_window</code> 只是把报错推迟，内存开销线性增长，不是解法。</p>
+</blockquote>
+<h2 id="二、search-after-与-scroll：选型对比"><a href="#二、search-after-与-scroll：选型对比" class="headerlink" title="二、search_after 与 scroll：选型对比"></a>二、<code>search_after</code> 与 <code>scroll</code>：选型对比</h2><table>
+<thead>
+<tr>
+<th>维度</th>
+<th><code>from + size</code></th>
+<th><code>search_after</code></th>
+<th><code>scroll</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>状态</td>
+<td>无</td>
+<td><strong>无状态</strong></td>
+<td><strong>有状态</strong>（<code>_scroll_id</code> + search context）</td>
+</tr>
+<tr>
+<td>能否跳页</td>
+<td>✅ 任意页</td>
+<td>❌ <strong>只能顺序往后</strong></td>
+<td>❌ 只能顺序</td>
+</tr>
+<tr>
+<td>数据快照</td>
+<td>❌ 实时</td>
+<td>❌ 实时（除非配 PIT）</td>
+<td>✅ <strong>创建时的快照</strong></td>
+</tr>
+<tr>
+<td>资源占用</td>
+<td>每请求内存高</td>
+<td>低</td>
+<td>持有上下文，阻止旧 segment 删除</td>
+</tr>
+<tr>
+<td>官方定位</td>
+<td>浅分页</td>
+<td><strong>深分页首选</strong></td>
+<td>数据导出 &#x2F; reindex</td>
+</tr>
+<tr>
+<td>实时性</td>
+<td>实时</td>
+<td>实时</td>
+<td>快照，不反映后续变更</td>
+</tr>
+</tbody></table>
+<p><code>search_after</code> 把上一页最后一条的 <code>sort</code> 值传回来当游标：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs json">GET /articles/_search<br><span class="hljs-punctuation">&#123;</span><br>  <span class="hljs-attr">&quot;size&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">100</span><span class="hljs-punctuation">,</span><br>  <span class="hljs-attr">&quot;query&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;term&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;status&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;PUBLISHED&quot;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span><span class="hljs-punctuation">,</span><br>  <span class="hljs-attr">&quot;sort&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><br>    <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;created_at&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;desc&quot;</span> <span class="hljs-punctuation">&#125;</span><span class="hljs-punctuation">,</span><br>    <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;desc&quot;</span> <span class="hljs-punctuation">&#125;</span><br>  <span class="hljs-punctuation">]</span><br><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs json">GET /articles/_search<br><span class="hljs-punctuation">&#123;</span><br>  <span class="hljs-attr">&quot;size&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">100</span><span class="hljs-punctuation">,</span><br>  <span class="hljs-attr">&quot;query&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;term&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;status&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;PUBLISHED&quot;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span><span class="hljs-punctuation">,</span><br>  <span class="hljs-attr">&quot;sort&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><br>    <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;created_at&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;desc&quot;</span> <span class="hljs-punctuation">&#125;</span><span class="hljs-punctuation">,</span><br>    <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;desc&quot;</span> <span class="hljs-punctuation">&#125;</span><br>  <span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span><br>  <span class="hljs-attr">&quot;search_after&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span> <span class="hljs-string">&quot;2026-09-30T12:00:00&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-string">&quot;a1b2c3d4&quot;</span> <span class="hljs-punctuation">]</span><br><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>sort</code> 里必须带一个全局唯一的 tiebreaker</strong>（如 <code>_id</code>）。ES 内部用 Lucene doc ID 做兜底 tie-break，而<strong>同一份数据在不同副本上的 doc ID 可能不同</strong> —— 排序值相同的文档顺序不稳定，跨页会<strong>漏数据或重复</strong>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>search_after</code> 的 <code>query</code> 和 <code>sort</code> <strong>必须每次完全一致</strong>。翻页过程中若有 refresh，结果顺序会变。要跨页一致就配 PIT：</p>
+</blockquote>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs json">POST /articles/_pit?keep_alive=<span class="hljs-number">1</span>m<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs json">GET /_search<br><span class="hljs-punctuation">&#123;</span><br>  <span class="hljs-attr">&quot;size&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">100</span><span class="hljs-punctuation">,</span><br>  <span class="hljs-attr">&quot;pit&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;&lt;pit_id&gt;&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;keep_alive&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1m&quot;</span> <span class="hljs-punctuation">&#125;</span><span class="hljs-punctuation">,</span><br>  <span class="hljs-attr">&quot;sort&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;created_at&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;desc&quot;</span> <span class="hljs-punctuation">&#125;</span><span class="hljs-punctuation">,</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;_shard_doc&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;desc&quot;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span><br>  <span class="hljs-attr">&quot;search_after&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span> <span class="hljs-string">&quot;2026-09-30T12:00:00&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-number">42</span> <span class="hljs-punctuation">]</span><br><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<p>用 PIT 时 ES <strong>隐式加上 <code>_shard_doc</code> 作为 tiebreaker</strong>，不再需要 <code>_id</code>。响应会返回**更新后的 <code>pit_id</code>**，下一页要用最新的那个。用完删掉：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs json">DELETE /_pit<br><span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;&lt;pit_id&gt;&quot;</span> <span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<p><code>scroll</code> 的写法：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs json">GET /articles/_search?scroll=<span class="hljs-number">1</span>m<br><span class="hljs-punctuation">&#123;</span><br>  <span class="hljs-attr">&quot;size&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1000</span><span class="hljs-punctuation">,</span><br>  <span class="hljs-attr">&quot;query&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;match_all&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span><span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span><span class="hljs-punctuation">,</span><br>  <span class="hljs-attr">&quot;sort&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span> <span class="hljs-string">&quot;_doc&quot;</span> <span class="hljs-punctuation">]</span><br><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs json">GET /_search/scroll<br><span class="hljs-punctuation">&#123;</span><br>  <span class="hljs-attr">&quot;scroll&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1m&quot;</span><span class="hljs-punctuation">,</span><br>  <span class="hljs-attr">&quot;scroll_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;&lt;最新的 scroll_id&gt;&quot;</span><br><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th><code>scroll</code> 细节</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>排序用 <code>_doc</code></td>
+<td>最快，因为不需要全局排序</td>
+</tr>
+<tr>
+<td>聚合结果</td>
+<td><strong>只有首次响应</strong>带 aggregations，后续没有</td>
+</tr>
+<tr>
+<td><code>scroll_id</code></td>
+<td>每轮返回新的，<strong>只用最新的那个</strong></td>
+</tr>
+<tr>
+<td>过期</td>
+<td>每次带 <code>scroll</code> 参数会刷新过期时间；某次不带则<strong>该次请求后立即释放</strong></td>
+</tr>
+<tr>
+<td>并发上限</td>
+<td>默认最多同时打开 500 个 scroll（<code>search.max_open_scroll_context</code>）</td>
+</tr>
+<tr>
+<td>不推荐</td>
+<td>官方已明确<strong>不再推荐用 scroll 做深分页</strong>，改用 PIT + <code>search_after</code></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>scroll</code> 持有搜索上下文会<strong>阻止旧 segment 被合并删除</strong>，磁盘和文件句柄都会涨。用完立刻 <code>DELETE /_search/scroll</code>，别等它自然过期。</p>
+</blockquote>
+<p><code>track_total_hits</code> 是另一个常被忽略的开销：只需要总数时算一次即可，翻页时关掉。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs json"><span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;track_total_hits&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">false</span></span> <span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<h2 id="三、cardinality：去重计数是估算值"><a href="#三、cardinality：去重计数是估算值" class="headerlink" title="三、cardinality：去重计数是估算值"></a>三、<code>cardinality</code>：去重计数是估算值</h2><p><code>cardinality</code> 基于 <strong>HyperLogLog++<strong>，返回的是</strong>近似值</strong>，不是精确去重。</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>默认 <code>precision_threshold</code></td>
+<td><code>3000</code></td>
+</tr>
+<tr>
+<td>最大值</td>
+<td><code>40000</code>（超过按 40000 处理）</td>
+</tr>
+<tr>
+<td>内存开销</td>
+<td>约 <code>precision_threshold * 8</code> 字节</td>
+</tr>
+<tr>
+<td>低于阈值的计数</td>
+<td>期望接近精确（不保证）</td>
+</tr>
+</tbody></table>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs json">GET /orders/_search<br><span class="hljs-punctuation">&#123;</span><br>  <span class="hljs-attr">&quot;size&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">0</span><span class="hljs-punctuation">,</span><br>  <span class="hljs-attr">&quot;aggs&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span><br>    <span class="hljs-attr">&quot;unique_users&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span><br>      <span class="hljs-attr">&quot;cardinality&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span><br>        <span class="hljs-attr">&quot;field&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;user_id&quot;</span><span class="hljs-punctuation">,</span><br>        <span class="hljs-attr">&quot;precision_threshold&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">40000</span><br>      <span class="hljs-punctuation">&#125;</span><br>    <span class="hljs-punctuation">&#125;</span><br>  <span class="hljs-punctuation">&#125;</span><br><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>precision_threshold</code> 是<strong>每分片每聚合</strong>的内存开销，不是全局。5 个分片 + <code>40000</code> 阈值 ≈ 1.6MB，一般可接受；但聚合项一多就会乘起来。<strong>不要无脑调到 40000。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ 精度低不等于不能用。官方实测：即使阈值只有 <code>100</code>，在计数<strong>百万级</strong>数据时误差也在 1%–6%。<strong>要精确去重就别用 <code>cardinality</code></strong> —— 改用 <code>composite</code> + 客户端去重，或换用别的手段。</p>
+</blockquote>
+<p>高基数 string 字段上，预存 hash 会更快（<code>mapper-murmur3</code> 插件或客户端算好），因为省掉每次聚合的哈希计算。</p>
+<h2 id="四、terms-聚合：截断与误差"><a href="#四、terms-聚合：截断与误差" class="headerlink" title="四、terms 聚合：截断与误差"></a>四、<code>terms</code> 聚合：截断与误差</h2><p><code>terms</code> 是<strong>分片级局部采样再归并</strong>，不是全局 GROUP BY。这是所有误差的根源。</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>默认值</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>size</code></td>
+<td><code>10</code></td>
+<td>返回的桶数量上限</td>
+</tr>
+<tr>
+<td><code>shard_size</code></td>
+<td><code>size * 1.5 + 10</code></td>
+<td><strong>每个分片</strong>取回的候选桶数</td>
+</tr>
+<tr>
+<td><code>show_term_doc_count_error</code></td>
+<td><code>false</code></td>
+<td>开启后才返回 <code>doc_count_error_upper_bound</code></td>
+</tr>
+</tbody></table>
+<p>响应里两个字段必须看懂：</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>doc_count_error_upper_bound</code></td>
+<td>各分片上<strong>未能进入 <code>shard_size</code> 的最大桶大小之和</strong>，即桶计数的误差上界</td>
+</tr>
+<tr>
+<td><code>sum_other_doc_count</code></td>
+<td><strong>没进入 top <code>size</code></strong> 的文档总数</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>doc_count_error_upper_bound</code> <strong>只在按 <code>_count</code> 降序排序时</strong>才有意义。按词项值排序时没有误差；按子聚合排序或按 <code>_count</code> <strong>升序</strong>排序时**无法计算，返回 <code>-1</code>**。</p>
+</blockquote>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><code class="hljs json">GET /orders/_search<br><span class="hljs-punctuation">&#123;</span><br>  <span class="hljs-attr">&quot;size&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">0</span><span class="hljs-punctuation">,</span><br>  <span class="hljs-attr">&quot;aggs&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span><br>    <span class="hljs-attr">&quot;by_city&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span><br>      <span class="hljs-attr">&quot;terms&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span><br>        <span class="hljs-attr">&quot;field&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;city&quot;</span><span class="hljs-punctuation">,</span><br>        <span class="hljs-attr">&quot;size&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">20</span><span class="hljs-punctuation">,</span><br>        <span class="hljs-attr">&quot;shard_size&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">100</span><span class="hljs-punctuation">,</span><br>        <span class="hljs-attr">&quot;show_term_doc_count_error&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">true</span></span><br>      <span class="hljs-punctuation">&#125;</span><br>    <span class="hljs-punctuation">&#125;</span><br>  <span class="hljs-punctuation">&#125;</span><br><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>排序方式</th>
+<th>是否安全</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>_count</code> 降序（默认）</td>
+<td>✅ 误差有界且可报告</td>
+</tr>
+<tr>
+<td><code>_key</code> 升序 &#x2F; 降序</td>
+<td>✅ 完全准确</td>
+</tr>
+<tr>
+<td>子聚合 <code>max</code> 降序</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>子聚合 <code>min</code> 升序</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>子聚合其它指标 &#x2F; 方向</td>
+<td>❌ 排序可能错</td>
+</tr>
+<tr>
+<td><strong><code>_count</code> 升序</strong></td>
+<td>❌ <strong>无界误差，官方强烈不建议</strong>，找稀有词项用 <code>rare_terms</code></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>加大 <code>shard_size</code> 比加大 <code>size</code> 便宜得多</strong>，且更能修正各分片分布不均导致的 top 项错位。约束：<code>shard_size</code> 不能小于 <code>size</code>，小于时会被**自动重置为 <code>size</code>**。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 唯一值非常多、又要全量取桶时，<strong>不要靠无限加大 <code>size</code></strong> —— 会撞 <code>search.max_buckets</code>（默认 65536）。用 <code>composite</code> 聚合分页拉取：</p>
+</blockquote>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs json">GET /orders/_search<br><span class="hljs-punctuation">&#123;</span><br>  <span class="hljs-attr">&quot;size&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">0</span><span class="hljs-punctuation">,</span><br>  <span class="hljs-attr">&quot;aggs&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span><br>    <span class="hljs-attr">&quot;by_city&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span><br>      <span class="hljs-attr">&quot;composite&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span><br>        <span class="hljs-attr">&quot;size&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1000</span><span class="hljs-punctuation">,</span><br>        <span class="hljs-attr">&quot;sources&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;city&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;terms&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;field&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;city&quot;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">]</span><br>      <span class="hljs-punctuation">&#125;</span><br>    <span class="hljs-punctuation">&#125;</span><br>  <span class="hljs-punctuation">&#125;</span><br><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<p>响应里的 <code>after_key</code> 就是下一页的游标。</p>
+<h2 id="五、分片数怎么影响聚合"><a href="#五、分片数怎么影响聚合" class="headerlink" title="五、分片数怎么影响聚合"></a>五、分片数怎么影响聚合</h2><p>协调节点要把<strong>每个分片的聚合结果</strong>收上来归并。分片越多：</p>
+<table>
+<thead>
+<tr>
+<th>影响</th>
+<th>方向</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>分片级聚合并行度</td>
+<td>先升后降</td>
+</tr>
+<tr>
+<td>协调节点归并开销</td>
+<td><strong>单调上升</strong></td>
+</tr>
+<tr>
+<td><code>terms</code> 误差</td>
+<td><strong>上升</strong>（局部 top 更不完整）</td>
+</tr>
+<tr>
+<td>每分片内存&#x2F;句柄</td>
+<td>上升</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 经验法则：<strong>分片数尽量少</strong>，单分片几十 GB 量级通常没问题。分片过多（几百上千）会让聚合的归并阶段成为瓶颈，且 <code>doc_count_error_upper_bound</code> 明显变大。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 查询时可以用 <code>preference</code> 或路由把请求<strong>固定到少量分片</strong>，减少归并规模。日志类场景用 <code>_routing</code> 按天&#x2F;租户分区，比无脑加分片有效。</p>
+</blockquote>
+<h2 id="六、mapping-优化：三个开关"><a href="#六、mapping-优化：三个开关" class="headerlink" title="六、mapping 优化：三个开关"></a>六、mapping 优化：三个开关</h2><table>
+<thead>
+<tr>
+<th>开关</th>
+<th>关掉后失去</th>
+<th>适用场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>index: false</code></td>
+<td><strong>不能检索</strong>（倒排索引不建）</td>
+<td>只用于展示、排序、聚合的字段</td>
+</tr>
+<tr>
+<td><code>doc_values: false</code></td>
+<td><strong>不能排序 &#x2F; 聚合 &#x2F; 脚本取值</strong></td>
+<td>只用于检索的字段</td>
+</tr>
+<tr>
+<td><code>norms: false</code></td>
+<td>失去字段长度归一化（评分变粗）</td>
+<td>不参与相关性打分的字段</td>
+</tr>
+</tbody></table>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs json">PUT /articles<br><span class="hljs-punctuation">&#123;</span><br>  <span class="hljs-attr">&quot;mappings&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span><br>    <span class="hljs-attr">&quot;properties&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span><br>      <span class="hljs-attr">&quot;title&quot;</span><span class="hljs-punctuation">:</span>   <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;type&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;text&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;norms&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">false</span></span> <span class="hljs-punctuation">&#125;</span><span class="hljs-punctuation">,</span><br>      <span class="hljs-attr">&quot;content&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;type&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;text&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;index_options&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;docs&quot;</span> <span class="hljs-punctuation">&#125;</span><span class="hljs-punctuation">,</span><br>      <span class="hljs-attr">&quot;status&quot;</span><span class="hljs-punctuation">:</span>  <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;type&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;keyword&quot;</span> <span class="hljs-punctuation">&#125;</span><span class="hljs-punctuation">,</span><br>      <span class="hljs-attr">&quot;raw_payload&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;type&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;object&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;enabled&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">false</span></span> <span class="hljs-punctuation">&#125;</span><span class="hljs-punctuation">,</span><br>      <span class="hljs-attr">&quot;body_hash&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;type&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;keyword&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;index&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">false</span></span> <span class="hljs-punctuation">&#125;</span><span class="hljs-punctuation">,</span><br>      <span class="hljs-attr">&quot;log_blob&quot;</span><span class="hljs-punctuation">:</span>  <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;type&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;keyword&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;doc_values&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">false</span></span> <span class="hljs-punctuation">&#125;</span><br>    <span class="hljs-punctuation">&#125;</span><br>  <span class="hljs-punctuation">&#125;</span><br><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>字段类型</th>
+<th><code>norms</code> 默认</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>text</code></td>
+<td><code>true</code></td>
+</tr>
+<tr>
+<td><code>keyword</code></td>
+<td><code>false</code></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>norms</code> 每个文档每个字段约占 <strong>1 字节</strong>。几亿文档 × 十几个不需要评分的 text 字段，就是几十 GB。<strong>不需要评分的 text 字段关掉 <code>norms</code>。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>index_options: &quot;docs&quot;</code> 只存文档号，不存词频和位置 —— 省磁盘，但<strong>失去短语查询能力</strong>（<code>match_phrase</code> 会失效）。别在需要短语匹配的字段上开。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 完全不需要检索的结构化字段，用 <code>&quot;enabled&quot;: false</code> 整个跳过解析和索引，比逐个设 <code>index: false</code> 更彻底。</p>
+</blockquote>
+<h2 id="七、写入吞吐：refresh-interval-与-bulk"><a href="#七、写入吞吐：refresh-interval-与-bulk" class="headerlink" title="七、写入吞吐：refresh_interval 与 _bulk"></a>七、写入吞吐：<code>refresh_interval</code> 与 <code>_bulk</code></h2><p><code>refresh</code> 会把内存缓冲区的数据生成新的 Lucene segment 并<strong>打开以供搜索</strong>。每 refresh 一次就多一个小 segment，频繁 refresh 是写入吞吐的头号杀手。</p>
+<table>
+<thead>
+<tr>
+<th>值</th>
+<th>行为</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>1s</code></td>
+<td>Elastic Stack 默认</td>
+</tr>
+<tr>
+<td><code>-1</code></td>
+<td><strong>禁用自动 refresh</strong></td>
+</tr>
+<tr>
+<td><code>30s</code> &#x2F; <code>60s</code></td>
+<td>批量导入常用</td>
+</tr>
+</tbody></table>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs json">PUT /articles/_settings<br><span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;index&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;refresh_interval&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;30s&quot;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>写入 API 的 <code>refresh</code> 参数</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>refresh=false</code></td>
+<td>默认，写完即返回，不等可见</td>
+</tr>
+<tr>
+<td><code>refresh=wait_for</code></td>
+<td>等到下次 refresh 完成再返回</td>
+</tr>
+<tr>
+<td><code>refresh=true</code></td>
+<td>立即 refresh 再返回（<strong>最慢，别在批量里用</strong>）</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 有隐式优化：如果<strong>没有显式设置</strong> <code>refresh_interval</code>，分片在 <code>index.search.idle.after</code>（默认 <code>30s</code>）内没有收到搜索请求时<strong>不接收后台 refresh</strong>，只在被搜索时才刷。但<strong>一旦你显式写了这个设置（哪怕写的就是 <code>1s</code>），这个优化就失效</strong>。</p>
+</blockquote>
+<p>批量导入的常规做法：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs json">PUT /articles/_settings<br><span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;index&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;refresh_interval&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;-1&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;number_of_replicas&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">0</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<p>导完再改回来：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs json">PUT /articles/_settings<br><span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;index&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;refresh_interval&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1s&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;number_of_replicas&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 导入期间关副本能显著提速，但<strong>集群此时没有冗余</strong>，导入完必须立刻恢复，否则单节点故障就丢数据。</p>
+</blockquote>
+<p><code>_bulk</code> 的批大小<strong>没有官方默认值</strong>，是客户端定的。经验区间：</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>经验值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>单批条数</td>
+<td>1000 – 5000</td>
+</tr>
+<tr>
+<td>单批体积</td>
+<td>5 – 15 MB</td>
+</tr>
+<tr>
+<td>并发写入线程</td>
+<td>单节点 2 – 4 个足够，再多只会排队</td>
+</tr>
+</tbody></table>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs json">POST /_bulk<br><span class="hljs-punctuation">&#123;</span><span class="hljs-attr">&quot;index&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-punctuation">&#123;</span><span class="hljs-attr">&quot;_index&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;articles&quot;</span><span class="hljs-punctuation">,</span><span class="hljs-attr">&quot;_id&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;1&quot;</span><span class="hljs-punctuation">&#125;</span><span class="hljs-punctuation">&#125;</span><br><span class="hljs-punctuation">&#123;</span><span class="hljs-attr">&quot;title&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;a&quot;</span><span class="hljs-punctuation">,</span><span class="hljs-attr">&quot;status&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;PUBLISHED&quot;</span><span class="hljs-punctuation">&#125;</span><br><span class="hljs-punctuation">&#123;</span><span class="hljs-attr">&quot;index&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-punctuation">&#123;</span><span class="hljs-attr">&quot;_index&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;articles&quot;</span><span class="hljs-punctuation">,</span><span class="hljs-attr">&quot;_id&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;2&quot;</span><span class="hljs-punctuation">&#125;</span><span class="hljs-punctuation">&#125;</span><br><span class="hljs-punctuation">&#123;</span><span class="hljs-attr">&quot;title&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;b&quot;</span><span class="hljs-punctuation">,</span><span class="hljs-attr">&quot;status&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;DRAFT&quot;</span><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>_bulk</code> 的 body 必须以换行符结尾</strong>，否则最后一条会被丢弃（很多客户端库已经帮你处理了，手拼 JSON 时要小心）。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>_bulk</code> 的 HTTP 状态码是 <strong>200</strong>，即使里面有文档失败。必须逐条检查响应体的 <code>errors</code> 字段和每条的 <code>status</code>，否则会静默丢数据。</p>
+</blockquote>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs json"><span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;took&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">30</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;errors&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">true</span></span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;items&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;index&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;status&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">429</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">]</span> <span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<h2 id="八、查询缓存：两个独立的缓存"><a href="#八、查询缓存：两个独立的缓存" class="headerlink" title="八、查询缓存：两个独立的缓存"></a>八、查询缓存：两个独立的缓存</h2><table>
+<thead>
+<tr>
+<th>缓存</th>
+<th>作用范围</th>
+<th>命中条件</th>
+<th>默认大小</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Node query cache</td>
+<td><strong>整个节点</strong></td>
+<td><strong>filter context</strong> 的子句</td>
+<td>堆的 <code>10%</code>，最多 10000 条</td>
+</tr>
+<tr>
+<td>Shard request cache</td>
+<td>分片级</td>
+<td>请求 <code>size=0</code> 的聚合 &#x2F; 计数，且无 <code>now</code> 等非确定性条件</td>
+<td>堆的 <code>1%</code></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>只有 <code>filter</code> 上下文的子句进 query cache</strong>，<code>must</code> &#x2F; <code>should</code> 不算分不算缓存。这就是「不做相关性判断的条件全放 <code>filter</code>」的第二个收益。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>request cache 只对 <code>size: 0</code> 的请求生效</strong>。一旦带上 <code>size: &gt;0</code> 或者用了 <code>now</code>、<code>Math.random()</code> 这类非确定性条件，缓存直接不命中。</p>
+</blockquote>
+<p>看缓存命中情况：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs json">GET /_nodes/stats/indices/query_cache<span class="hljs-punctuation">,</span>request_cache<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>query_cache.hit_count</code> &#x2F; <code>miss_count</code></td>
+<td>命中率</td>
+</tr>
+<tr>
+<td><code>query_cache.evictions</code></td>
+<td>被挤出，说明缓存太小或查询太多样</td>
+</tr>
+<tr>
+<td><code>request_cache.memory_size_in_bytes</code></td>
+<td>占用</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 段合并（merge）会使该段相关的缓存<strong>全部失效</strong>。写入量大的索引上 query cache 命中率天然偏低，别把它当救命稻草。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 用 <code>from + size</code> 翻深页，撞上 <code>max_result_window</code>（默认 10000）</li>
+<li><input disabled="" type="checkbox"> 靠调大 <code>max_result_window</code> 解决深分页，内存开销随之线性上升</li>
+<li><input disabled="" type="checkbox"> <code>search_after</code> 的 <code>sort</code> 里没加全局唯一的 tiebreaker，跨页漏数据或重复</li>
+<li><input disabled="" type="checkbox"> 翻页期间发生 refresh，结果顺序变化却不配 PIT</li>
+<li><input disabled="" type="checkbox"> 用 <code>scroll</code> 做用户侧实时分页</li>
+<li><input disabled="" type="checkbox"> <code>scroll</code> 用完不清理，搜索上下文堆积、旧 segment 无法删除</li>
+<li><input disabled="" type="checkbox"> 以为 <code>cardinality</code> 是精确去重</li>
+<li><input disabled="" type="checkbox"> 无脑把 <code>precision_threshold</code> 调到 40000，忽略按分片 × 聚合项相乘的内存开销</li>
+<li><input disabled="" type="checkbox"> 以为 <code>terms</code> 聚合是全局精确的 GROUP BY</li>
+<li><input disabled="" type="checkbox"> <code>terms</code> 里只加大 <code>size</code> 不加大 <code>shard_size</code>，还奇怪 top 项不对</li>
+<li><input disabled="" type="checkbox"> 把 <code>shard_size</code> 设得比 <code>size</code> 小，被静默重置为 <code>size</code></li>
+<li><input disabled="" type="checkbox"> 用 <code>_count</code> 升序排序找稀有项（误差无界），该用 <code>rare_terms</code></li>
+<li><input disabled="" type="checkbox"> 唯一值很多却不断加大 <code>size</code>，撞 <code>search.max_buckets</code>（默认 65536）</li>
+<li><input disabled="" type="checkbox"> 分片数开得过多，聚合归并阶段成瓶颈</li>
+<li><input disabled="" type="checkbox"> 给不参与评分的 <code>text</code> 字段保留 <code>norms</code></li>
+<li><input disabled="" type="checkbox"> 在需要 <code>match_phrase</code> 的字段上设 <code>index_options: &quot;docs&quot;</code></li>
+<li><input disabled="" type="checkbox"> 批量导入时保持默认 <code>refresh_interval</code>，甚至用 <code>refresh=true</code></li>
+<li><input disabled="" type="checkbox"> 显式设置了 <code>refresh_interval</code> 却抱怨失去了 search idle 优化</li>
+<li><input disabled="" type="checkbox"> <code>_bulk</code> 只看 HTTP 200，不检查响应体里的 <code>errors</code></li>
+<li><input disabled="" type="checkbox"> 把该进 <code>filter</code> 的条件写进 <code>must</code>，白丢 query cache 命中</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://www.elastic.co/docs/reference/elasticsearch/rest-apis/paginate-search-results">Elasticsearch · 分页搜索结果</a> · <a target="_blank" rel="noopener" href="https://www.elastic.co/docs/reference/aggregations/search-aggregations-metrics-cardinality-aggregation">Elasticsearch · cardinality 聚合</a> · <a target="_blank" rel="noopener" href="https://www.elastic.co/docs/reference/aggregations/search-aggregations-bucket-terms-aggregation">Elasticsearch · terms 聚合</a> · <a target="_blank" rel="noopener" href="https://www.elastic.co/docs/reference/aggregations/search-aggregations-bucket-composite-aggregation">Elasticsearch · composite 聚合</a> · <a target="_blank" rel="noopener" href="https://www.elastic.co/docs/reference/elasticsearch/index-settings/index-modules">Elasticsearch · 索引模块设置</a> · <a target="_blank" rel="noopener" href="https://www.elastic.co/docs/reference/elasticsearch/configuration-reference/search-settings">Elasticsearch · search settings</a> · <a target="_blank" rel="noopener" href="https://www.elastic.co/docs/reference/elasticsearch/configuration-reference/node-query-cache-settings">Elasticsearch · node query cache</a> · <a target="_blank" rel="noopener" href="https://www.elastic.co/docs/reference/elasticsearch/mapping-reference/norms">Elasticsearch · norms</a> · <a target="_blank" rel="noopener" href="https://www.elastic.co/docs/reference/elasticsearch/mapping-reference/doc-values">Elasticsearch · doc_values</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/elasticsearch/" class="category-chain-item">elasticsearch</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/elasticsearch/" class="print-no-link">#elasticsearch</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 041 · Elasticsearch（二）：聚合、分页与性能优化</div>
+      <div>https://ethan-iopasd.github.io/2026/09/30/每日技术博客041-Elasticsearch聚合与分页/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年9月30日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2040-Elasticsearch%E5%80%92%E6%8E%92%E7%B4%A2%E5%BC%95/" title="每日技术博客 040 · Elasticsearch（一）：倒排索引与查询 DSL">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 040 · Elasticsearch（一）：倒排索引与查询 DSL</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

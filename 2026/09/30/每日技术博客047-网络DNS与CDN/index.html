@@ -1,0 +1,1072 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-09-30 · 第 047 篇 网络系列第二篇。域名是怎么变成 IP 的、CDN 到底缓没缓存、「我本地能访问线上不行」该按什么顺序查 —— 这一篇全是排查手法。  📚 网络 系列目录   章节 主题 状态    一 TCP&#x2F;IP 与三次握手 已发布   二 DNS、CDN 与抓包排查 本篇    开场：一次请求有三个独立的缓存层，出问题时先定位是哪一层浏">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 047 · 网络（二）：DNS、CDN 与抓包排查">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2047-%E7%BD%91%E7%BB%9CDNS%E4%B8%8ECDN/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-09-30 · 第 047 篇 网络系列第二篇。域名是怎么变成 IP 的、CDN 到底缓没缓存、「我本地能访问线上不行」该按什么顺序查 —— 这一篇全是排查手法。  📚 网络 系列目录   章节 主题 状态    一 TCP&#x2F;IP 与三次握手 已发布   二 DNS、CDN 与抓包排查 本篇    开场：一次请求有三个独立的缓存层，出问题时先定位是哪一层浏">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-09-30T15:10:00.000Z">
+<meta property="article:modified_time" content="2026-09-30T05:54:25.292Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="network">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 047 · 网络（二）：DNS、CDN 与抓包排查 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 047 · 网络（二）：DNS、CDN 与抓包排查"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-09-30 23:10" pubdate>
+          2026年9月30日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.7k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          23 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 047 · 网络（二）：DNS、CDN 与抓包排查</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-09-30 · 第 047 篇</p>
+<p>网络系列第二篇。域名是怎么变成 IP 的、CDN 到底缓没缓存、「我本地能访问线上不行」该按什么顺序查 —— 这一篇全是排查手法。</p>
+</blockquote>
+<h2 id="📚-网络-系列目录"><a href="#📚-网络-系列目录" class="headerlink" title="📚 网络 系列目录"></a>📚 网络 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>TCP&#x2F;IP 与三次握手</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>DNS、CDN 与抓包排查</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一次请求有三个独立的缓存层，出问题时先定位是哪一层"><a href="#开场：一次请求有三个独立的缓存层，出问题时先定位是哪一层" class="headerlink" title="开场：一次请求有三个独立的缓存层，出问题时先定位是哪一层"></a>开场：一次请求有三个独立的缓存层，出问题时先定位是哪一层</h2><p><strong>浏览器 DNS 缓存 → 本地 DNS &#x2F; 运营商 DNS → 权威 DNS</strong>，再往上是 <strong>CDN 边缘节点 → 回源到源站</strong>。绝大多数「改了配置没生效」都是某一层缓存没到 TTL。</p>
+<h2 id="一、DNS-解析链路"><a href="#一、DNS-解析链路" class="headerlink" title="一、DNS 解析链路"></a>一、DNS 解析链路</h2><figure class="highlight jboss-cli"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs jboss-cli">浏览器<span class="hljs-string">/OS</span> 缓存 → hosts 文件 → 本地 DNS<span class="hljs-params">(递归)</span> → 根 → <span class="hljs-string">.com</span><span class="hljs-params">(TLD)</span> → 权威 NS → 结果<br>                                 ↑<br>                         运营商 DNS 缓存（通常最大的一层）<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>递归查询</td>
+<td>Recursive</td>
+<td>客户端只问一次，本地 DNS 负责跑完全程</td>
+</tr>
+<tr>
+<td>迭代查询</td>
+<td>Iterative</td>
+<td>本地 DNS 逐级问根 &#x2F; TLD &#x2F; 权威，每级只给下一跳</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 完整链路，从根开始</span><br>dig +trace example.com<br><span class="hljs-comment"># 只看结果</span><br>dig +short example.com<br><span class="hljs-comment"># 指定 DNS 服务器</span><br>dig @8.8.8.8 example.com<br><span class="hljs-comment"># 反向解析</span><br>dig -x 93.184.216.34<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>dig</code> 的 <code>ANSWER SECTION</code> 里的 TTL 是「剩余时间」，不是配置值。</strong> 第一次查到可能是 300，几秒后再查变成 297。想看配置值就用 <code>dig +noall +answer</code> 连续观察，或者去权威 NS 上查（<code>dig @ns1.example.com example.com</code> 拿到的才是原值）。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>nslookup</code> 会读 <code>/etc/hosts</code> 和系统解析器，<code>dig</code> 默认直接走 DNS。</strong> 两者结果不一致时，先怀疑 <code>hosts</code> 文件或 <code>resolv.conf</code>。排查线上问题用 <code>dig</code>，更接近真实。</p>
+</blockquote>
+<h2 id="二、记录类型与-TTL"><a href="#二、记录类型与-TTL" class="headerlink" title="二、记录类型与 TTL"></a>二、记录类型与 TTL</h2><table>
+<thead>
+<tr>
+<th>类型</th>
+<th>用途</th>
+<th>注意</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>A</code></td>
+<td>域名 → IPv4</td>
+<td>最常用</td>
+</tr>
+<tr>
+<td><code>AAAA</code></td>
+<td>域名 → IPv6</td>
+<td><strong>客户端双栈时会优先 AAAA</strong>，配错会连不上</td>
+</tr>
+<tr>
+<td><code>CNAME</code></td>
+<td>域名 → 另一个域名</td>
+<td><strong>CNAME 不能和其他记录共存</strong>（MX、TXT 也不行）</td>
+</tr>
+<tr>
+<td><code>MX</code></td>
+<td>邮件路由</td>
+<td>必须指向 A 记录，不能指向 CNAME</td>
+</tr>
+<tr>
+<td><code>TXT</code></td>
+<td>任意文本</td>
+<td>SPF、DKIM、域名验证</td>
+</tr>
+<tr>
+<td><code>NS</code></td>
+<td>权威服务器</td>
+<td>委派关系</td>
+</tr>
+<tr>
+<td><code>SOA</code></td>
+<td>区域元信息</td>
+<td>含 <code>minimum</code> 字段，<strong>旧式实现里会影响负缓存 TTL</strong></td>
+</tr>
+<tr>
+<td><code>CAA</code></td>
+<td>允许哪些 CA 签发证书</td>
+<td>不配就任何 CA 都能签</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs bash">dig example.com A<br>dig example.com MX<br>dig example.com TXT<br>dig example.com NS<br>dig +short example.com CNAME<br></code></pre></td></tr></table></figure>
+
+<h3 id="TTL-怎么设"><a href="#TTL-怎么设" class="headerlink" title="TTL 怎么设"></a>TTL 怎么设</h3><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>TTL 建议</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>常规域名</td>
+<td>300–600 秒</td>
+<td>兼顾切换速度和查询量</td>
+</tr>
+<tr>
+<td><strong>切换前</strong>（迁移 IP &#x2F; 换 CDN）</td>
+<td>提前改成 60 秒，等旧 TTL 过期再切</td>
+<td>否则切换后旧记录还会被缓存几小时</td>
+</tr>
+<tr>
+<td>CDN 接入的 CNAME</td>
+<td>600 秒以上</td>
+<td>CDN 内部靠自己的调度，不需要频繁变</td>
+</tr>
+<tr>
+<td>极少变动的记录</td>
+<td>3600 秒以上</td>
+<td>减少查询</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>改 DNS 一定要「先降 TTL，再改记录」。</strong> 直接改记录的话，旧 TTL 还没过期，<strong>部分用户仍会解析到旧 IP</strong>，这段时间是双份流量。这是最常见的线上切换事故。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>TTL 只是「最大缓存时间」不是保证。</strong> 运营商 DNS 可能无视 TTL 强制缓存（俗称 DNS 劫持式缓存），也可能对 <code>NXDOMAIN</code> 做<strong>负缓存</strong>（时长由 SOA 的 <code>minimum</code> 决定，常见 300–3600 秒）。<strong>新加的域名「查不到」不一定是没配，可能只是负缓存没到期。</strong></p>
+</blockquote>
+<h2 id="三、DNS-污染与加密"><a href="#三、DNS-污染与加密" class="headerlink" title="三、DNS 污染与加密"></a>三、DNS 污染与加密</h2><table>
+<thead>
+<tr>
+<th>方案</th>
+<th>RFC</th>
+<th>端口</th>
+<th>特点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>明文 DNS</td>
+<td>RFC 1035</td>
+<td>53&#x2F;UDP、53&#x2F;TCP</td>
+<td>可被中间人篡改、可被投毒</td>
+</tr>
+<tr>
+<td><strong>DoT</strong>（DNS over TLS）</td>
+<td>RFC 7858</td>
+<td>853&#x2F;TCP</td>
+<td>全程加密，<strong>端口特征明显，易被阻断</strong></td>
+</tr>
+<tr>
+<td><strong>DoH</strong>（DNS over HTTPS）</td>
+<td>RFC 8484</td>
+<td>443&#x2F;TCP</td>
+<td>混在 HTTPS 流量里，难识别；缺点是绕过了本地 DNS 策略</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># DoH 查询（POST，Content-Type 必须是 application/dns-message）</span><br>curl -s -H <span class="hljs-string">&#x27;accept: application/dns-message&#x27;</span> \<br>     -H <span class="hljs-string">&#x27;content-type: application/dns-message&#x27;</span> \<br>     --data-binary @query.bin \<br>     https://cloudflare-dns.com/dns-query | xxd | <span class="hljs-built_in">head</span><br><br><span class="hljs-comment"># dig 走 DoT（需要 dig 支持 +tls）</span><br>dig +tls @1.1.1.1 example.com<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>DNS 污染的特征是「返回了 IP，但明显不对」</strong>（比如返回 0.0.0.0、127.0.0.1，或境外某 IP）。这时 <code>dig @8.8.8.8</code> 和本地 DNS 结果不一致就是证据。<strong>注意：DoH&#x2F;DoT 只加密最后一跳，运营商仍能看到 SNI</strong>（除非用 ECH）。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>curl</code> 解析失败但 <code>ping</code> 通</strong> —— 常见原因是 <code>ping</code> 走的是系统解析器（可能读了 <code>/etc/hosts</code>），而 <code>curl</code> 用了不同的解析路径或代理。<strong>排查时统一用 <code>getent hosts &lt;域名&gt;</code> 看系统真实解析结果。</strong></p>
+</blockquote>
+<h2 id="四、CDN：回源与缓存命中"><a href="#四、CDN：回源与缓存命中" class="headerlink" title="四、CDN：回源与缓存命中"></a>四、CDN：回源与缓存命中</h2><figure class="highlight scss"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs scss">用户 → 边缘节点(Edge) ──命中──▶ 直接返回<br>                    └──未命中──▶ 回源(Origin) ──▶ 缓存到边缘 ──▶ 返回<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>响应头</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>X-Cache: HIT</code> &#x2F; <code>MISS</code></td>
+<td><strong>非标准</strong>，各家 CDN 自己定义。HIT &#x3D; 边缘命中，MISS &#x3D; 回源了</td>
+</tr>
+<tr>
+<td><code>Age: 1200</code></td>
+<td>该响应在 CDN 缓存里已存在 1200 秒（RFC 9111）</td>
+</tr>
+<tr>
+<td><code>Via: 1.1 varnish</code></td>
+<td>经过的代理链（RFC 9110），能看出经过了哪些中间层</td>
+</tr>
+<tr>
+<td><code>X-Cache-Lookup</code></td>
+<td>腾讯云 CDN 特有，区分多级缓存的命中层级</td>
+</tr>
+<tr>
+<td><code>Cache-Control</code></td>
+<td>决定能不能缓存、能缓多久 —— <strong>CDN 听它的</strong></td>
+</tr>
+<tr>
+<td><code>X-Served-By</code> &#x2F; <code>X-Cache-Hits</code></td>
+<td>Fastly &#x2F; Varnish 系，HIT 次数</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 看 CDN 层命中情况</span><br>curl -sI https://cdn.example.com/app.js | grep -iE <span class="hljs-string">&#x27;x-cache|age|via|cache-control&#x27;</span><br>curl -sI https://cdn.example.com/app.js | grep -i x-cache<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>Age</code> 是判断「到底缓存了多久」最可靠的指标。</strong> <code>Age: 0</code> 或没有 <code>Age</code> 基本可以认定是 MISS（刚回源）。<code>Age</code> 接近 <code>max-age</code> 说明即将过期，下一波请求会集中回源 —— 这是<strong>缓存雪崩</strong>的预警信号。</p>
+</blockquote>
+<h3 id="刷新与预热"><a href="#刷新与预热" class="headerlink" title="刷新与预热"></a>刷新与预热</h3><table>
+<thead>
+<tr>
+<th>操作</th>
+<th>作用</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>刷新（Purge）</strong></td>
+<td>主动删除边缘缓存，下次请求回源</td>
+<td>大量刷新会造成回源洪峰</td>
+</tr>
+<tr>
+<td><strong>预热（Prefetch）</strong></td>
+<td>主动把内容拉到边缘，不等用户请求</td>
+<td>需要提前知道 URL 列表</td>
+</tr>
+<tr>
+<td><strong>URL 刷新 vs 目录刷新</strong></td>
+<td>目录刷新范围大、更慢、更贵</td>
+<td>通常有配额限制</td>
+</tr>
+<tr>
+<td><strong>版本化 URL</strong></td>
+<td><code>app.a1b2c3.js</code>，发版换文件名</td>
+<td><strong>最推荐</strong>，无需刷新</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>别用「刷新」当发版手段。</strong> 刷新有延迟、有配额、可能失败，而且边缘节点众多时不是所有节点都立刻生效。<strong>正确做法是 HTML 用 <code>no-cache</code> + 静态资源带内容哈希，靠 URL 变化自然生效</strong>，永远不需要刷 CDN。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>CDN 缓存的是「响应」，不只是「文件」。</strong> 如果源站对不同请求头（<code>Accept-Encoding</code>、<code>Cookie</code>、<code>Origin</code>）返回不同内容，而没配 <code>Vary</code>，CDN 会把一份响应发给所有人 —— 典型症状是<strong>有人看到了别人的内容，或者 CORS 时好时坏</strong>。</p>
+</blockquote>
+<h2 id="五、抓包与排查工具选型"><a href="#五、抓包与排查工具选型" class="headerlink" title="五、抓包与排查工具选型"></a>五、抓包与排查工具选型</h2><table>
+<thead>
+<tr>
+<th>工具</th>
+<th>层次</th>
+<th>适用</th>
+<th>不适用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>curl -v</code></td>
+<td>应用层</td>
+<td>看请求头、响应头、TLS 握手、重定向链路</td>
+<td>看包级别的时序</td>
+</tr>
+<tr>
+<td><code>curl --resolve</code></td>
+<td>——</td>
+<td><strong>绕过 DNS 直连指定 IP</strong>，验证是不是解析问题</td>
+<td>——</td>
+</tr>
+<tr>
+<td><code>curl -w</code></td>
+<td>应用层</td>
+<td>分阶段耗时（DNS &#x2F; TCP &#x2F; TLS &#x2F; TTFB）</td>
+<td>——</td>
+</tr>
+<tr>
+<td><code>traceroute</code></td>
+<td>网络层</td>
+<td>逐跳路径，看在哪一跳断</td>
+<td>中间设备不响应 ICMP 时会显示 <code>*</code></td>
+</tr>
+<tr>
+<td><code>mtr</code></td>
+<td>网络层</td>
+<td><strong>traceroute + 持续统计丢包率</strong>，判断是路径问题还是单点抖动</td>
+<td>需要 root（或用 ICMP 模式）</td>
+</tr>
+<tr>
+<td><code>tcpdump</code></td>
+<td>链路&#x2F;网络层</td>
+<td>服务端侧抓包，<strong>没有 GUI 也能用</strong></td>
+<td>需要 root；解读门槛高</td>
+</tr>
+<tr>
+<td><code>Wireshark</code></td>
+<td>链路层</td>
+<td>本地抓包 + 图形化协议解析，看 TLS&#x2F;HTTP2 细节</td>
+<td>生产服务器上不合适</td>
+</tr>
+<tr>
+<td><code>ss</code></td>
+<td>内核</td>
+<td>连接状态、队列、cwnd</td>
+<td>看不到内容</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 分阶段耗时，一行定位瓶颈在哪一层</span><br>curl -o /dev/null -s -w <span class="hljs-string">&#x27;dns:%&#123;time_namelookup&#125; tcp:%&#123;time_connect&#125; tls:%&#123;time_appconnect&#125; ttfb:%&#123;time_starttransfer&#125; total:%&#123;time_total&#125;\n&#x27;</span> https://example.com<br><br><span class="hljs-comment"># 绕过 DNS 直连 IP（Host 头照常）</span><br>curl -v --resolve example.com:443:1.2.3.4 https://example.com/<br><br><span class="hljs-comment"># 看路径上的丢包分布</span><br>mtr -rwzc 100 example.com<br><br><span class="hljs-comment"># 服务端抓包：只看某个端口的某个 IP</span><br>tcpdump -i eth0 -nn -s0 -A <span class="hljs-string">&#x27;tcp port 80 and host 1.2.3.4&#x27;</span><br><span class="hljs-comment"># 抓 TCP 握手失败</span><br>tcpdump -i any -nn <span class="hljs-string">&#x27;tcp[tcpflags] &amp; (tcp-syn|tcp-rst) != 0&#x27;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>traceroute</code> 显示 <code>*</code> 不代表丢包</strong> —— 很多路由器默认不回 ICMP TTL 超时。<strong>只有连续多跳都是 <code>*</code> 才说明真的断了</strong>，而且要用 <code>mtr</code> 看丢包率是否持续，单次抖动没意义。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>tcpdump</code> 抓不到包的最常见原因是抓错了网卡</strong>（容器环境尤其）。用 <code>-i any</code> 先确认流量走哪，再换具体网卡。K8s 里要抓 Pod 的包，得进 Pod 的 network namespace。</p>
+</blockquote>
+<h2 id="六、「本地能访问，线上不行」的排查顺序"><a href="#六、「本地能访问，线上不行」的排查顺序" class="headerlink" title="六、「本地能访问，线上不行」的排查顺序"></a>六、「本地能访问，线上不行」的排查顺序</h2><p>按这个顺序走，<strong>每一步都能排除一整类原因</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>步骤</th>
+<th>命令</th>
+<th>结论</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>域名解析到哪</td>
+<td><code>dig +short &lt;域名&gt;</code> &#x2F; <code>getent hosts &lt;域名&gt;</code></td>
+<td>解析对不对、是不是打到了内网 IP</td>
+</tr>
+<tr>
+<td>2</td>
+<td>端口通不通</td>
+<td><code>nc -zv &lt;ip&gt; &lt;port&gt;</code> &#x2F; <code>telnet</code></td>
+<td>TCP 层是否可达</td>
+</tr>
+<tr>
+<td>3</td>
+<td>TLS 握没握上</td>
+<td><code>curl -v</code> 看证书链</td>
+<td>证书域名&#x2F;有效期&#x2F;中间证书是否缺</td>
+</tr>
+<tr>
+<td>4</td>
+<td>响应头对不对</td>
+<td><code>curl -sI</code></td>
+<td>是不是 CDN 返回的（<code>X-Cache</code>、<code>Via</code>）</td>
+</tr>
+<tr>
+<td>5</td>
+<td>绕过 DNS 直连源站</td>
+<td><code>curl --resolve</code></td>
+<td>区分 CDN 问题还是源站问题</td>
+</tr>
+<tr>
+<td>6</td>
+<td>绕过 CDN 直连源站 IP</td>
+<td><code>curl -H &#39;Host: x&#39; http://&lt;源站IP&gt;/</code></td>
+<td>源站本身是否正常</td>
+</tr>
+<tr>
+<td>7</td>
+<td>从服务端侧抓包</td>
+<td><code>tcpdump</code></td>
+<td>请求到没到服务端</td>
+</tr>
+<tr>
+<td>8</td>
+<td>看应用日志</td>
+<td>——</td>
+<td>请求到了应用但报错了</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>第 5 步和第 6 步是最关键的分水岭。</strong> 「本地能访问」通常是因为本地命中了不同的 CDN 节点、或本地有 <code>hosts</code>、或本地走了不同的出口 IP（被 WAF 放行）。<strong>直连源站 IP 一试，立刻知道是 CDN 的问题还是应用的问题。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>WAF 和 CDN 是按客户端 IP 判断的。</strong> 「本地能访问」很可能是因为你的 IP 在白名单里。让用户提供 <code>curl -v</code> 的完整输出，比自己猜快十倍。</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 一条命令拿到完整的诊断信息（发给用户让他贴回来）</span><br>curl -v --max-time 10 https://example.com/ 2&gt;&amp;1 | <span class="hljs-built_in">head</span> -40<br></code></pre></td></tr></table></figure>
+
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 改 DNS 记录前没先把 TTL 降下来，切换期间部分用户解析到旧 IP</li>
+<li><input disabled="" type="checkbox"> 把 <code>dig</code> 显示的 TTL 当成配置值（那是剩余时间）</li>
+<li><input disabled="" type="checkbox"> 新域名「解析不出来」就去改配置（可能只是负缓存没到期）</li>
+<li><input disabled="" type="checkbox"> <code>CNAME</code> 和 <code>MX</code> &#x2F; <code>TXT</code> 配在同一条记录上（规范不允许共存）</li>
+<li><input disabled="" type="checkbox"> 只配了 <code>A</code> 没配 <code>AAAA</code>，或反过来，双栈客户端行为异常</li>
+<li><input disabled="" type="checkbox"> 把 CDN 刷新当发版手段，边缘节点没全生效就以为发布失败</li>
+<li><input disabled="" type="checkbox"> 源站按请求头返回不同内容却不写 <code>Vary</code>，CDN 串内容</li>
+<li><input disabled="" type="checkbox"> 只看 <code>X-Cache: HIT</code> 就以为没问题（它是非标准头，各家定义不同，<code>Age</code> 更可靠）</li>
+<li><input disabled="" type="checkbox"> <code>traceroute</code> 出现 <code>*</code> 就断定网络断了（多数是路由器不回 ICMP）</li>
+<li><input disabled="" type="checkbox"> <code>tcpdump</code> 抓不到包却怀疑没流量（多半抓错了网卡）</li>
+<li><input disabled="" type="checkbox"> 在容器里抓包没进 network namespace，看到的全是宿主机流量</li>
+<li><input disabled="" type="checkbox"> 「本地能访问」就以为线上也没问题（本地 IP 可能在白名单 &#x2F; 命中了不同节点）</li>
+<li><input disabled="" type="checkbox"> 排查时不在 <code>curl</code> 里加 <code>--resolve</code>，无法区分 CDN 与源站问题</li>
+<li><input disabled="" type="checkbox"> 用 <code>nslookup</code> 排查线上问题（它会读 <code>hosts</code>，结果不可信）</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://www.rfc-editor.org/rfc/rfc1035.html">RFC 1035 · Domain Names - Implementation and Specification</a> · <a target="_blank" rel="noopener" href="https://www.rfc-editor.org/rfc/rfc8484.html">RFC 8484 · DNS Queries over HTTPS (DoH)</a> · <a target="_blank" rel="noopener" href="https://www.rfc-editor.org/rfc/rfc7858.html">RFC 7858 · Specification for DNS over Transport Layer Security (TLS)</a> · <a target="_blank" rel="noopener" href="https://www.rfc-editor.org/rfc/rfc9111.html">RFC 9111 · HTTP Caching</a> · <a target="_blank" rel="noopener" href="https://www.rfc-editor.org/rfc/rfc9110.html">RFC 9110 · HTTP Semantics</a> · <a target="_blank" rel="noopener" href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Caching">MDN · HTTP 缓存</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/network/" class="category-chain-item">network</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/network/" class="print-no-link">#network</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 047 · 网络（二）：DNS、CDN 与抓包排查</div>
+      <div>https://ethan-iopasd.github.io/2026/09/30/每日技术博客047-网络DNS与CDN/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年9月30日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2046-%E7%BD%91%E7%BB%9CTCP%E4%B8%8E%E6%8F%A1%E6%89%8B/" title="每日技术博客 046 · 网络（一）：TCP/IP 与三次握手">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 046 · 网络（一）：TCP/IP 与三次握手</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

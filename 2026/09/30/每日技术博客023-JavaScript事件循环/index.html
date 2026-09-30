@@ -1,0 +1,886 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-09-30 · 第 023 篇 一次宏任务之间清空整个微任务队列 —— 记住这一句，绝大多数输出顺序题都能自己推出来。  📚 JavaScript 系列目录   章节 主题 状态    一 事件循环与异步模型 本篇   二 原型链、this 与闭包 已发布    开场：事件循环只有两层队列JavaScript 单线程，但有两套队列：任务队列（macrotask） 和">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 023 · JavaScript（一）：事件循环与异步模型">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2023-JavaScript%E4%BA%8B%E4%BB%B6%E5%BE%AA%E7%8E%AF/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-09-30 · 第 023 篇 一次宏任务之间清空整个微任务队列 —— 记住这一句，绝大多数输出顺序题都能自己推出来。  📚 JavaScript 系列目录   章节 主题 状态    一 事件循环与异步模型 本篇   二 原型链、this 与闭包 已发布    开场：事件循环只有两层队列JavaScript 单线程，但有两套队列：任务队列（macrotask） 和">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-09-30T11:10:00.000Z">
+<meta property="article:modified_time" content="2026-09-30T05:20:40.412Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="javascript">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 023 · JavaScript（一）：事件循环与异步模型 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 023 · JavaScript（一）：事件循环与异步模型"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-09-30 19:10" pubdate>
+          2026年9月30日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          1.8k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          15 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 023 · JavaScript（一）：事件循环与异步模型</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-09-30 · 第 023 篇</p>
+<p>一次宏任务之间清空整个微任务队列 —— 记住这一句，绝大多数输出顺序题都能自己推出来。</p>
+</blockquote>
+<h2 id="📚-JavaScript-系列目录"><a href="#📚-JavaScript-系列目录" class="headerlink" title="📚 JavaScript 系列目录"></a>📚 JavaScript 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>事件循环与异步模型</td>
+<td><strong>本篇</strong></td>
+</tr>
+<tr>
+<td>二</td>
+<td>原型链、this 与闭包</td>
+<td>已发布</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：事件循环只有两层队列"><a href="#开场：事件循环只有两层队列" class="headerlink" title="开场：事件循环只有两层队列"></a>开场：事件循环只有两层队列</h2><p>JavaScript 单线程，但有两套队列：<strong>任务队列（macrotask）</strong> 和 <strong>微任务队列（microtask）</strong>。</p>
+<p>执行模型一句话：</p>
+<figure class="highlight erlang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs erlang">取一个宏任务 → 执行到同步代码结束 → 清空整个微任务队列（含期间新加入的）<br>→ 渲染机会 → 取下一个宏任务 → ...<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>成员</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>宏任务</strong></td>
+<td><code>setTimeout</code>、<code>setInterval</code>、<code>setImmediate</code>（Node）、I&#x2F;O、UI 事件、<code>MessageChannel</code></td>
+</tr>
+<tr>
+<td><strong>微任务</strong></td>
+<td><code>Promise.then/catch/finally</code>、<code>await</code> 之后的代码、<code>queueMicrotask</code>、<code>MutationObserver</code>、<code>process.nextTick</code>（Node）</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>微任务队列是「清空」，不是「取一个」。</strong> 微任务里再产生微任务，会在同一轮里继续跑完 —— 这是死循环卡死页面的根源。</p>
+</blockquote>
+<h2 id="一、同步-→-微任务-→-宏任务"><a href="#一、同步-→-微任务-→-宏任务" class="headerlink" title="一、同步 → 微任务 → 宏任务"></a>一、同步 → 微任务 → 宏任务</h2><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;1&#x27;</span>)<br><br><span class="hljs-built_in">setTimeout</span>(<span class="hljs-function">() =&gt;</span> <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;2&#x27;</span>), <span class="hljs-number">0</span>)<br><br><span class="hljs-title class_">Promise</span>.<span class="hljs-title function_">resolve</span>().<span class="hljs-title function_">then</span>(<span class="hljs-function">() =&gt;</span> <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;3&#x27;</span>))<br><br><span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;4&#x27;</span>)<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs">1<br>4<br>3<br>2<br></code></pre></td></tr></table></figure>
+
+<p>推演：同步跑完 <code>1</code>、<code>4</code> → 微任务队列有 <code>3</code> → 输出 <code>3</code> → 微任务空 → 下一轮宏任务 <code>2</code>。</p>
+<h3 id="链式-then-全部在同一轮跑完"><a href="#链式-then-全部在同一轮跑完" class="headerlink" title="链式 then 全部在同一轮跑完"></a>链式 then 全部在同一轮跑完</h3><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-built_in">setTimeout</span>(<span class="hljs-function">() =&gt;</span> <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;timeout&#x27;</span>), <span class="hljs-number">0</span>)<br><br><span class="hljs-title class_">Promise</span>.<span class="hljs-title function_">resolve</span>()<br>  .<span class="hljs-title function_">then</span>(<span class="hljs-function">() =&gt;</span> <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;then1&#x27;</span>))<br>  .<span class="hljs-title function_">then</span>(<span class="hljs-function">() =&gt;</span> <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;then2&#x27;</span>))<br>  .<span class="hljs-title function_">then</span>(<span class="hljs-function">() =&gt;</span> <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;then3&#x27;</span>))<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight applescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs applescript">then1<br>then2<br>then3<br><span class="hljs-keyword">timeout</span><br></code></pre></td></tr></table></figure>
+
+<p><code>then1</code> 执行完才把 <code>then2</code> 推进微任务队列，但它仍是微任务，<strong>同一轮被清空</strong>，跑不到宏任务。</p>
+<h3 id="宏任务之间的先后"><a href="#宏任务之间的先后" class="headerlink" title="宏任务之间的先后"></a>宏任务之间的先后</h3><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-built_in">setTimeout</span>(<span class="hljs-function">() =&gt;</span> <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;A&#x27;</span>), <span class="hljs-number">0</span>)<br><span class="hljs-built_in">setTimeout</span>(<span class="hljs-function">() =&gt;</span> <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;B&#x27;</span>), <span class="hljs-number">0</span>)<br><span class="hljs-title class_">Promise</span>.<span class="hljs-title function_">resolve</span>().<span class="hljs-title function_">then</span>(<span class="hljs-function">() =&gt;</span> <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;C&#x27;</span>))<br><span class="hljs-comment">// C A B</span><br></code></pre></td></tr></table></figure>
+
+<p>同延迟的定时器<strong>按注册顺序</strong>执行（同一时间源内）。<code>C</code> 是微任务，永远插在 A、B 前面。</p>
+<h2 id="二、await-之后的代码是微任务"><a href="#二、await-之后的代码是微任务" class="headerlink" title="二、await 之后的代码是微任务"></a>二、<code>await</code> 之后的代码是微任务</h2><p><code>await x</code> 等价于「把后面所有代码包进 <code>x.then(...)</code>」，所以 <code>await</code> 之后的语句<strong>一定让出当前同步执行流</strong>。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-keyword">async</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">f</span>(<span class="hljs-params"></span>) &#123;<br>  <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;a&#x27;</span>)<br>  <span class="hljs-keyword">await</span> <span class="hljs-literal">null</span>          <span class="hljs-comment">// 即使 await 一个普通值，也会让出</span><br>  <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;b&#x27;</span>)<br>&#125;<br><br><span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;start&#x27;</span>)<br><span class="hljs-title function_">f</span>()<br><span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;end&#x27;</span>)<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight livecodeserver"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs livecodeserver"><span class="hljs-built_in">start</span><br><span class="hljs-keyword">a</span><br><span class="hljs-function"><span class="hljs-keyword">end</span></span><br><span class="hljs-function"><span class="hljs-title">b</span></span><br></code></pre></td></tr></table></figure>
+
+<h3 id="原生-Promise-只占-1-个微任务，thenable-要多跳"><a href="#原生-Promise-只占-1-个微任务，thenable-要多跳" class="headerlink" title="原生 Promise 只占 1 个微任务，thenable 要多跳"></a>原生 Promise 只占 1 个微任务，thenable 要多跳</h3><p>现代 V8（V8 7.2 &#x2F; Node 12 起，「faster async functions」优化）对 <code>await</code> <strong>原生 Promise</strong> 做了特化：只占 <strong>1 个微任务 tick</strong>。但 <code>await</code> 一个 <strong>thenable（非原生 Promise 对象）</strong> 会先被 <code>Promise.resolve()</code> 包装，多出跳数。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-keyword">const</span> thenable = &#123; <span class="hljs-title function_">then</span>(<span class="hljs-params">resolve</span>) &#123; <span class="hljs-title function_">resolve</span>(<span class="hljs-number">1</span>) &#125; &#125;<br><br><span class="hljs-keyword">async</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">a</span>(<span class="hljs-params"></span>) &#123; <span class="hljs-keyword">await</span> <span class="hljs-title class_">Promise</span>.<span class="hljs-title function_">resolve</span>(<span class="hljs-number">1</span>); <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;native&#x27;</span>) &#125;<br><span class="hljs-keyword">async</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">b</span>(<span class="hljs-params"></span>) &#123; <span class="hljs-keyword">await</span> thenable;            <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;thenable&#x27;</span>) &#125;<br><br><span class="hljs-title function_">a</span>()<br><span class="hljs-title function_">b</span>()<br><span class="hljs-title class_">Promise</span>.<span class="hljs-title function_">resolve</span>().<span class="hljs-title function_">then</span>(<span class="hljs-function">() =&gt;</span> <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;then&#x27;</span>))<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs actionscript"><span class="hljs-keyword">native</span><br>then<br>thenable<br></code></pre></td></tr></table></figure>
+
+<p><code>native</code> 的恢复微任务排在 <code>then</code> 之前，<code>thenable</code> 被挤到后面。<strong>数跳数时先判断被 await 的是不是原生 Promise。</strong></p>
+<blockquote>
+<p>⚠️ 这个结论跟引擎版本强相关。旧版 V8 里 <code>await Promise.resolve(1)</code> 要 3 跳。<strong>面试题答案随运行时变化</strong>，遇到争议直接跑一遍 <code>node -e</code> 验证。</p>
+</blockquote>
+<h3 id="经典综合题"><a href="#经典综合题" class="headerlink" title="经典综合题"></a>经典综合题</h3><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-keyword">async</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">async1</span>(<span class="hljs-params"></span>) &#123;<br>  <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;async1 start&#x27;</span>)<br>  <span class="hljs-keyword">await</span> <span class="hljs-title function_">async2</span>()<br>  <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;async1 end&#x27;</span>)<br>&#125;<br><br><span class="hljs-keyword">async</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">async2</span>(<span class="hljs-params"></span>) &#123;<br>  <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;async2&#x27;</span>)<br>&#125;<br><br><span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;script start&#x27;</span>)<br><br><span class="hljs-built_in">setTimeout</span>(<span class="hljs-function">() =&gt;</span> <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;setTimeout&#x27;</span>), <span class="hljs-number">0</span>)<br><br><span class="hljs-title function_">async1</span>()<br><br><span class="hljs-keyword">new</span> <span class="hljs-title class_">Promise</span>(<span class="hljs-function">(<span class="hljs-params">resolve</span>) =&gt;</span> &#123;<br>  <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;promise1&#x27;</span>)<br>  <span class="hljs-title function_">resolve</span>()<br>&#125;).<span class="hljs-title function_">then</span>(<span class="hljs-function">() =&gt;</span> <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;promise2&#x27;</span>))<br><br><span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;script end&#x27;</span>)<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight applescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs applescript"><span class="hljs-keyword">script</span> start<br>async1 start<br>async2<br>promise1<br><span class="hljs-keyword">script</span> <span class="hljs-keyword">end</span><br>async1 <span class="hljs-keyword">end</span><br>promise2<br>setTimeout<br></code></pre></td></tr></table></figure>
+
+<p>关键点：<code>async2()</code> 是<strong>同步调用</strong>的（<code>await</code> 只挂起 <code>async1</code>，不阻止 <code>async2</code> 的同步体先跑完）；<code>async1 end</code> 和 <code>promise2</code> 都是微任务，<code>async1</code> 的挂起点更早，所以先输出。</p>
+<h2 id="三、queueMicrotask"><a href="#三、queueMicrotask" class="headerlink" title="三、queueMicrotask"></a>三、<code>queueMicrotask</code></h2><p>显式把一个函数推进微任务队列，等价于 <code>Promise.resolve().then(fn)</code>，但<strong>没有 Promise 对象开销、也不会吞异常</strong>。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-title function_">queueMicrotask</span>(<span class="hljs-function">() =&gt;</span> <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;micro&#x27;</span>))<br><br><span class="hljs-comment">// 对比：Promise 版本至少多一次包装</span><br><span class="hljs-title class_">Promise</span>.<span class="hljs-title function_">resolve</span>().<span class="hljs-title function_">then</span>(<span class="hljs-function">() =&gt;</span> <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;micro&#x27;</span>))<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>异常处理</th>
+<th>开销</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>queueMicrotask(fn)</code></td>
+<td>抛出即成为全局未捕获错误</td>
+<td>低</td>
+</tr>
+<tr>
+<td><code>Promise.resolve().then(fn)</code></td>
+<td>变成 rejected promise，<strong>不报错</strong>，容易静默失败</td>
+<td>略高</td>
+</tr>
+<tr>
+<td><code>setTimeout(fn, 0)</code></td>
+<td>宏任务，慢一轮，且会被钳制</td>
+<td>高</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 微任务里抛出的异常<strong>不会冒泡到调用方</strong>。要统一兜底，加 <code>window.addEventListener(&#39;unhandledrejection&#39;, ...)</code> 和 <code>window.onerror</code>。</p>
+</blockquote>
+<h2 id="四、setTimeout-的最小延迟与嵌套钳制"><a href="#四、setTimeout-的最小延迟与嵌套钳制" class="headerlink" title="四、setTimeout 的最小延迟与嵌套钳制"></a>四、<code>setTimeout</code> 的最小延迟与嵌套钳制</h2><p>HTML 规范里定时器的初始化步骤有两条硬规则：</p>
+<table>
+<thead>
+<tr>
+<th>条件</th>
+<th>处理</th>
+<th>规范原文</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>timeout &lt; 0</code></td>
+<td>设为 <code>0</code></td>
+<td>“If timeout is less than 0, then set timeout to 0.”</td>
+</tr>
+<tr>
+<td><code>nestingLevel &gt; 5</code> 且 <code>timeout &lt; 4</code></td>
+<td>设为 <code>4</code></td>
+<td>“If nestingLevel is greater than 5, and timeout is less than 4, then set timeout to 4.”</td>
+</tr>
+</tbody></table>
+<p>也就是说：<strong>嵌套调用超过 5 层之后，最小间隔被强制为 4 毫秒</strong>（浏览器实现通常还有额外对齐）。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-keyword">let</span> n = <span class="hljs-number">0</span><br><span class="hljs-keyword">const</span> t0 = performance.<span class="hljs-title function_">now</span>()<br><br><span class="hljs-keyword">function</span> <span class="hljs-title function_">loop</span>(<span class="hljs-params"></span>) &#123;<br>  n++<br>  <span class="hljs-keyword">if</span> (n &lt; <span class="hljs-number">9</span>) &#123;<br>    <span class="hljs-built_in">setTimeout</span>(loop, <span class="hljs-number">0</span>)        <span class="hljs-comment">// 前几层很快，第 6 层起每层至少 4ms</span><br>  &#125; <span class="hljs-keyword">else</span> &#123;<br>    <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(performance.<span class="hljs-title function_">now</span>() - t0)<br>  &#125;<br>&#125;<br><br><span class="hljs-built_in">setTimeout</span>(loop, <span class="hljs-number">0</span>)<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 规范明确写了「不保证定时器按计划运行」（”This API does not guarantee that timers will run exactly on schedule”）。<code>setTimeout(fn, 0)</code> <strong>不是 0 毫秒</strong>，别拿它做精确计时；要精确用 <code>performance.now()</code> 校准，或改用 <code>requestAnimationFrame</code>。</p>
+</blockquote>
+<p><code>nestingLevel</code> 统计的是<strong>对该算法本身的嵌套调用</strong>，<code>setTimeout</code> 和 <code>setInterval</code> 混用也会累加。</p>
+<h2 id="五、微任务饿死与渲染"><a href="#五、微任务饿死与渲染" class="headerlink" title="五、微任务饿死与渲染"></a>五、微任务饿死与渲染</h2><p>一轮宏任务结束后，浏览器才有机会渲染。<strong>只要微任务队列一直有东西，渲染就被推迟</strong>。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-comment">// ❌ 页面彻底卡死，连点击都不响应</span><br><span class="hljs-keyword">function</span> <span class="hljs-title function_">spin</span>(<span class="hljs-params"></span>) &#123;<br>  <span class="hljs-title class_">Promise</span>.<span class="hljs-title function_">resolve</span>().<span class="hljs-title function_">then</span>(spin)<br>&#125;<br><span class="hljs-title function_">spin</span>()<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-comment">// ✅ 每轮让出一次宏任务，浏览器有机会渲染</span><br><span class="hljs-keyword">function</span> <span class="hljs-title function_">spin</span>(<span class="hljs-params"></span>) &#123;<br>  <span class="hljs-built_in">setTimeout</span>(spin, <span class="hljs-number">0</span>)<br>&#125;<br><span class="hljs-title function_">spin</span>()<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>需求</th>
+<th>正确工具</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>尽快执行、不关心渲染</td>
+<td><code>queueMicrotask</code></td>
+</tr>
+<tr>
+<td>让出主线程、允许渲染</td>
+<td><code>setTimeout(fn, 0)</code> &#x2F; <code>MessageChannel</code></td>
+</tr>
+<tr>
+<td>下一帧前执行</td>
+<td><code>requestAnimationFrame</code></td>
+</tr>
+<tr>
+<td>长任务切片</td>
+<td><code>requestIdleCallback</code> &#x2F; <code>scheduler.postTask</code></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>requestAnimationFrame</code> 回调<strong>在渲染之前</strong>执行，但它不是微任务也不是宏任务队列的普通成员 —— 它属于「渲染步骤」。在 rAF 里改 DOM，同一帧就能看到。</p>
+</blockquote>
+<h2 id="六、Node-js-的差异"><a href="#六、Node-js-的差异" class="headerlink" title="六、Node.js 的差异"></a>六、Node.js 的差异</h2><p>Node 的事件循环有多个阶段，比浏览器多两条队列：</p>
+<table>
+<thead>
+<tr>
+<th>队列</th>
+<th>相对顺序</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>process.nextTick</code> 队列</td>
+<td><strong>优先级最高</strong>，每个阶段切换时先清空它</td>
+</tr>
+<tr>
+<td>Promise 微任务队列</td>
+<td>在 <code>nextTick</code> 之后清空</td>
+</tr>
+<tr>
+<td>定时器阶段</td>
+<td><code>setTimeout</code> &#x2F; <code>setInterval</code></td>
+</tr>
+<tr>
+<td>check 阶段</td>
+<td><code>setImmediate</code></td>
+</tr>
+</tbody></table>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs js">process.<span class="hljs-title function_">nextTick</span>(<span class="hljs-function">() =&gt;</span> <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;nextTick&#x27;</span>))<br><span class="hljs-title class_">Promise</span>.<span class="hljs-title function_">resolve</span>().<span class="hljs-title function_">then</span>(<span class="hljs-function">() =&gt;</span> <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;promise&#x27;</span>))<br><span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;sync&#x27;</span>)<br><span class="hljs-comment">// sync  nextTick  promise</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>nextTick</code> 优先级高于 Promise</strong>，这跟浏览器里「微任务先于一切」的直觉不一样。而 <code>queueMicrotask</code> 在 Node 里<strong>排在 Promise 微任务队列</strong>，不在 <code>nextTick</code> 队列。</p>
+</blockquote>
+<p><code>setTimeout(fn, 0)</code> 与 <code>setImmediate</code> 在主模块里<strong>顺序不确定</strong>（取决于进程启动耗时是否已超过 1ms）；但在 I&#x2F;O 回调内部，<code>setImmediate</code> <strong>总是先于</strong> <code>setTimeout</code>。</p>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 以为微任务队列每轮只取一个，实际是<strong>清空整个队列</strong></li>
+<li><input disabled="" type="checkbox"> 在微任务里递归，页面完全无法渲染</li>
+<li><input disabled="" type="checkbox"> 以为 <code>setTimeout(fn, 0)</code> 是立即执行，忽略了最小延迟与 4ms 钳制</li>
+<li><input disabled="" type="checkbox"> 依赖 <code>setTimeout</code> 做精确计时，不校准 <code>performance.now()</code></li>
+<li><input disabled="" type="checkbox"> 在 <code>async</code> 函数里忘了 <code>await</code>，异常变成 rejected promise 静默消失</li>
+<li><input disabled="" type="checkbox"> 用 <code>Promise.resolve().then(fn)</code> 代替 <code>queueMicrotask</code>，异常被吞掉</li>
+<li><input disabled="" type="checkbox"> 以为 <code>await</code> 普通值和 <code>await</code> 已 resolve 的 Promise 跳数一样</li>
+<li><input disabled="" type="checkbox"> 在 Node 里以为 Promise 微任务优先于 <code>process.nextTick</code></li>
+<li><input disabled="" type="checkbox"> 在主模块里依赖 <code>setTimeout</code> 与 <code>setImmediate</code> 的固定先后</li>
+<li><input disabled="" type="checkbox"> 用 <code>setInterval</code> 做轮询却不考虑回调堆积（上一次没跑完下一次已入队）</li>
+<li><input disabled="" type="checkbox"> 把 <code>MutationObserver</code> 的回调当成同步执行</li>
+<li><input disabled="" type="checkbox"> 用 <code>setTimeout(fn, 0)</code> 等 DOM 更新，应该用 <code>await nextTick()</code> &#x2F; <code>queueMicrotask</code></li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://html.spec.whatwg.org/multipage/timers-and-user-prompts.html#timers">HTML Living Standard · Timers（timer initialization steps）</a> · <a target="_blank" rel="noopener" href="https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Event_loop">MDN · 事件循环（并发模型）</a> · <a target="_blank" rel="noopener" href="https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/queueMicrotask">MDN · <code>queueMicrotask()</code></a> · <a target="_blank" rel="noopener" href="https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/setTimeout">MDN · <code>setTimeout()</code></a> · <a target="_blank" rel="noopener" href="https://nodejs.org/api/events.html#the-event-loop-timers-and-nexttick">Node.js 文档 · 事件循环、定时器与 <code>process.nextTick</code></a> · <a target="_blank" rel="noopener" href="https://v8.dev/blog/fast-async">V8 · 微任务与事件循环</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/javascript/" class="category-chain-item">javascript</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/javascript/" class="print-no-link">#javascript</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 023 · JavaScript（一）：事件循环与异步模型</div>
+      <div>https://ethan-iopasd.github.io/2026/09/30/每日技术博客023-JavaScript事件循环/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年9月30日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2024-JavaScript%E5%8E%9F%E5%9E%8B%E4%B8%8Ethis/" title="每日技术博客 024 · JavaScript（二）：原型链、this 与闭包">
+                        <span class="hidden-mobile">每日技术博客 024 · JavaScript（二）：原型链、this 与闭包</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

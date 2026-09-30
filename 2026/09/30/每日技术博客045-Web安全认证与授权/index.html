@@ -1,0 +1,1349 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-09-30 · 第 045 篇 安全系列第二篇。Session 和 JWT 怎么选、JWT 的几种典型误用、OAuth 的授权码 + PKCE、密码怎么存、以及越权和密钥管理。  📚 安全系列目录   章节 主题 状态    一 XSS、CSRF 与注入 已发布   二 认证、授权与密钥管理 本篇    开场：认证解决「你是谁」，授权解决「你能干什么」   问题 归">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 045 · Web 安全（二）：认证、授权与密钥管理">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2045-Web%E5%AE%89%E5%85%A8%E8%AE%A4%E8%AF%81%E4%B8%8E%E6%8E%88%E6%9D%83/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-09-30 · 第 045 篇 安全系列第二篇。Session 和 JWT 怎么选、JWT 的几种典型误用、OAuth 的授权码 + PKCE、密码怎么存、以及越权和密钥管理。  📚 安全系列目录   章节 主题 状态    一 XSS、CSRF 与注入 已发布   二 认证、授权与密钥管理 本篇    开场：认证解决「你是谁」，授权解决「你能干什么」   问题 归">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-09-30T14:50:00.000Z">
+<meta property="article:modified_time" content="2026-09-30T05:52:33.698Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="security">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 045 · Web 安全（二）：认证、授权与密钥管理 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 045 · Web 安全（二）：认证、授权与密钥管理"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-09-30 22:50" pubdate>
+          2026年9月30日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          4.2k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          35 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 045 · Web 安全（二）：认证、授权与密钥管理</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-09-30 · 第 045 篇</p>
+<p>安全系列第二篇。Session 和 JWT 怎么选、JWT 的几种典型误用、OAuth 的授权码 + PKCE、密码怎么存、以及越权和密钥管理。</p>
+</blockquote>
+<h2 id="📚-安全系列目录"><a href="#📚-安全系列目录" class="headerlink" title="📚 安全系列目录"></a>📚 安全系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>XSS、CSRF 与注入</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>认证、授权与密钥管理</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：认证解决「你是谁」，授权解决「你能干什么」"><a href="#开场：认证解决「你是谁」，授权解决「你能干什么」" class="headerlink" title="开场：认证解决「你是谁」，授权解决「你能干什么」"></a>开场：认证解决「你是谁」，授权解决「你能干什么」</h2><table>
+<thead>
+<tr>
+<th>问题</th>
+<th>归属</th>
+<th>典型漏洞</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>你是谁？</td>
+<td>认证（Authentication）</td>
+<td>弱口令、会话固定、JWT 校验缺失</td>
+</tr>
+<tr>
+<td>你能干什么？</td>
+<td>授权（Authorization）</td>
+<td><strong>越权</strong>（水平 &#x2F; 垂直）、对象级授权缺失</td>
+</tr>
+<tr>
+<td>密钥放哪？</td>
+<td>密钥管理</td>
+<td>硬编码、提交进仓库、永不轮换</td>
+</tr>
+</tbody></table>
+<p><strong>实际事故里授权漏洞比认证漏洞多得多</strong> —— 认证只要用现成方案就不太会错，授权是每个接口都要自己写对的。</p>
+<h2 id="一、Session-与-JWT：核心差别是状态存在哪"><a href="#一、Session-与-JWT：核心差别是状态存在哪" class="headerlink" title="一、Session 与 JWT：核心差别是状态存在哪"></a>一、Session 与 JWT：核心差别是状态存在哪</h2><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>服务端 Session</th>
+<th>无状态 JWT</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>状态位置</td>
+<td><strong>服务端</strong>（内存 &#x2F; Redis &#x2F; DB）</td>
+<td><strong>令牌自身</strong></td>
+</tr>
+<tr>
+<td>存储介质</td>
+<td><code>HttpOnly</code> Cookie</td>
+<td>通常 localStorage &#x2F; Authorization 头</td>
+</tr>
+<tr>
+<td><strong>主动失效</strong></td>
+<td>✅ 删 Session 即可</td>
+<td>❌ <strong>做不到</strong>（只能等过期）</td>
+</tr>
+<tr>
+<td>水平扩展</td>
+<td>需要共享存储（Redis）</td>
+<td>✅ 天然无状态</td>
+</tr>
+<tr>
+<td>携带内容</td>
+<td>只有一个 session id</td>
+<td>可带角色、权限等声明</td>
+</tr>
+<tr>
+<td>大小</td>
+<td>几十字节</td>
+<td>几百字节到几 KB（每个请求都传）</td>
+</tr>
+<tr>
+<td>泄露后</td>
+<td>可立即踢下线</td>
+<td><strong>无法撤销，直到过期</strong></td>
+</tr>
+<tr>
+<td>XSS 影响</td>
+<td><code>HttpOnly</code> 下拿不到</td>
+<td>localStorage 下<strong>可直接读走</strong></td>
+</tr>
+<tr>
+<td>CSRF 影响</td>
+<td>⚠️ 有（Cookie 自动携带）</td>
+<td>✅ 无（手动加头）</td>
+</tr>
+</tbody></table>
+<p><strong>结论</strong>：常规 Web 应用优先 <strong>Session + <code>HttpOnly</code> Cookie</strong>；JWT 适合服务间调用、无状态横向扩展、以及作为 OAuth 的令牌格式。</p>
+<blockquote>
+<p>⚠️ <strong>JWT 不能主动失效</strong> 是最被低估的问题。用户改密码、管理员封号、令牌被盗，都只能等它自然过期。补救方案：<strong>短有效期（5–15 分钟）+ 刷新令牌 + 服务端黑名单</strong> —— 但一旦引入黑名单，你就又有了服务端状态，JWT 的「无状态」优势也就没了。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>不要把 JWT 放 localStorage</strong>。任何一处 XSS 都能直接读走。放 Cookie 则要考虑 <code>HttpOnly</code>（防读）和 <code>SameSite</code>（防 CSRF）的组合。</p>
+</blockquote>
+<h2 id="二、JWT-的典型误用"><a href="#二、JWT-的典型误用" class="headerlink" title="二、JWT 的典型误用"></a>二、JWT 的典型误用</h2><p>JWT 结构：<code>base64url(header).base64url(payload).base64url(signature)</code></p>
+<figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs stylus">eyJhbGciOiJIUzI1NiJ9<span class="hljs-selector-class">.eyJzdWIiOiIxMjMifQ</span><span class="hljs-selector-class">.dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk</span><br>       ↑ <span class="hljs-selector-tag">header</span>                ↑ payload（只是 base64，不是加密）<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>payload 是 base64 编码，不是加密。</strong> 任何人复制到 <code>base64 -d</code> 就能看内容。<strong>绝不能放密码、身份证、内部权限细节。</strong></p>
+</blockquote>
+<h3 id="误用清单"><a href="#误用清单" class="headerlink" title="误用清单"></a>误用清单</h3><table>
+<thead>
+<tr>
+<th>误用</th>
+<th>后果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>alg: none</code></td>
+<td>攻击者把 header 改成 <code>&#123;&quot;alg&quot;:&quot;none&quot;&#125;</code> 并<strong>去掉签名</strong>，服务端若信任 header 就完全绕过</td>
+</tr>
+<tr>
+<td><strong>算法混淆</strong></td>
+<td>服务端用 <code>RS256</code> 公钥验签，攻击者改成 <code>HS256</code> 并<strong>用公钥当 HMAC 密钥</strong>签名</td>
+</tr>
+<tr>
+<td>不校验签名</td>
+<td>直接解码 payload 就用</td>
+</tr>
+<tr>
+<td>不校验 <code>exp</code></td>
+<td>令牌永不过期</td>
+</tr>
+<tr>
+<td>不校验 <code>iss</code> &#x2F; <code>aud</code></td>
+<td>别的系统的令牌能在你这儿用</td>
+</tr>
+<tr>
+<td><code>kid</code> 头部注入</td>
+<td><code>kid</code> 指向文件路径或 SQL 片段（<code>../../../dev/null</code>、<code>kid&#39; UNION SELECT ...</code>）</td>
+</tr>
+<tr>
+<td>敏感信息放 payload</td>
+<td>等同于明文泄露</td>
+</tr>
+<tr>
+<td>自己手写验签逻辑</td>
+<td>边界条件写不对</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># ❌ 明确允许 none</span><br>jwt.decode(token, options=&#123;<span class="hljs-string">&quot;verify_signature&quot;</span>: <span class="hljs-literal">False</span>&#125;)<br><br><span class="hljs-comment"># ❌ 从 token 自己读算法</span><br>header = jwt.get_unverified_header(token)<br>jwt.decode(token, key, algorithms=[header[<span class="hljs-string">&quot;alg&quot;</span>]])<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># ✅ 固定算法，显式校验所有声明</span><br>jwt.decode(<br>    token,<br>    public_key,<br>    algorithms=[<span class="hljs-string">&quot;RS256&quot;</span>],          <span class="hljs-comment"># 写死，不读 header</span><br>    audience=<span class="hljs-string">&quot;https://api.example.com&quot;</span>,<br>    issuer=<span class="hljs-string">&quot;https://auth.example.com&quot;</span>,<br>    options=&#123;<span class="hljs-string">&quot;require&quot;</span>: [<span class="hljs-string">&quot;exp&quot;</span>, <span class="hljs-string">&quot;iat&quot;</span>, <span class="hljs-string">&quot;sub&quot;</span>, <span class="hljs-string">&quot;aud&quot;</span>, <span class="hljs-string">&quot;iss&quot;</span>]&#125;,<br>)<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>永远显式指定 <code>algorithms</code>，绝不从 token header 里读。</strong> 这是防算法混淆的唯一要点。成熟库（PyJWT、jose、jsonwebtoken）默认就要求显式传算法，别自己绕过。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>签名密钥必须足够强</strong>：HS256 的密钥要 ≥ 32 字节的随机值。用 <code>secret</code>、<code>changeme</code>、或者把 RSA 公钥当 HMAC 密钥，都会让签名形同虚设。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>kid</code> 必须是<strong>服务端白名单内的标识符</strong>，不能直接当文件名或 SQL 参数用。密钥集合（JWKS）只从可信来源加载。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>JWT 不是会话的替代品</strong>，它是一份<strong>可被验证的声明</strong>。如果需要「登录后能踢下线」，就别用纯 JWT。</p>
+</blockquote>
+<h2 id="三、访问令牌与刷新令牌"><a href="#三、访问令牌与刷新令牌" class="headerlink" title="三、访问令牌与刷新令牌"></a>三、访问令牌与刷新令牌</h2><table>
+<thead>
+<tr>
+<th>令牌</th>
+<th>有效期</th>
+<th>存放</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>访问令牌（access token）</td>
+<td><strong>短</strong>，5–15 分钟</td>
+<td>内存</td>
+<td>调业务接口</td>
+</tr>
+<tr>
+<td>刷新令牌（refresh token）</td>
+<td><strong>长</strong>，几天到几周</td>
+<td><code>HttpOnly</code> Cookie（Web）或安全存储</td>
+<td>换新的访问令牌</td>
+</tr>
+</tbody></table>
+<figure class="highlight jboss-cli"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs jboss-cli">客户端                         授权服务器<br>  │  POST <span class="hljs-string">/token</span> <span class="hljs-params">(code + verifier)</span>  │<br>  │ ───────────────────────────────&gt;│<br>  │  access_token <span class="hljs-params">(15m)</span>             │<br>  │  refresh_token <span class="hljs-params">(30d)</span>            │<br>  │ &lt;───────────────────────────────│<br>  │                                 │<br>  │  <span class="hljs-string">...</span> 15 分钟后 <span class="hljs-string">...</span>              │<br>  │  POST <span class="hljs-string">/token</span> <span class="hljs-params">(refresh_token)</span>    │<br>  │ ───────────────────────────────&gt;│<br>  │  新的 access_token              │<br>  │  新的 refresh_token（轮换）     │<br>  │ &lt;───────────────────────────────│<br></code></pre></td></tr></table></figure>
+
+<p><strong>刷新令牌轮换 + 重用检测</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>步骤</th>
+<th>行为</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>每次刷新</td>
+<td>签发<strong>新的</strong> refresh token，旧的立即作废</td>
+</tr>
+<tr>
+<td>检测到旧 token 被再次使用</td>
+<td><strong>整条令牌链全部作废</strong>，强制重新登录</td>
+</tr>
+<tr>
+<td>为什么有效</td>
+<td>如果旧 token 出现在攻击者手里，说明它已被泄露</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>轮换必须配合重用检测</strong>。只轮换不检测，等于换了个令牌号，攻击者照样能一直刷新。检测到重用时<strong>把该用户的所有会话全部踢掉</strong>，这是标准做法。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 刷新令牌<strong>必须存在服务端</strong>（或至少可撤销）。纯无状态的刷新令牌等于一个长效访问令牌，一旦泄露就是长期沦陷。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 访问令牌<strong>不要放 localStorage</strong>，尽量只放内存，页面刷新后靠刷新令牌重新获取。</p>
+</blockquote>
+<h2 id="四、OAuth-2-0：只用授权码-PKCE"><a href="#四、OAuth-2-0：只用授权码-PKCE" class="headerlink" title="四、OAuth 2.0：只用授权码 + PKCE"></a>四、OAuth 2.0：只用授权码 + PKCE</h2><table>
+<thead>
+<tr>
+<th>流程</th>
+<th>状态</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>授权码 + PKCE</strong></td>
+<td>✅ <strong>唯一推荐</strong></td>
+<td>Web &#x2F; SPA &#x2F; 移动端全适用</td>
+</tr>
+<tr>
+<td>授权码（无 PKCE）</td>
+<td>❌ 不推荐</td>
+<td>公共客户端可被截获授权码</td>
+</tr>
+<tr>
+<td>隐式（Implicit）</td>
+<td>❌ <strong>已废弃</strong></td>
+<td>令牌直接出现在 URL fragment，会进历史记录 &#x2F; Referer</td>
+</tr>
+<tr>
+<td>密码模式（Password）</td>
+<td>❌ <strong>已废弃</strong></td>
+<td>客户端拿到用户密码，违背 OAuth 初衷</td>
+</tr>
+<tr>
+<td>客户端凭据</td>
+<td>⚠️ 仅限服务间</td>
+<td>没有用户参与，无授权概念</td>
+</tr>
+</tbody></table>
+<figure class="highlight jboss-cli"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs jboss-cli">1. 客户端生成 code_verifier（随机串），算出 code_challenge = BASE64URL<span class="hljs-params">(SHA256(verifier)</span>)<br>2. 浏览器 → <span class="hljs-string">/authorize</span>?response_type=code&amp;client_id=<span class="hljs-string">...</span>&amp;code_challenge=<span class="hljs-string">...</span>&amp;code_challenge_method=S256<br>3. 用户在授权服务器登录并同意<br>4. 浏览器 ← 302 到 redirect_uri?code=<span class="hljs-string">...</span><br>5. 客户端 → POST <span class="hljs-string">/token</span>，带 code + code_verifier<br>6. 授权服务器校验 SHA256<span class="hljs-params">(verifier)</span> == code_challenge，返回令牌<br></code></pre></td></tr></table></figure>
+
+<p><strong>PKCE 解决的是授权码拦截</strong>：即使攻击者截获了 <code>code</code>，没有 <code>code_verifier</code> 也换不到令牌。</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>要求</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>code_challenge_method</code></td>
+<td>**只用 <code>S256</code>**，<code>plain</code> 等于没保护</td>
+</tr>
+<tr>
+<td><code>state</code></td>
+<td>必须带，且校验，防 CSRF</td>
+</tr>
+<tr>
+<td><code>redirect_uri</code></td>
+<td><strong>精确匹配</strong>注册值，不能前缀匹配</td>
+</tr>
+<tr>
+<td><code>code</code></td>
+<td>一次性，用完立即失效</td>
+</tr>
+<tr>
+<td><code>code_verifier</code></td>
+<td>43–128 字符，每次授权重新生成</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>redirect_uri</code> 前缀匹配是最常见也最致命的 OAuth 漏洞</strong>。注册了 <code>https://app.example.com/cb</code> 却做前缀匹配，攻击者用 <code>https://app.example.com/cb.evil.com</code> 或 <code>https://app.example.com/cb?x=</code> 就能把 <code>code</code> 引到自己的服务器。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>state</code> 不能省</strong>。它防的是「攻击者用自己的账号登录后，把授权码塞给受害者」这类账号混淆攻击。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>OAuth 2.1 目前仍是 IETF 草案</strong>，但方向已经明确：<strong>PKCE 对所有客户端强制</strong>（不只公共客户端）、<strong>移除隐式流和密码模式</strong>、<strong>刷新令牌对公共客户端必须发送方约束或轮换</strong>。已发布的正式文件是 <strong>RFC 9700</strong>（OAuth 2.0 Security BCP）。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>OAuth 是授权协议，不是认证协议</strong>。要「用 Google 登录」得用 <strong>OIDC</strong>（在 OAuth 之上加 <code>id_token</code> 和 <code>/userinfo</code>），不要拿 access token 当身份凭证用。</p>
+</blockquote>
+<h2 id="五、密码存储"><a href="#五、密码存储" class="headerlink" title="五、密码存储"></a>五、密码存储</h2><table>
+<thead>
+<tr>
+<th>算法</th>
+<th>推荐度</th>
+<th>参数</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Argon2id</strong></td>
+<td>✅ <strong>首选</strong></td>
+<td><code>m=19456 (19 MiB), t=2, p=1</code>（最低配置）</td>
+</tr>
+<tr>
+<td>scrypt</td>
+<td>✅ 次选</td>
+<td>按内存&#x2F;CPU 权衡调参</td>
+</tr>
+<tr>
+<td>bcrypt</td>
+<td>⚠️ 仅遗留系统</td>
+<td>work factor <strong>≥ 10</strong>，且密码长度限制 72 字节</td>
+</tr>
+<tr>
+<td>PBKDF2-HMAC-SHA256</td>
+<td>⚠️ 需 FIPS 时</td>
+<td><strong>600,000</strong> 次迭代</td>
+</tr>
+<tr>
+<td>PBKDF2-HMAC-SHA512</td>
+<td>⚠️ 需 FIPS 时</td>
+<td><strong>220,000</strong> 次迭代</td>
+</tr>
+<tr>
+<td>MD5 &#x2F; SHA-1 &#x2F; SHA-256 裸哈希</td>
+<td>❌ <strong>禁止</strong></td>
+<td>无盐、可彩虹表、GPU 每秒几十亿次</td>
+</tr>
+</tbody></table>
+<p>Argon2id 的其他等效配置（CPU 与内存权衡）：</p>
+<table>
+<thead>
+<tr>
+<th>内存 m</th>
+<th>迭代 t</th>
+<th>并行 p</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>47104 (46 MiB)</td>
+<td>1</td>
+<td>1</td>
+</tr>
+<tr>
+<td><strong>19456 (19 MiB)</strong></td>
+<td><strong>2</strong></td>
+<td><strong>1</strong></td>
+</tr>
+<tr>
+<td>12288 (12 MiB)</td>
+<td>3</td>
+<td>1</td>
+</tr>
+<tr>
+<td>9216 (9 MiB)</td>
+<td>4</td>
+<td>1</td>
+</tr>
+<tr>
+<td>7168 (7 MiB)</td>
+<td>5</td>
+<td>1</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">from</span> argon2 <span class="hljs-keyword">import</span> PasswordHasher<br><br>ph = PasswordHasher(time_cost=<span class="hljs-number">2</span>, memory_cost=<span class="hljs-number">19456</span>, parallelism=<span class="hljs-number">1</span>)<br>hashed = ph.<span class="hljs-built_in">hash</span>(password)          <span class="hljs-comment"># 盐自动生成并编码进结果</span><br>ph.verify(hashed, password)         <span class="hljs-comment"># 校验</span><br>ph.check_needs_rehash(hashed)       <span class="hljs-comment"># 参数升级后重新哈希</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs javascript"><span class="hljs-comment">// bcrypt 场景</span><br><span class="hljs-keyword">const</span> hash = <span class="hljs-keyword">await</span> bcrypt.<span class="hljs-title function_">hash</span>(password, <span class="hljs-number">12</span>);   <span class="hljs-comment">// cost 12</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>每个密码必须有独立的随机盐</strong>。盐不需要保密，但要唯一 —— 防彩虹表，防「相同密码哈希相同」被一眼看出。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>bcrypt 有 72 字节输入上限</strong>，超出部分被<strong>静默截断</strong>。所以要么强制密码长度上限，要么换 Argon2id。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>不要给 bcrypt 做预哈希</strong>（<code>bcrypt(sha512(pwd))</code>）。这会导致<strong>密码脱壳（password shucking）</strong>：攻击者拿到内部 SHA-512 哈希就能直接破解，绕过 bcrypt 的成本。如果必须预哈希，用 <code>bcrypt(base64(hmac_sha384(pwd, pepper)))</code>，且 <strong>pepper 不存数据库</strong>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>哈希算法要可升级</strong>。存哈希时同时存算法标识和参数（Argon2id 的编码格式自带），登录成功时用 <code>check_needs_rehash</code> 判断是否需要用新参数重算。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>绝不要用可逆加密存密码</strong>。密码只需要「验证」，不需要「还原」。</p>
+</blockquote>
+<h2 id="六、越权：水平与垂直"><a href="#六、越权：水平与垂直" class="headerlink" title="六、越权：水平与垂直"></a>六、越权：水平与垂直</h2><table>
+<thead>
+<tr>
+<th>类型</th>
+<th>含义</th>
+<th>例子</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>水平越权</strong>（IDOR &#x2F; BOLA）</td>
+<td>同权限用户之间互相访问数据</td>
+<td>A 改 URL 里的订单 id，看到 B 的订单</td>
+</tr>
+<tr>
+<td><strong>垂直越权</strong></td>
+<td>低权限用户执行高权限操作</td>
+<td>普通用户调 <code>/admin/deleteUser</code></td>
+</tr>
+</tbody></table>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs http"><span class="hljs-keyword">GET</span> <span class="hljs-string">/api/orders/1001</span> <span class="hljs-meta">HTTP/1.1</span><br><span class="hljs-attribute">Authorization</span><span class="hljs-punctuation">: </span>Bearer &lt;用户 A 的令牌&gt;<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs json"><span class="hljs-comment">// ❌ 只按 id 查，没校验归属</span><br><span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1001</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;user_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">999</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;amount&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">9900</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;address&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;...&quot;</span> <span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># ✅ 查询条件里带上当前用户</span><br>order = db.query(Order).<span class="hljs-built_in">filter</span>(<br>    Order.<span class="hljs-built_in">id</span> == order_id,<br>    Order.user_id == current_user.<span class="hljs-built_in">id</span>,     <span class="hljs-comment"># ← 关键</span><br>).first()<br><span class="hljs-keyword">if</span> order <span class="hljs-keyword">is</span> <span class="hljs-literal">None</span>:<br>    <span class="hljs-keyword">raise</span> NotFound()                       <span class="hljs-comment"># 返回 404 而不是 403</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>每个涉及具体对象的接口都必须校验归属</strong>。这是 OWASP API Security Top 10 里长期排第一的 BOLA（Broken Object Level Authorization）。<strong>认证中间件管不到这个</strong> —— 它只知道「你登录了」，不知道「这个订单是不是你的」。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ **返回 <code>404</code> 而不是 <code>403</code>**。<code>403</code> 等于告诉攻击者「这个 id 存在，只是不属于你」，可以据此枚举有效 id。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>权限校验必须在服务端做</strong>。前端隐藏按钮、路由守卫只是体验优化，改个请求就绕过了。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ **不要用客户端传来的 <code>user_id</code> &#x2F; <code>role</code> &#x2F; <code>tenant_id</code>**。一律从服务端会话 &#x2F; 令牌里取。这是水平越权最常见的入口。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>批量接口也要逐个校验</strong>。<code>DELETE /orders?ids=1,2,3</code> 里混进一个别人的 id，不能整个放行。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>权限校验要在数据访问层统一实现</strong>（ORM 全局 scope、Repository 层强制过滤），不要指望每个开发者在每个 handler 里手写一遍。</p>
+</blockquote>
+<h2 id="七、密钥与配置管理"><a href="#七、密钥与配置管理" class="headerlink" title="七、密钥与配置管理"></a>七、密钥与配置管理</h2><table>
+<thead>
+<tr>
+<th>反模式</th>
+<th>风险</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>密钥硬编码在源码里</td>
+<td>提交进 git，<strong>历史记录永远留着</strong></td>
+</tr>
+<tr>
+<td><code>.env</code> 提交进仓库</td>
+<td>同上，且常被 <code>.gitignore</code> 漏掉</td>
+</tr>
+<tr>
+<td>密钥写进 Docker 镜像层</td>
+<td><code>docker history</code> 能翻出来</td>
+</tr>
+<tr>
+<td>密钥进 CI 日志</td>
+<td>构建日志被谁都能看</td>
+</tr>
+<tr>
+<td>同一个密钥用三年</td>
+<td>泄露后影响面无法界定</td>
+</tr>
+<tr>
+<td>前后端共用同一个密钥</td>
+<td>前端密钥等同公开</td>
+</tr>
+<tr>
+<td>密钥放前端代码 &#x2F; 环境变量前缀 <code>VITE_</code> &#x2F; <code>NEXT_PUBLIC_</code></td>
+<td><strong>会打进 bundle，等同公开</strong></td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 把密钥排除在仓库外</span><br><span class="hljs-built_in">echo</span> <span class="hljs-string">&quot;.env*&quot;</span> &gt;&gt; .gitignore<br><span class="hljs-built_in">echo</span> <span class="hljs-string">&quot;!.env.example&quot;</span> &gt;&gt; .gitignore<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>一旦密钥进了 git 历史，改掉文件是不够的</strong> —— 必须<strong>轮换密钥</strong>。因为历史提交、fork、CI 缓存里都还有。<code>git filter-repo</code> 只能清理你自己的仓库，清不掉别人的 clone。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>任何带 <code>PUBLIC_</code> &#x2F; <code>VITE_</code> &#x2F; <code>NEXT_PUBLIC_</code> 前缀的变量都会被打进前端产物</strong>，用户 F12 就能看到。API 密钥、私钥绝对不能放这里。</p>
+</blockquote>
+<p><strong>轮换策略</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>密钥类型</th>
+<th>建议周期</th>
+<th>轮换方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>数据库密码</td>
+<td>90 天</td>
+<td>双密码期，滚动切换</td>
+</tr>
+<tr>
+<td>JWT 签名密钥</td>
+<td>90 天</td>
+<td><strong>JWKS 多密钥并存</strong>，旧密钥只验不签</td>
+</tr>
+<tr>
+<td>第三方 API Key</td>
+<td>180 天</td>
+<td>双 Key 并行，观察流量归零后停用</td>
+</tr>
+<tr>
+<td>加密密钥（KMS）</td>
+<td>按合规要求</td>
+<td>保留旧版本用于解密历史数据</td>
+</tr>
+<tr>
+<td>会话密钥</td>
+<td>随会话</td>
+<td>——</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>轮换必须支持「新旧并存」的过渡期</strong>。直接换 JWT 密钥会让<strong>所有在线用户瞬间掉线</strong>。正确做法是 JWKS 里同时发布新旧公钥，新令牌用新密钥签，旧令牌用旧密钥验，等最大有效期过了再摘掉旧密钥。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>优先用短时效凭据</strong>：云上给 Pod 挂 IAM Role 而不是发 AK&#x2F;SK；数据库用 IAM 认证而不是静态密码。<strong>没有长期密钥，就没有轮换问题。</strong></p>
+</blockquote>
+<p>推荐做法：</p>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>云厂商密钥管理服务（KMS &#x2F; Secrets Manager）</td>
+<td>云环境首选</td>
+</tr>
+<tr>
+<td>HashiCorp Vault</td>
+<td>自建 &#x2F; 多云</td>
+</tr>
+<tr>
+<td>K8s Secret + External Secrets Operator</td>
+<td>容器环境</td>
+</tr>
+<tr>
+<td>环境变量注入（不落盘、不进镜像）</td>
+<td>通用</td>
+</tr>
+<tr>
+<td>密封文件（SOPS &#x2F; sealed-secrets）</td>
+<td>GitOps</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>开启密钥扫描</strong>（GitHub Secret Scanning、gitleaks、trufflehog），在 CI 里跑 pre-commit 钩子。<strong>发现泄露的窗口期越短，损失越小。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>加密密钥和密文要分开存</strong>（信封加密）。密钥放在 KMS，数据里只存密文和密钥版本号。这样轮换只需换密钥，不用重写全部数据。</p>
+</blockquote>
+<h2 id="八、登录防护"><a href="#八、登录防护" class="headerlink" title="八、登录防护"></a>八、登录防护</h2><table>
+<thead>
+<tr>
+<th>防护</th>
+<th>做法</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>失败限流</td>
+<td>按 <strong>IP + 账号</strong> 双维度</td>
+<td>只按 IP 挡不住分布式撞库</td>
+</tr>
+<tr>
+<td>递增延迟</td>
+<td>失败次数越多延迟越长</td>
+<td>比硬锁定温和</td>
+</tr>
+<tr>
+<td>账号锁定</td>
+<td>N 次失败后临时锁定</td>
+<td><strong>按账号锁定可被用来 DoS 他人</strong></td>
+</tr>
+<tr>
+<td>验证码</td>
+<td>达到阈值后出现</td>
+<td>别一上来就要求</td>
+</tr>
+<tr>
+<td><strong>通用错误信息</strong></td>
+<td>「用户名或密码错误」</td>
+<td>不区分「用户不存在」和「密码错」</td>
+</tr>
+<tr>
+<td>时序安全比较</td>
+<td><code>secrets.compare_digest</code> &#x2F; <code>crypto.timingSafeEqual</code></td>
+<td>防通过响应时间枚举用户</td>
+</tr>
+<tr>
+<td>用户不存在也走一次哈希</td>
+<td>保持响应时间一致</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>MFA</td>
+<td>TOTP &#x2F; WebAuthn</td>
+<td><strong>管理员账号强制</strong></td>
+</tr>
+<tr>
+<td>登录日志</td>
+<td>记录 IP、UA、时间、结果</td>
+<td>异常登录告警</td>
+</tr>
+<tr>
+<td>密码强度</td>
+<td>长度优先（≥ 12），不做复杂字符要求</td>
+<td>复杂度要求反而导致弱密码复用</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># ❌ 泄漏用户是否存在</span><br><span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> user:<br>    <span class="hljs-keyword">return</span> error(<span class="hljs-string">&quot;用户不存在&quot;</span>)<br><span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> verify(user.password_hash, password):<br>    <span class="hljs-keyword">return</span> error(<span class="hljs-string">&quot;密码错误&quot;</span>)<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># ✅ 统一信息 + 统一耗时</span><br>DUMMY_HASH = ph.<span class="hljs-built_in">hash</span>(<span class="hljs-string">&quot;dummy-password-for-timing&quot;</span>)<br>target = user.password_hash <span class="hljs-keyword">if</span> user <span class="hljs-keyword">else</span> DUMMY_HASH<br>ok = verify(target, password)<br><span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> user <span class="hljs-keyword">or</span> <span class="hljs-keyword">not</span> ok:<br>    <span class="hljs-keyword">return</span> error(<span class="hljs-string">&quot;用户名或密码错误&quot;</span>)<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>密码比较必须用常量时间函数</strong>。<code>==</code> 会在第一个不同字节处返回，攻击者可以逐字节爆破。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>按账号锁定是双刃剑</strong>：攻击者可以故意用错误密码锁定别人的账号。用<strong>递增延迟 + IP 限流 + 验证码</strong>组合，而不是硬锁定。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>密码重置流程比登录更容易被攻破</strong>：重置令牌要<strong>一次性、短有效期（15–30 分钟）、存哈希不存明文</strong>，且<strong>不能通过「回答密保问题」来重置</strong>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>MFA 要防绕过</strong>：验证通过后必须换发新会话（会话固定），且 MFA 校验状态不能靠客户端传的字段。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>HttpOnly</code> + <code>Secure</code> + <code>SameSite</code> 是会话 Cookie 的底线</strong>，会话 id 必须<strong>登录成功后重新生成</strong>（防会话固定）。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 把 JWT 放 localStorage，一处 XSS 就全丢</li>
+<li><input disabled="" type="checkbox"> 用 JWT 又需要「踢下线」，靠等过期糊弄</li>
+<li><input disabled="" type="checkbox"> JWT payload 里放敏感信息（base64 不是加密）</li>
+<li><input disabled="" type="checkbox"> 接受 <code>alg: none</code>，或从 token header 里读算法</li>
+<li><input disabled="" type="checkbox"> 服务端用 RS256 验签却不固定算法，被算法混淆攻击</li>
+<li><input disabled="" type="checkbox"> HMAC 密钥用了弱口令 &#x2F; 复用 RSA 公钥</li>
+<li><input disabled="" type="checkbox"> 不校验 <code>exp</code> &#x2F; <code>iss</code> &#x2F; <code>aud</code></li>
+<li><input disabled="" type="checkbox"> <code>kid</code> 直接当文件名或 SQL 参数</li>
+<li><input disabled="" type="checkbox"> 自己手写 JWT 验签逻辑</li>
+<li><input disabled="" type="checkbox"> 刷新令牌不做轮换，或轮换但无重用检测</li>
+<li><input disabled="" type="checkbox"> 刷新令牌不可撤销（纯无状态）</li>
+<li><input disabled="" type="checkbox"> 用隐式流 &#x2F; 密码模式</li>
+<li><input disabled="" type="checkbox"> PKCE 用 <code>code_challenge_method=plain</code></li>
+<li><input disabled="" type="checkbox"> 不带 <code>state</code> 或不校验 <code>state</code></li>
+<li><input disabled="" type="checkbox"> <code>redirect_uri</code> 用前缀匹配而不是精确匹配</li>
+<li><input disabled="" type="checkbox"> 拿 OAuth access token 当身份凭证（该用 OIDC 的 <code>id_token</code>）</li>
+<li><input disabled="" type="checkbox"> 用 MD5 &#x2F; SHA-1 &#x2F; 裸 SHA-256 存密码</li>
+<li><input disabled="" type="checkbox"> 所有用户共用盐，或不加盐</li>
+<li><input disabled="" type="checkbox"> bcrypt 密码超过 72 字节被静默截断</li>
+<li><input disabled="" type="checkbox"> 给 bcrypt 做预哈希导致密码脱壳</li>
+<li><input disabled="" type="checkbox"> 哈希参数写死，算法升级后无法平滑迁移</li>
+<li><input disabled="" type="checkbox"> 查询对象时不校验归属（BOLA &#x2F; IDOR）</li>
+<li><input disabled="" type="checkbox"> 越权时返回 403 而不是 404，可被枚举</li>
+<li><input disabled="" type="checkbox"> 信任客户端传来的 <code>user_id</code> &#x2F; <code>role</code> &#x2F; <code>tenant_id</code></li>
+<li><input disabled="" type="checkbox"> 只在前端做权限控制</li>
+<li><input disabled="" type="checkbox"> 批量接口不逐个校验对象归属</li>
+<li><input disabled="" type="checkbox"> 密钥硬编码 &#x2F; <code>.env</code> 提交进仓库</li>
+<li><input disabled="" type="checkbox"> 密钥进了 git 历史，只删文件不轮换</li>
+<li><input disabled="" type="checkbox"> 密钥放在 <code>VITE_</code> &#x2F; <code>NEXT_PUBLIC_</code> 前缀的环境变量里</li>
+<li><input disabled="" type="checkbox"> 轮换 JWT 密钥不做双密钥过渡，全员掉线</li>
+<li><input disabled="" type="checkbox"> 登录失败提示区分「用户不存在」和「密码错误」</li>
+<li><input disabled="" type="checkbox"> 密码用 <code>==</code> 比较，存在时序侧信道</li>
+<li><input disabled="" type="checkbox"> 靠账号锁定防爆破，被用来 DoS 他人</li>
+<li><input disabled="" type="checkbox"> 密码重置令牌可重复使用或有效期过长</li>
+<li><input disabled="" type="checkbox"> 登录成功后不重新生成会话 id（会话固定）</li>
+<li><input disabled="" type="checkbox"> 会话 Cookie 缺 <code>HttpOnly</code> &#x2F; <code>Secure</code> &#x2F; <code>SameSite</code></li>
+<li><input disabled="" type="checkbox"> 管理员账号不强制 MFA</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html">OWASP · 密码存储速查表</a> · <a target="_blank" rel="noopener" href="https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html">OWASP · 认证速查表</a> · <a target="_blank" rel="noopener" href="https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html">OWASP · 授权速查表</a> · <a target="_blank" rel="noopener" href="https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html">OWASP · 密钥管理速查表</a> · <a target="_blank" rel="noopener" href="https://owasp.org/API-Security/editions/2023/en/0x11-t10/">OWASP API Security Top 10</a> · <a target="_blank" rel="noopener" href="https://www.rfc-editor.org/rfc/rfc9700.html">RFC 9700 · OAuth 2.0 Security Best Current Practice</a> · <a target="_blank" rel="noopener" href="https://www.rfc-editor.org/rfc/rfc7636.html">RFC 7636 · PKCE</a> · <a target="_blank" rel="noopener" href="https://www.rfc-editor.org/rfc/rfc6749.html">RFC 6749 · OAuth 2.0</a> · <a target="_blank" rel="noopener" href="https://www.rfc-editor.org/rfc/rfc7519.html">RFC 7519 · JWT</a> · <a target="_blank" rel="noopener" href="https://openid.net/specs/openid-connect-core-1_0.html">OpenID Connect Core 1.0</a> · <a target="_blank" rel="noopener" href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Guides/Authentication">MDN · HTTP 认证</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/security/" class="category-chain-item">security</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/security/" class="print-no-link">#security</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 045 · Web 安全（二）：认证、授权与密钥管理</div>
+      <div>https://ethan-iopasd.github.io/2026/09/30/每日技术博客045-Web安全认证与授权/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年9月30日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2044-Web%E5%AE%89%E5%85%A8XSS%E4%B8%8ECSRF/" title="每日技术博客 044 · Web 安全（一）：XSS、CSRF 与注入">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 044 · Web 安全（一）：XSS、CSRF 与注入</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

@@ -1,0 +1,1016 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-09-30 · 第 040 篇 ES 系列第一篇。倒排索引怎么工作、text 与 keyword 的取舍、以及为什么 term 查 text 永远查不到。  📚 ES 系列目录   章节 主题 状态    一 倒排索引与查询 DSL 本篇   二 聚合、分页与性能优化 已发布    开场：ES 同时维护两套索引理解 ES 的查询行为，只需要记住它有两条独立的数据通路">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 040 · Elasticsearch（一）：倒排索引与查询 DSL">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2040-Elasticsearch%E5%80%92%E6%8E%92%E7%B4%A2%E5%BC%95/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-09-30 · 第 040 篇 ES 系列第一篇。倒排索引怎么工作、text 与 keyword 的取舍、以及为什么 term 查 text 永远查不到。  📚 ES 系列目录   章节 主题 状态    一 倒排索引与查询 DSL 本篇   二 聚合、分页与性能优化 已发布    开场：ES 同时维护两套索引理解 ES 的查询行为，只需要记住它有两条独立的数据通路">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-09-30T14:00:00.000Z">
+<meta property="article:modified_time" content="2026-09-30T05:47:34.356Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="elasticsearch">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 040 · Elasticsearch（一）：倒排索引与查询 DSL - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 040 · Elasticsearch（一）：倒排索引与查询 DSL"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-09-30 22:00" pubdate>
+          2026年9月30日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.1k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          18 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 040 · Elasticsearch（一）：倒排索引与查询 DSL</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-09-30 · 第 040 篇</p>
+<p>ES 系列第一篇。倒排索引怎么工作、text 与 keyword 的取舍、以及为什么 term 查 text 永远查不到。</p>
+</blockquote>
+<h2 id="📚-ES-系列目录"><a href="#📚-ES-系列目录" class="headerlink" title="📚 ES 系列目录"></a>📚 ES 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>倒排索引与查询 DSL</td>
+<td><strong>本篇</strong></td>
+</tr>
+<tr>
+<td>二</td>
+<td>聚合、分页与性能优化</td>
+<td>已发布</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：ES-同时维护两套索引"><a href="#开场：ES-同时维护两套索引" class="headerlink" title="开场：ES 同时维护两套索引"></a>开场：ES 同时维护两套索引</h2><p>理解 ES 的查询行为，只需要记住它有两条独立的数据通路：</p>
+<table>
+<thead>
+<tr>
+<th>结构</th>
+<th>形态</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>倒排索引（inverted index）</td>
+<td><code>词 → 文档 id 列表</code></td>
+<td><strong>全文检索</strong>（<code>match</code>）</td>
+</tr>
+<tr>
+<td>正排索引（doc values）</td>
+<td><code>文档 id → 值</code></td>
+<td><strong>排序、聚合、脚本取值</strong></td>
+</tr>
+</tbody></table>
+<p>检索快，是因为倒排索引直接按词定位文档，不需要扫描全部文档。排序和聚合快，是因为 doc values 按列存储，可以顺序读。</p>
+<blockquote>
+<p>⚠️ 这两套结构<strong>分开维护</strong>。所以「能搜到」不代表「能聚合」，反之亦然。后面所有的坑都能追到这个根源上。</p>
+</blockquote>
+<h2 id="一、倒排索引-vs-正排索引"><a href="#一、倒排索引-vs-正排索引" class="headerlink" title="一、倒排索引 vs 正排索引"></a>一、倒排索引 vs 正排索引</h2><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>倒排索引</th>
+<th>正排索引（doc values）</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>映射方向</td>
+<td>词 → 文档</td>
+<td>文档 → 值</td>
+</tr>
+<tr>
+<td>存储</td>
+<td>磁盘，segment 内</td>
+<td>磁盘，列式</td>
+</tr>
+<tr>
+<td>擅长</td>
+<td>检索、相关性打分</td>
+<td>排序、聚合、脚本</td>
+</tr>
+<tr>
+<td>是否分词产物</td>
+<td>✅ 分词后建立</td>
+<td>❌ 按原值</td>
+</tr>
+<tr>
+<td><code>text</code> 字段</td>
+<td>✅ 有</td>
+<td>❌ <strong>没有</strong></td>
+</tr>
+<tr>
+<td><code>keyword</code> 字段</td>
+<td>✅ 有（整个值当一个词）</td>
+<td>✅ 有</td>
+</tr>
+</tbody></table>
+<figure class="highlight prolog"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs prolog">文档 <span class="hljs-number">1</span>: <span class="hljs-string">&quot;MySQL 索引优化&quot;</span><br>文档 <span class="hljs-number">2</span>: <span class="hljs-string">&quot;索引失效场景&quot;</span><br><br>倒排索引：<br>  mysql → [<span class="hljs-number">1</span>]<br>  索引  → [<span class="hljs-number">1</span>, <span class="hljs-number">2</span>]<br>  优化  → [<span class="hljs-number">1</span>]<br>  失效  → [<span class="hljs-number">2</span>]<br>  场景  → [<span class="hljs-number">2</span>]<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>text</code> 字段<strong>没有 doc values</strong> —— <code>text</code> 和 <code>annotated_text</code> 是明确不支持的例外。所以在 <code>text</code> 字段上排序或聚合会直接报错。这就是动态映射会给字符串自动补一个 <code>keyword</code> 子字段的原因。</p>
+</blockquote>
+<h2 id="二、分词器（analyzer）三件套"><a href="#二、分词器（analyzer）三件套" class="headerlink" title="二、分词器（analyzer）三件套"></a>二、分词器（analyzer）三件套</h2><p>一个 analyzer 由三部分组成，按顺序执行：</p>
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>作用</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Character filter</td>
+<td>处理原始字符</td>
+<td><code>html_strip</code> 去 HTML 标签</td>
+</tr>
+<tr>
+<td>Tokenizer</td>
+<td>切分成词</td>
+<td><code>standard</code>、<code>ik_smart</code>、<code>whitespace</code></td>
+</tr>
+<tr>
+<td>Token filter</td>
+<td>改写词</td>
+<td><code>lowercase</code>、<code>stop</code>、<code>stemmer</code></td>
+</tr>
+</tbody></table>
+<p>标准分词器 <code>standard</code> 对中文是<strong>逐字切分</strong>，这是「中文搜不到」最常见的原因。</p>
+<p>用 <code>_analyze</code> API 直接看分词结果：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs json">POST _analyze<br><span class="hljs-punctuation">&#123;</span><br>  <span class="hljs-attr">&quot;analyzer&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;standard&quot;</span><span class="hljs-punctuation">,</span><br>  <span class="hljs-attr">&quot;text&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;MySQL 索引优化&quot;</span><br><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs json">POST _analyze<br><span class="hljs-punctuation">&#123;</span><br>  <span class="hljs-attr">&quot;field&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;title&quot;</span><span class="hljs-punctuation">,</span><br>  <span class="hljs-attr">&quot;text&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;MySQL 索引优化&quot;</span><br><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<p>第二种写法指定字段，会用<strong>该字段自己的 analyzer</strong>，排查「索引和查询分词不一致」时用它。</p>
+<blockquote>
+<p>⚠️ <strong>写入和检索必须用同一个 analyzer</strong>。同一个 analyzer 在索引和查询时都会执行。如果写入用 <code>ik_max_word</code>（细粒度）而查询用 <code>ik_smart</code>（粗粒度），结果会漏。要控制精度就显式配 <code>search_analyzer</code>，别靠默认。</p>
+</blockquote>
+<h2 id="三、text-与-keyword-的取舍"><a href="#三、text-与-keyword-的取舍" class="headerlink" title="三、text 与 keyword 的取舍"></a>三、text 与 keyword 的取舍</h2><table>
+<thead>
+<tr>
+<th>维度</th>
+<th><code>text</code></th>
+<th><code>keyword</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>是否分词</td>
+<td>✅</td>
+<td>❌ 整个值作为一个词</td>
+</tr>
+<tr>
+<td>用途</td>
+<td>全文检索</td>
+<td>精确匹配、排序、聚合、过滤</td>
+</tr>
+<tr>
+<td>doc values</td>
+<td>❌ 没有</td>
+<td>✅ 有</td>
+</tr>
+<tr>
+<td>排序 &#x2F; 聚合</td>
+<td>❌ 报错</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>典型查询</td>
+<td><code>match</code></td>
+<td><code>term</code>、<code>terms</code>、<code>prefix</code></td>
+</tr>
+<tr>
+<td>大小写</td>
+<td>由 analyzer 决定</td>
+<td><strong>原样保留</strong></td>
+</tr>
+</tbody></table>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs json">PUT /articles<br><span class="hljs-punctuation">&#123;</span><br>  <span class="hljs-attr">&quot;mappings&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span><br>    <span class="hljs-attr">&quot;properties&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span><br>      <span class="hljs-attr">&quot;title&quot;</span><span class="hljs-punctuation">:</span>   <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;type&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;text&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;fields&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;keyword&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;type&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;keyword&quot;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span><span class="hljs-punctuation">,</span><br>      <span class="hljs-attr">&quot;status&quot;</span><span class="hljs-punctuation">:</span>  <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;type&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;keyword&quot;</span> <span class="hljs-punctuation">&#125;</span><span class="hljs-punctuation">,</span><br>      <span class="hljs-attr">&quot;content&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;type&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;text&quot;</span> <span class="hljs-punctuation">&#125;</span><br>    <span class="hljs-punctuation">&#125;</span><br>  <span class="hljs-punctuation">&#125;</span><br><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<p><code>title</code> 因此同时具备两种能力：<code>title</code> 走全文检索，<code>title.keyword</code> 走排序和聚合。</p>
+<blockquote>
+<p>⚠️ 动态映射给字符串生成的 <code>keyword</code> 子字段带 <code>ignore_above: 256</code> —— **超过 256 字符的值不会被索引进 <code>keyword</code>**，聚合时会「丢数据」。长文本要么显式加大 <code>ignore_above</code>，要么别聚合它。</p>
+</blockquote>
+<h2 id="四、match-与-term：为什么-term-查-text-查不到"><a href="#四、match-与-term：为什么-term-查-text-查不到" class="headerlink" title="四、match 与 term：为什么 term 查 text 查不到"></a>四、match 与 term：为什么 term 查 text 查不到</h2><p>这是 ES 最高频的困惑。</p>
+<table>
+<thead>
+<tr>
+<th>查询</th>
+<th>是否分析查询词</th>
+<th>适用字段</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>match</code></td>
+<td>✅ 用字段的 search analyzer 处理</td>
+<td><code>text</code></td>
+</tr>
+<tr>
+<td><code>term</code></td>
+<td>❌ 原样拿去查倒排索引</td>
+<td><code>keyword</code>、数值、日期、布尔</td>
+</tr>
+<tr>
+<td><code>terms</code></td>
+<td>❌ 原样，多个值</td>
+<td>同上</td>
+</tr>
+</tbody></table>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs json"><span class="hljs-comment">// title = &quot;MySQL 索引优化&quot;，analyzer = standard</span><br><span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;query&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;match&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;title&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;MySQL 索引&quot;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span>   <span class="hljs-comment">// ✅ 命中</span><br><span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;query&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;term&quot;</span><span class="hljs-punctuation">:</span>  <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;title&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;MySQL 索引&quot;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span>   <span class="hljs-comment">// ❌ 查不到</span><br></code></pre></td></tr></table></figure>
+
+<p>原因很直接：倒排索引里存的是分词后的 <code>mysql</code>、<code>索</code>、<code>引</code>、<code>优</code>、<code>化</code>，<strong>从来没有存过「MySQL 索引」这个完整字符串</strong>。<code>term</code> 不分词，拿原文去查，自然查不到。</p>
+<p><code>keyword</code> 字段的行为则相反：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs json"><span class="hljs-comment">// status = &quot;ACTIVE&quot;，keyword 类型，未配 normalizer</span><br><span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;query&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;term&quot;</span><span class="hljs-punctuation">:</span>  <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;status&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;ACTIVE&quot;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span>   <span class="hljs-comment">// ✅</span><br><span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;query&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;term&quot;</span><span class="hljs-punctuation">:</span>  <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;status&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;active&quot;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span>   <span class="hljs-comment">// ❌ 大小写敏感</span><br><span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;query&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;match&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;status&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;active&quot;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span>   <span class="hljs-comment">// ❌ keyword 不分词，同样查不到</span><br></code></pre></td></tr></table></figure>
+
+<p><code>keyword</code> 字段上的 <code>match</code> 不会做分词（<code>keyword</code> analyzer 是空操作），所以和 <code>term</code> 行为一致。想让大小写不敏感，得配 <code>normalizer</code>：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs json"><span class="hljs-attr">&quot;status&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span><br>  <span class="hljs-attr">&quot;type&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;keyword&quot;</span><span class="hljs-punctuation">,</span><br>  <span class="hljs-attr">&quot;normalizer&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;type&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;custom&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;filter&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-string">&quot;lowercase&quot;</span><span class="hljs-punctuation">]</span> <span class="hljs-punctuation">&#125;</span><br><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 三条速记：</p>
+<ol>
+<li><code>term</code> 查 <code>text</code> 字段 → 基本查不到</li>
+<li><code>term</code> 查 <code>keyword</code> → 必须<strong>大小写、空格完全一致</strong>（除非配了 normalizer）</li>
+<li>该用 <code>term</code> 还是 <code>match</code>，取决于<strong>字段类型</strong>，不取决于「想不想精确匹配」</li>
+</ol>
+</blockquote>
+<h2 id="五、bool-查询：must-should-must-not-filter"><a href="#五、bool-查询：must-should-must-not-filter" class="headerlink" title="五、bool 查询：must &#x2F; should &#x2F; must_not &#x2F; filter"></a>五、bool 查询：must &#x2F; should &#x2F; must_not &#x2F; filter</h2><table>
+<thead>
+<tr>
+<th>子句</th>
+<th>逻辑</th>
+<th>参与算分</th>
+<th>可缓存</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>must</code></td>
+<td>AND</td>
+<td>✅</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><code>should</code></td>
+<td>OR</td>
+<td>✅</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><code>filter</code></td>
+<td>AND</td>
+<td>❌ 分数恒为 0</td>
+<td>✅ <strong>可被缓存</strong></td>
+</tr>
+<tr>
+<td><code>must_not</code></td>
+<td>NOT</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+</tbody></table>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><code class="hljs json">GET /articles/_search<br><span class="hljs-punctuation">&#123;</span><br>  <span class="hljs-attr">&quot;query&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span><br>    <span class="hljs-attr">&quot;bool&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span><br>      <span class="hljs-attr">&quot;must&quot;</span><span class="hljs-punctuation">:</span>   <span class="hljs-punctuation">[</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;match&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;title&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;索引&quot;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span><br>      <span class="hljs-attr">&quot;filter&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><br>        <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;term&quot;</span><span class="hljs-punctuation">:</span>  <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;status&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;PUBLISHED&quot;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span><span class="hljs-punctuation">,</span><br>        <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;range&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;created_at&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;gte&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;2026-01-01&quot;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span><br>      <span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span><br>      <span class="hljs-attr">&quot;must_not&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;term&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;deleted&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">true</span></span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span><br>      <span class="hljs-attr">&quot;should&quot;</span><span class="hljs-punctuation">:</span>   <span class="hljs-punctuation">[</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;match&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;tags&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;mysql&quot;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span><br>      <span class="hljs-attr">&quot;minimum_should_match&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1</span><br>    <span class="hljs-punctuation">&#125;</span><br>  <span class="hljs-punctuation">&#125;</span><br><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<p>把**不做相关性判断的条件全部放进 <code>filter</code>**，有两个直接收益：</p>
+<ol>
+<li>不计算分数，省 CPU</li>
+<li>filter context 下的子句<strong>会被缓存</strong>，重复查询直接复用</li>
+</ol>
+<blockquote>
+<p>⚠️ <code>minimum_should_match</code> 的默认值取决于上下文：<strong>如果 <code>bool</code> 里没有 <code>must</code> 也没有 <code>filter</code>，默认是 1；否则默认是 0</strong>。后者意味着 <code>should</code> 只影响排序、不参与筛选 —— 很多人以为加了 <code>should</code> 就是「必须满足」，实际不是。</p>
+</blockquote>
+<h2 id="六、mapping-不能改字段类型"><a href="#六、mapping-不能改字段类型" class="headerlink" title="六、mapping 不能改字段类型"></a>六、mapping 不能改字段类型</h2><p>字段类型一旦建好就<strong>不能修改</strong>，改类型必须重建索引。</p>
+<table>
+<thead>
+<tr>
+<th>想做的事</th>
+<th>能不能直接做</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>改字段类型（<code>text</code> → <code>keyword</code>）</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>改 analyzer</td>
+<td>⚠️ 对<strong>已有数据</strong>不生效，需重建索引</td>
+</tr>
+<tr>
+<td>新增字段</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>给已有字段加 <code>fields</code> 子字段</td>
+<td>⚠️ 可以，但对已有数据不生效</td>
+</tr>
+<tr>
+<td>删除字段</td>
+<td>❌ 只能重建</td>
+</tr>
+</tbody></table>
+<p>标准做法是<strong>别名 + <code>_reindex</code> + 切换</strong>：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><code class="hljs json"><span class="hljs-comment">// 1. 建新索引（新 mapping）</span><br>PUT /articles_v2<br><span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;mappings&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;properties&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;status&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;type&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;keyword&quot;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span><br><br><span class="hljs-comment">// 2. 把数据搬过去</span><br>POST /_reindex<br><span class="hljs-punctuation">&#123;</span><br>  <span class="hljs-attr">&quot;source&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;index&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;articles_v1&quot;</span> <span class="hljs-punctuation">&#125;</span><span class="hljs-punctuation">,</span><br>  <span class="hljs-attr">&quot;dest&quot;</span><span class="hljs-punctuation">:</span>   <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;index&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;articles_v2&quot;</span> <span class="hljs-punctuation">&#125;</span><br><span class="hljs-punctuation">&#125;</span><br><br><span class="hljs-comment">// 3. 切换别名，应用代码完全不用改</span><br>POST /_aliases<br><span class="hljs-punctuation">&#123;</span><br>  <span class="hljs-attr">&quot;actions&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><br>    <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;remove&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;index&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;articles_v1&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;alias&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;articles&quot;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span><span class="hljs-punctuation">,</span><br>    <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;add&quot;</span><span class="hljs-punctuation">:</span>    <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;index&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;articles_v2&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;alias&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;articles&quot;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span><br>  <span class="hljs-punctuation">]</span><br><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 应用<strong>从一开始就应该只访问别名，不访问物理索引名</strong>。否则每次改 mapping 都要发版。这是设计阶段就该定下的约定。</p>
+</blockquote>
+<h2 id="七、-source-与-doc-values"><a href="#七、-source-与-doc-values" class="headerlink" title="七、_source 与 doc_values"></a>七、_source 与 doc_values</h2><table>
+<thead>
+<tr>
+<th>项目</th>
+<th><code>_source</code></th>
+<th>doc_values</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>存什么</td>
+<td>写入时的<strong>原始 JSON</strong></td>
+<td>每个字段的<strong>列式值</strong></td>
+</tr>
+<tr>
+<td>用途</td>
+<td>返回文档内容、<code>_reindex</code>、<code>update</code></td>
+<td>排序、聚合、脚本</td>
+</tr>
+<tr>
+<td>能否关闭</td>
+<td>✅（但失去 <code>update</code> &#x2F; <code>_reindex</code> 能力）</td>
+<td>✅（该字段将无法排序 &#x2F; 聚合）</td>
+</tr>
+<tr>
+<td>是否分词</td>
+<td>❌ 原样</td>
+<td>❌ 原样</td>
+</tr>
+</tbody></table>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs json">GET /articles/_search<br><span class="hljs-punctuation">&#123;</span><br>  <span class="hljs-attr">&quot;_source&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-string">&quot;title&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-string">&quot;created_at&quot;</span><span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span><br>  <span class="hljs-attr">&quot;query&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;match_all&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span><span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span><br><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs json"><span class="hljs-comment">// 关掉某字段的 doc_values：省磁盘，但不能再排序 / 聚合</span><br><span class="hljs-attr">&quot;status&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;type&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;keyword&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;doc_values&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">false</span></span> <span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>&quot;_source&quot;: false</code> 是常见的「省空间」操作，代价是**无法 <code>update</code>、无法 <code>_reindex</code>**。除非数据完全可以从外部重建，否则不要关。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 中文用 <code>standard</code> 分词器，逐字切分导致搜不到</li>
+<li><input disabled="" type="checkbox"> 索引和查询用了不同的 analyzer</li>
+<li><input disabled="" type="checkbox"> 在 <code>text</code> 字段上做排序或聚合，直接报错</li>
+<li><input disabled="" type="checkbox"> 用 <code>term</code> 查 <code>text</code> 字段，怎么都查不到</li>
+<li><input disabled="" type="checkbox"> 用 <code>term</code> 查 <code>keyword</code> 时大小写不一致</li>
+<li><input disabled="" type="checkbox"> 动态映射的 <code>keyword</code> 子字段 <code>ignore_above</code> 默认 256，长值聚合丢数据</li>
+<li><input disabled="" type="checkbox"> 该进 <code>filter</code> 的条件写进 <code>must</code>，白白算分且不缓存</li>
+<li><input disabled="" type="checkbox"> 以为 <code>should</code> 是「必须满足」，忽略了 <code>minimum_should_match</code> 的默认值</li>
+<li><input disabled="" type="checkbox"> 想改字段类型，试图直接改 mapping</li>
+<li><input disabled="" type="checkbox"> 应用直接访问物理索引名，改 mapping 就要发版</li>
+<li><input disabled="" type="checkbox"> 关掉 <code>_source</code> 后才发现无法 <code>update</code> &#x2F; <code>_reindex</code></li>
+<li><input disabled="" type="checkbox"> 全量返回 <code>_source</code>，网络开销大</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://www.elastic.co/docs/manage-data/data-store/mapping">Elasticsearch · 映射</a> · <a target="_blank" rel="noopener" href="https://www.elastic.co/docs/reference/elasticsearch/mapping-reference/doc-values">Elasticsearch · doc_values</a> · <a target="_blank" rel="noopener" href="https://www.elastic.co/docs/reference/query-languages/query-dsl/query-dsl-bool-query">Elasticsearch · bool 查询</a> · <a target="_blank" rel="noopener" href="https://www.elastic.co/docs/reference/query-languages/query-dsl/query-filter-context">Elasticsearch · 查询与过滤上下文</a> · <a target="_blank" rel="noopener" href="https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-indices-analyze">Elasticsearch · _analyze API</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/elasticsearch/" class="category-chain-item">elasticsearch</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/elasticsearch/" class="print-no-link">#elasticsearch</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 040 · Elasticsearch（一）：倒排索引与查询 DSL</div>
+      <div>https://ethan-iopasd.github.io/2026/09/30/每日技术博客040-Elasticsearch倒排索引/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年9月30日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2041-Elasticsearch%E8%81%9A%E5%90%88%E4%B8%8E%E5%88%86%E9%A1%B5/" title="每日技术博客 041 · Elasticsearch（二）：聚合、分页与性能优化">
+                        <span class="hidden-mobile">每日技术博客 041 · Elasticsearch（二）：聚合、分页与性能优化</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

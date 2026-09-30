@@ -1,0 +1,1073 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-09-30 · 第 025 篇 TypeScript 的类型系统只有两个动作：组合（联合 &#x2F; 交叉 &#x2F; 泛型）和收窄（把宽类型缩到窄类型）。其余都是这两件事的语法糖。  📚 TypeScript 系列目录   章节 主题 状态    一 类型系统与泛型 本篇   二 类型体操与工程配置 已发布    开场：type 还是 interface官方手">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 025 · TypeScript（一）：类型系统与泛型">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2025-TypeScript%E7%B1%BB%E5%9E%8B%E7%B3%BB%E7%BB%9F/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-09-30 · 第 025 篇 TypeScript 的类型系统只有两个动作：组合（联合 &#x2F; 交叉 &#x2F; 泛型）和收窄（把宽类型缩到窄类型）。其余都是这两件事的语法糖。  📚 TypeScript 系列目录   章节 主题 状态    一 类型系统与泛型 本篇   二 类型体操与工程配置 已发布    开场：type 还是 interface官方手">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-09-30T11:30:00.000Z">
+<meta property="article:modified_time" content="2026-09-30T05:21:25.136Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="typescript">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 025 · TypeScript（一）：类型系统与泛型 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 025 · TypeScript（一）：类型系统与泛型"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-09-30 19:30" pubdate>
+          2026年9月30日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.1k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          18 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 025 · TypeScript（一）：类型系统与泛型</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-09-30 · 第 025 篇</p>
+<p>TypeScript 的类型系统只有两个动作：<strong>组合</strong>（联合 &#x2F; 交叉 &#x2F; 泛型）和<strong>收窄</strong>（把宽类型缩到窄类型）。其余都是这两件事的语法糖。</p>
+</blockquote>
+<h2 id="📚-TypeScript-系列目录"><a href="#📚-TypeScript-系列目录" class="headerlink" title="📚 TypeScript 系列目录"></a>📚 TypeScript 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>类型系统与泛型</td>
+<td><strong>本篇</strong></td>
+</tr>
+<tr>
+<td>二</td>
+<td>类型体操与工程配置</td>
+<td>已发布</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：type-还是-interface"><a href="#开场：type-还是-interface" class="headerlink" title="开场：type 还是 interface"></a>开场：<code>type</code> 还是 <code>interface</code></h2><p>官方手册的原话是「多数情况下按个人偏好选」，给的启发式规则是：**先用 <code>interface</code>，遇到它做不到的再用 <code>type</code>**。</p>
+<table>
+<thead>
+<tr>
+<th>能力</th>
+<th><code>interface</code></th>
+<th><code>type</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>描述对象 &#x2F; 函数签名</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>extends</code> 继承</td>
+<td>✅（可多继承）</td>
+<td>✅（用交叉 <code>&amp;</code>）</td>
+</tr>
+<tr>
+<td>声明合并（同名自动合并）</td>
+<td>✅</td>
+<td>❌ 重复声明直接报错</td>
+</tr>
+<tr>
+<td>联合类型 <code>A | B</code></td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>交叉类型 <code>A &amp; B</code></td>
+<td>仅 <code>extends</code> 形式</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>元组、映射类型、条件类型</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>模板字面量类型</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>编译性能</td>
+<td>更好（有缓存，<code>extends</code> 快）</td>
+<td>交叉类型需要展开计算</td>
+</tr>
+<tr>
+<td>错误信息</td>
+<td>更清晰（保留名字）</td>
+<td>复杂别名会展开成一大坨</td>
+</tr>
+</tbody></table>
+<figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-comment">// interface：声明合并，适合给第三方库打补丁</span><br><span class="hljs-keyword">interface</span> <span class="hljs-title class_">Window</span> &#123;<br>  <span class="hljs-attr">__MY_APP__</span>: &#123; <span class="hljs-attr">version</span>: <span class="hljs-built_in">string</span> &#125;<br>&#125;<br><br><span class="hljs-comment">// type：需要联合 / 映射，interface 做不到</span><br><span class="hljs-keyword">type</span> <span class="hljs-title class_">Result</span>&lt;T&gt; =<br>  | &#123; <span class="hljs-attr">ok</span>: <span class="hljs-literal">true</span>; <span class="hljs-attr">data</span>: T &#125;<br>  | &#123; <span class="hljs-attr">ok</span>: <span class="hljs-literal">false</span>; <span class="hljs-attr">error</span>: <span class="hljs-title class_">Error</span> &#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>不要用 <code>interface</code> 描述联合或元组</strong>，写不出来只能绕。反过来，<strong>对外暴露的公共 API 优先 <code>interface</code></strong> —— 交叉类型 <code>A &amp; B</code> 冲突时不会报错，而是把冲突字段推成 <code>never</code>，排查起来很痛苦。</p>
+</blockquote>
+<figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-keyword">interface</span> A &#123; <span class="hljs-attr">x</span>: <span class="hljs-built_in">string</span> &#125;<br><span class="hljs-keyword">interface</span> B &#123; <span class="hljs-attr">x</span>: <span class="hljs-built_in">number</span> &#125;<br><span class="hljs-keyword">type</span> C = A &amp; B            <span class="hljs-comment">// 编译通过！C[&#x27;x&#x27;] 是 string &amp; number = never</span><br><br><span class="hljs-keyword">const</span> <span class="hljs-attr">c</span>: C = &#123; <span class="hljs-attr">x</span>: <span class="hljs-string">&#x27;a&#x27;</span> &#125;   <span class="hljs-comment">// ❌ 类型 &#x27;string&#x27; 不能赋给 &#x27;never&#x27;</span><br></code></pre></td></tr></table></figure>
+
+<h2 id="一、联合、交叉与字面量类型"><a href="#一、联合、交叉与字面量类型" class="headerlink" title="一、联合、交叉与字面量类型"></a>一、联合、交叉与字面量类型</h2><figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-keyword">type</span> <span class="hljs-title class_">Status</span> = <span class="hljs-string">&#x27;idle&#x27;</span> | <span class="hljs-string">&#x27;loading&#x27;</span> | <span class="hljs-string">&#x27;done&#x27;</span>   <span class="hljs-comment">// 字面量联合，最常用的「伪枚举」</span><br><span class="hljs-keyword">type</span> <span class="hljs-title class_">Id</span> = <span class="hljs-built_in">string</span> | <span class="hljs-built_in">number</span><br><span class="hljs-keyword">type</span> <span class="hljs-title class_">Props</span> = &#123; <span class="hljs-attr">id</span>: <span class="hljs-title class_">Id</span> &#125; &amp; &#123; <span class="hljs-attr">onClick</span>: <span class="hljs-function">() =&gt;</span> <span class="hljs-built_in">void</span> &#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>运算符</th>
+<th>语义</th>
+<th>赋值要求</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>A | B</code></td>
+<td>并集</td>
+<td>满足<strong>任一个</strong>即可</td>
+</tr>
+<tr>
+<td><code>A &amp; B</code></td>
+<td>交集</td>
+<td>必须<strong>同时</strong>满足</td>
+</tr>
+</tbody></table>
+<figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-comment">// as const 把推断结果锁成字面量，而不是宽化成 string / number</span><br><span class="hljs-keyword">const</span> <span class="hljs-variable constant_">ROUTES</span> = &#123;<br>  <span class="hljs-attr">home</span>: <span class="hljs-string">&#x27;/&#x27;</span>,<br>  <span class="hljs-attr">detail</span>: <span class="hljs-string">&#x27;/detail/:id&#x27;</span>,<br>&#125; <span class="hljs-keyword">as</span> <span class="hljs-keyword">const</span><br><br><span class="hljs-keyword">type</span> <span class="hljs-title class_">RouteName</span> = keyof <span class="hljs-keyword">typeof</span> <span class="hljs-variable constant_">ROUTES</span>      <span class="hljs-comment">// &#x27;home&#x27; | &#x27;detail&#x27;</span><br><span class="hljs-keyword">type</span> <span class="hljs-title class_">RoutePath</span> = (<span class="hljs-keyword">typeof</span> <span class="hljs-variable constant_">ROUTES</span>)[<span class="hljs-title class_">RouteName</span>]  <span class="hljs-comment">// &#x27;/&#x27; | &#x27;/detail/:id&#x27;</span><br></code></pre></td></tr></table></figure>
+
+<p>不加 <code>as const</code> 时 <code>ROUTES.home</code> 的类型是 <code>string</code>，加了大不一样。</p>
+<blockquote>
+<p>⚠️ <code>as const</code> 会让对象<strong>递归只读</strong>，<code>ROUTES.home = &#39;/x&#39;</code> 直接报错。另外它也会让数组变成 <code>readonly</code> 元组，<code>push</code> 不可用 —— 需要可变副本时用 <code>[...arr]</code> 展开一份。</p>
+</blockquote>
+<h2 id="二、类型收窄"><a href="#二、类型收窄" class="headerlink" title="二、类型收窄"></a>二、类型收窄</h2><p>收窄 &#x3D; 编译器根据控制流把宽类型缩到窄类型。**<code>typeof</code> &#x2F; <code>in</code> &#x2F; <code>instanceof</code> &#x2F; 判别联合是内置的，其余靠自定义守卫。**</p>
+<table>
+<thead>
+<tr>
+<th>手段</th>
+<th>适用</th>
+<th>例子</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>typeof</code></td>
+<td>原始类型</td>
+<td><code>typeof v === &#39;string&#39;</code></td>
+</tr>
+<tr>
+<td><code>instanceof</code></td>
+<td>类实例</td>
+<td><code>e instanceof RangeError</code></td>
+</tr>
+<tr>
+<td><code>in</code></td>
+<td>判断属性存在</td>
+<td><code>&#39;radius&#39; in shape</code></td>
+</tr>
+<tr>
+<td>真值收窄</td>
+<td>剔除 <code>null</code> &#x2F; <code>undefined</code></td>
+<td><code>if (user) user.name</code></td>
+</tr>
+<tr>
+<td>相等收窄</td>
+<td>字面量比较</td>
+<td><code>if (s === &#39;done&#39;)</code></td>
+</tr>
+<tr>
+<td>判别联合</td>
+<td>靠公共字面量字段</td>
+<td><code>switch (s.kind)</code></td>
+</tr>
+<tr>
+<td>自定义守卫</td>
+<td>返回 <code>x is T</code></td>
+<td><code>function isUser(v): v is User</code></td>
+</tr>
+<tr>
+<td>断言函数</td>
+<td>返回 <code>asserts x is T</code></td>
+<td><code>assertIsUser(v)</code></td>
+</tr>
+<tr>
+<td><code>satisfies</code></td>
+<td>校验但不改推断</td>
+<td><code>&#123;...&#125; satisfies Config</code></td>
+</tr>
+</tbody></table>
+<h3 id="判别联合（discriminated-union）"><a href="#判别联合（discriminated-union）" class="headerlink" title="判别联合（discriminated union）"></a>判别联合（discriminated union）</h3><p>最实用的一个模式：<strong>每个成员带一个公共字面量字段</strong>，<code>switch</code> 它就能自动收窄。</p>
+<figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-keyword">type</span> <span class="hljs-title class_">Shape</span> =<br>  | &#123; <span class="hljs-attr">kind</span>: <span class="hljs-string">&#x27;circle&#x27;</span>; <span class="hljs-attr">radius</span>: <span class="hljs-built_in">number</span> &#125;<br>  | &#123; <span class="hljs-attr">kind</span>: <span class="hljs-string">&#x27;square&#x27;</span>; <span class="hljs-attr">side</span>: <span class="hljs-built_in">number</span> &#125;<br>  | &#123; <span class="hljs-attr">kind</span>: <span class="hljs-string">&#x27;rect&#x27;</span>; <span class="hljs-attr">w</span>: <span class="hljs-built_in">number</span>; <span class="hljs-attr">h</span>: <span class="hljs-built_in">number</span> &#125;<br><br><span class="hljs-keyword">function</span> <span class="hljs-title function_">area</span>(<span class="hljs-params"><span class="hljs-attr">s</span>: <span class="hljs-title class_">Shape</span></span>): <span class="hljs-built_in">number</span> &#123;<br>  <span class="hljs-keyword">switch</span> (s.<span class="hljs-property">kind</span>) &#123;<br>    <span class="hljs-keyword">case</span> <span class="hljs-string">&#x27;circle&#x27;</span>: <span class="hljs-keyword">return</span> <span class="hljs-title class_">Math</span>.<span class="hljs-property">PI</span> * s.<span class="hljs-property">radius</span> ** <span class="hljs-number">2</span><br>    <span class="hljs-keyword">case</span> <span class="hljs-string">&#x27;square&#x27;</span>: <span class="hljs-keyword">return</span> s.<span class="hljs-property">side</span> ** <span class="hljs-number">2</span><br>    <span class="hljs-keyword">case</span> <span class="hljs-string">&#x27;rect&#x27;</span>:   <span class="hljs-keyword">return</span> s.<span class="hljs-property">w</span> * s.<span class="hljs-property">h</span><br>  &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>配合 <code>never</code> 做穷尽检查：</p>
+<figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-keyword">function</span> <span class="hljs-title function_">area</span>(<span class="hljs-params"><span class="hljs-attr">s</span>: <span class="hljs-title class_">Shape</span></span>): <span class="hljs-built_in">number</span> &#123;<br>  <span class="hljs-keyword">switch</span> (s.<span class="hljs-property">kind</span>) &#123;<br>    <span class="hljs-keyword">case</span> <span class="hljs-string">&#x27;circle&#x27;</span>: <span class="hljs-keyword">return</span> <span class="hljs-title class_">Math</span>.<span class="hljs-property">PI</span> * s.<span class="hljs-property">radius</span> ** <span class="hljs-number">2</span><br>    <span class="hljs-keyword">case</span> <span class="hljs-string">&#x27;square&#x27;</span>: <span class="hljs-keyword">return</span> s.<span class="hljs-property">side</span> ** <span class="hljs-number">2</span><br>    <span class="hljs-keyword">case</span> <span class="hljs-string">&#x27;rect&#x27;</span>:   <span class="hljs-keyword">return</span> s.<span class="hljs-property">w</span> * s.<span class="hljs-property">h</span><br>    <span class="hljs-attr">default</span>:<br>      <span class="hljs-comment">// 所有分支都覆盖时 s 是 never，赋值通过；</span><br>      <span class="hljs-comment">// 将来给 Shape 加了新成员而忘了处理，这里立刻编译报错</span><br>      <span class="hljs-keyword">const</span> <span class="hljs-attr">_exhaustive</span>: <span class="hljs-built_in">never</span> = s<br>      <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">Error</span>(<span class="hljs-string">`unhandled: <span class="hljs-subst">$&#123;<span class="hljs-built_in">JSON</span>.stringify(_exhaustive)&#125;</span>`</span>)<br>  &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 判别字段必须是<strong>字面量类型</strong>。写成 <code>kind: string</code> 就收窄不了 —— 联合会退化成「每个成员都可能匹配」。用 <code>as const</code> 或 <code>satisfies</code> 保证字面量不丢。</p>
+</blockquote>
+<h3 id="自定义类型守卫与断言函数"><a href="#自定义类型守卫与断言函数" class="headerlink" title="自定义类型守卫与断言函数"></a>自定义类型守卫与断言函数</h3><figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-comment">// 守卫：返回 boolean，同时告诉编译器 v 是 string</span><br><span class="hljs-keyword">function</span> <span class="hljs-title function_">isString</span>(<span class="hljs-params"><span class="hljs-attr">v</span>: <span class="hljs-built_in">unknown</span></span>): v is <span class="hljs-built_in">string</span> &#123;<br>  <span class="hljs-keyword">return</span> <span class="hljs-keyword">typeof</span> v === <span class="hljs-string">&#x27;string&#x27;</span><br>&#125;<br><br><span class="hljs-comment">// 断言函数：不返回值，失败就抛；成功后后续代码按 string 处理</span><br><span class="hljs-keyword">function</span> <span class="hljs-title function_">assertIsString</span>(<span class="hljs-params"><span class="hljs-attr">v</span>: <span class="hljs-built_in">unknown</span></span>): asserts v is <span class="hljs-built_in">string</span> &#123;<br>  <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> v !== <span class="hljs-string">&#x27;string&#x27;</span>) <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">TypeError</span>(<span class="hljs-string">&#x27;expected string&#x27;</span>)<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>形式</th>
+<th>返回类型</th>
+<th>调用点效果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>守卫</td>
+<td><code>v is T</code></td>
+<td>放进 <code>if</code> 里生效</td>
+</tr>
+<tr>
+<td>断言</td>
+<td><code>asserts v is T</code></td>
+<td>调用之后整个作用域生效</td>
+</tr>
+<tr>
+<td>断言（非空）</td>
+<td><code>asserts v</code></td>
+<td>只能断言真值，常用于 <code>assert(x != null)</code></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 类型守卫是<strong>你对编译器的承诺</strong>，编译器不会验证实现。<code>function isUser(v): v is User &#123; return true &#125;</code> 也编译通过 —— 守卫写错等于关掉了类型检查。</p>
+</blockquote>
+<h3 id="satisfies：校验但不改推断"><a href="#satisfies：校验但不改推断" class="headerlink" title="satisfies：校验但不改推断"></a><code>satisfies</code>：校验但不改推断</h3><figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-keyword">const</span> config = &#123;<br>  <span class="hljs-attr">host</span>: <span class="hljs-string">&#x27;localhost&#x27;</span>,<br>  <span class="hljs-attr">port</span>: <span class="hljs-number">8080</span>,<br>&#125; <span class="hljs-keyword">satisfies</span> <span class="hljs-title class_">Record</span>&lt;<span class="hljs-built_in">string</span>, <span class="hljs-built_in">string</span> | <span class="hljs-built_in">number</span>&gt;<br><br>config.<span class="hljs-property">port</span>.<span class="hljs-title function_">toFixed</span>(<span class="hljs-number">2</span>)     <span class="hljs-comment">// ✅ 推断仍是 number，不是 string | number</span><br></code></pre></td></tr></table></figure>
+
+<p>用 <code>const config: Record&lt;...&gt; = &#123;...&#125;</code> 的话，<code>config.port</code> 会被宽化成 <code>string | number</code>，<code>.toFixed</code> 报错。</p>
+<h2 id="三、泛型：约束、默认值与推导"><a href="#三、泛型：约束、默认值与推导" class="headerlink" title="三、泛型：约束、默认值与推导"></a>三、泛型：约束、默认值与推导</h2><figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-comment">// 约束：T 至少有 id</span><br><span class="hljs-keyword">function</span> byId&lt;T <span class="hljs-keyword">extends</span> &#123; <span class="hljs-attr">id</span>: <span class="hljs-built_in">number</span> &#125;&gt;(<span class="hljs-attr">list</span>: T[], <span class="hljs-attr">id</span>: <span class="hljs-built_in">number</span>): T | <span class="hljs-literal">undefined</span> &#123;<br>  <span class="hljs-keyword">return</span> list.<span class="hljs-title function_">find</span>(<span class="hljs-function">(<span class="hljs-params">x</span>) =&gt;</span> x.<span class="hljs-property">id</span> === id)<br>&#125;<br><br><span class="hljs-comment">// 默认值：调用时不传就取默认</span><br><span class="hljs-keyword">type</span> <span class="hljs-title class_">Api</span>&lt;T = <span class="hljs-built_in">unknown</span>, E = <span class="hljs-title class_">Error</span>&gt; =<br>  | &#123; <span class="hljs-attr">ok</span>: <span class="hljs-literal">true</span>; <span class="hljs-attr">data</span>: T &#125;<br>  | &#123; <span class="hljs-attr">ok</span>: <span class="hljs-literal">false</span>; <span class="hljs-attr">error</span>: E &#125;<br><br><span class="hljs-comment">// 约束 + 默认值 + keyof</span><br><span class="hljs-keyword">function</span> pick&lt;T <span class="hljs-keyword">extends</span> <span class="hljs-built_in">object</span>, K <span class="hljs-keyword">extends</span> keyof T&gt;(<span class="hljs-attr">obj</span>: T, <span class="hljs-attr">keys</span>: K[]): <span class="hljs-title class_">Pick</span>&lt;T, K&gt; &#123;<br>  <span class="hljs-keyword">const</span> out = &#123;&#125; <span class="hljs-keyword">as</span> <span class="hljs-title class_">Pick</span>&lt;T, K&gt;<br>  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> k <span class="hljs-keyword">of</span> keys) out[k] = obj[k]<br>  <span class="hljs-keyword">return</span> out<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>位置</th>
+<th>写法</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>约束</td>
+<td><code>&lt;T extends U&gt;</code></td>
+<td>限制可传入的类型</td>
+</tr>
+<tr>
+<td>默认值</td>
+<td><code>&lt;T = string&gt;</code></td>
+<td>不传时兜底</td>
+</tr>
+<tr>
+<td>同时</td>
+<td><code>&lt;T extends U = U&gt;</code></td>
+<td>有默认值但默认值也要满足约束</td>
+</tr>
+<tr>
+<td>推断位</td>
+<td>只在参数里出现</td>
+<td>由实参反推</td>
+</tr>
+</tbody></table>
+<h3 id="keyof、typeof、索引访问"><a href="#keyof、typeof、索引访问" class="headerlink" title="keyof、typeof、索引访问"></a><code>keyof</code>、<code>typeof</code>、索引访问</h3><figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-keyword">const</span> theme = &#123; <span class="hljs-attr">primary</span>: <span class="hljs-string">&#x27;#0a0&#x27;</span>, <span class="hljs-attr">danger</span>: <span class="hljs-string">&#x27;#c00&#x27;</span> &#125;<br><span class="hljs-keyword">type</span> <span class="hljs-title class_">Theme</span> = <span class="hljs-keyword">typeof</span> theme              <span class="hljs-comment">// &#123; primary: string; danger: string &#125;</span><br><span class="hljs-keyword">type</span> <span class="hljs-title class_">ThemeKey</span> = keyof <span class="hljs-title class_">Theme</span>            <span class="hljs-comment">// &#x27;primary&#x27; | &#x27;danger&#x27;</span><br><span class="hljs-keyword">type</span> <span class="hljs-title class_">ThemeValue</span> = <span class="hljs-title class_">Theme</span>[<span class="hljs-title class_">ThemeKey</span>]      <span class="hljs-comment">// string</span><br><br><span class="hljs-keyword">function</span> get&lt;K <span class="hljs-keyword">extends</span> keyof <span class="hljs-title class_">Theme</span>&gt;(<span class="hljs-attr">k</span>: K): <span class="hljs-title class_">Theme</span>[K] &#123;<br>  <span class="hljs-keyword">return</span> theme[k]<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>运算符</th>
+<th>输入</th>
+<th>输出</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>keyof T</code></td>
+<td>类型</td>
+<td>键的字面量联合</td>
+</tr>
+<tr>
+<td><code>typeof v</code></td>
+<td><strong>值</strong></td>
+<td>值的类型</td>
+</tr>
+<tr>
+<td><code>T[K]</code></td>
+<td>类型 + 键</td>
+<td>对应属性的类型</td>
+</tr>
+<tr>
+<td><code>T[number]</code></td>
+<td>数组类型</td>
+<td>元素类型</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>keyof</code> 和 <code>typeof</code> 的方向相反：<code>typeof</code> 是<strong>值 → 类型</strong>（只能用在值上），<code>keyof</code> 是<strong>类型 → 键联合</strong>（只能用在类型上）。<code>keyof typeof obj</code> 是常见组合写法。</p>
+</blockquote>
+<h3 id="泛型推导失败的两个原因"><a href="#泛型推导失败的两个原因" class="headerlink" title="泛型推导失败的两个原因"></a>泛型推导失败的两个原因</h3><table>
+<thead>
+<tr>
+<th>现象</th>
+<th>原因</th>
+<th>修法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>推断成 <code>unknown</code></td>
+<td>参数没出现在任何泛型位</td>
+<td>显式传 <code>&lt;T&gt;</code>，或改签名</td>
+</tr>
+<tr>
+<td>推断过宽</td>
+<td>用了 <code>as const</code> 之外的普通对象字面量</td>
+<td>加 <code>as const</code> &#x2F; <code>satisfies</code></td>
+</tr>
+<tr>
+<td>泛型被合并成联合</td>
+<td>多个参数用同一个 <code>T</code></td>
+<td>拆成 <code>&lt;T, U&gt;</code></td>
+</tr>
+<tr>
+<td>想保留字面量但被宽化</td>
+<td>约束写成 <code>string</code> 而非 <code>extends string</code></td>
+<td>用 <code>T extends string</code></td>
+</tr>
+</tbody></table>
+<h2 id="四、unknown-与-any"><a href="#四、unknown-与-any" class="headerlink" title="四、unknown 与 any"></a>四、<code>unknown</code> 与 <code>any</code></h2><table>
+<thead>
+<tr>
+<th>维度</th>
+<th><code>any</code></th>
+<th><code>unknown</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>能赋值给任意类型</td>
+<td>✅</td>
+<td>❌ 需要收窄</td>
+</tr>
+<tr>
+<td>能读任意属性 &#x2F; 调用</td>
+<td>✅</td>
+<td>❌ 编译报错</td>
+</tr>
+<tr>
+<td>能接收任意值</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>传染性</td>
+<td>强，一路污染下去</td>
+<td>无，必须显式收窄</td>
+</tr>
+<tr>
+<td>定位</td>
+<td>关闭检查</td>
+<td><strong>类型安全的 <code>any</code></strong></td>
+</tr>
+</tbody></table>
+<figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-keyword">let</span> <span class="hljs-attr">a</span>: <span class="hljs-built_in">any</span> = <span class="hljs-number">1</span><br>a.<span class="hljs-property">foo</span>.<span class="hljs-title function_">bar</span>()                <span class="hljs-comment">// ✅ 编译通过，运行时炸</span><br><br><span class="hljs-keyword">let</span> <span class="hljs-attr">u</span>: <span class="hljs-built_in">unknown</span> = <span class="hljs-number">1</span><br>u.<span class="hljs-property">foo</span>                      <span class="hljs-comment">// ❌ 编译报错</span><br><span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> u === <span class="hljs-string">&#x27;number&#x27;</span>) u.<span class="hljs-title function_">toFixed</span>(<span class="hljs-number">2</span>)   <span class="hljs-comment">// ✅ 收窄后才可用</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ **<code>strict</code> 下 <code>catch</code> 的变量是 <code>unknown</code>**（<code>useUnknownInCatchVariables</code>，TypeScript 4.4 起默认随 <code>strict</code> 开启）。<code>catch (e) &#123; e.message &#125;</code> 会报错，得先 <code>e instanceof Error</code>。</p>
+</blockquote>
+<h3 id="几个容易混的顶层类型"><a href="#几个容易混的顶层类型" class="headerlink" title="几个容易混的顶层类型"></a>几个容易混的顶层类型</h3><table>
+<thead>
+<tr>
+<th>类型</th>
+<th>含义</th>
+<th>常见误用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>unknown</code></td>
+<td>任意值，用前必须收窄</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>never</code></td>
+<td>不可能存在的值</td>
+<td>被用来当「任意类型」</td>
+</tr>
+<tr>
+<td><code>void</code></td>
+<td>函数无返回值</td>
+<td>与 <code>undefined</code> 混用</td>
+</tr>
+<tr>
+<td><code>object</code></td>
+<td>非原始类型（不含 <code>null</code>）</td>
+<td>以为是「任意对象」</td>
+</tr>
+<tr>
+<td><code>&#123;&#125;</code></td>
+<td>除 <code>null</code> &#x2F; <code>undefined</code> 外的任意值</td>
+<td><strong>能接收 string、number</strong></td>
+</tr>
+<tr>
+<td><code>Object</code></td>
+<td>几乎等于 <code>&#123;&#125;</code></td>
+<td>别用</td>
+</tr>
+</tbody></table>
+<figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-keyword">const</span> <span class="hljs-attr">x</span>: &#123;&#125; = <span class="hljs-string">&#x27;hello&#x27;</span>      <span class="hljs-comment">// ✅ 合法！&#123;&#125; 不是「空对象」</span><br><span class="hljs-keyword">const</span> <span class="hljs-attr">y</span>: <span class="hljs-built_in">object</span> = <span class="hljs-string">&#x27;hello&#x27;</span>  <span class="hljs-comment">// ❌ 报错</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>&#123;&#125;</code> 是「非空值」的意思，<code>&#39;a&#39;</code>、<code>1</code>、<code>true</code> 都满足它。想表达「任意对象」用 <code>object</code> 或 <code>Record&lt;string, unknown&gt;</code>。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 用 <code>type</code> 写公共 API 类型，报错信息展开成一大坨，不如 <code>interface</code></li>
+<li><input disabled="" type="checkbox"> 用 <code>A &amp; B</code> 合并两个有同名字段但类型不同的接口，字段被推成 <code>never</code></li>
+<li><input disabled="" type="checkbox"> 判别联合的 <code>kind</code> 写成 <code>string</code> 而不是字面量联合，收窄失效</li>
+<li><input disabled="" type="checkbox"> 忘了 <code>as const</code>，对象的键类型被宽化成 <code>string</code></li>
+<li><input disabled="" type="checkbox"> <code>as const</code> 之后直接改数组，忘了它是 <code>readonly</code> 元组</li>
+<li><input disabled="" type="checkbox"> 类型守卫实现写错，<code>v is T</code> 说谎，等于关掉检查</li>
+<li><input disabled="" type="checkbox"> 用 <code>as</code> 断言代替收窄，绕过检查而不是证明类型</li>
+<li><input disabled="" type="checkbox"> <code>keyof</code> 用在值上、<code>typeof</code> 用在类型上，方向搞反</li>
+<li><input disabled="" type="checkbox"> 泛型参数没出现在参数列表里，推断成 <code>unknown</code> 却以为是 bug</li>
+<li><input disabled="" type="checkbox"> 用 <code>&#123;&#125;</code> 表示「空对象」，结果 <code>string</code>、<code>number</code> 都能赋进去</li>
+<li><input disabled="" type="checkbox"> 用 <code>any</code> 图省事，污染扩散到整条调用链</li>
+<li><input disabled="" type="checkbox"> <code>catch (e)</code> 里直接访问 <code>e.message</code>，<code>strict</code> 下 <code>e</code> 是 <code>unknown</code></li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://www.typescriptlang.org/docs/handbook/2/everyday-types.html">TypeScript 手册 · 日常类型</a> · <a target="_blank" rel="noopener" href="https://www.typescriptlang.org/docs/handbook/2/narrowing.html">TypeScript 手册 · 收窄</a> · <a target="_blank" rel="noopener" href="https://www.typescriptlang.org/docs/handbook/2/generics.html">TypeScript 手册 · 泛型</a> · <a target="_blank" rel="noopener" href="https://www.typescriptlang.org/docs/handbook/2/keyof-types.html">TypeScript 手册 · <code>keyof</code> 与 <code>typeof</code> 类型运算符</a> · <a target="_blank" rel="noopener" href="https://www.typescriptlang.org/docs/handbook/2/objects.html">TypeScript 手册 · 对象类型（<code>interface</code> vs <code>type</code>）</a> · <a target="_blank" rel="noopener" href="https://www.typescriptlang.org/tsconfig/">TSConfig 参考</a> · <a target="_blank" rel="noopener" href="https://www.typescriptlang.org/docs/handbook/release-notes/typescript-4-9.html">TypeScript · <code>satisfies</code> 运算符（4.9 发布说明）</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/typescript/" class="category-chain-item">typescript</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/typescript/" class="print-no-link">#typescript</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 025 · TypeScript（一）：类型系统与泛型</div>
+      <div>https://ethan-iopasd.github.io/2026/09/30/每日技术博客025-TypeScript类型系统/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年9月30日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2026-TypeScript%E7%B1%BB%E5%9E%8B%E4%BD%93%E6%93%8D/" title="每日技术博客 026 · TypeScript（二）：类型体操与工程配置">
+                        <span class="hidden-mobile">每日技术博客 026 · TypeScript（二）：类型体操与工程配置</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

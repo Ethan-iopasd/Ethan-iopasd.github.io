@@ -1,0 +1,1188 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-09-30 · 第 028 篇 先测量再优化：用什么工具测、常见慢点长什么样、以及缓存、向量化、内存排查的实操。  📚 Python 系列目录   章节 主题 状态    一 依赖管理与虚拟环境 已发布   二 类型注解与静态检查 已发布   三 异步编程 asyncio 已发布   四 GIL、线程与进程 已发布   五 性能剖析与优化 本篇    开场：没有 p">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 028 · Python（五）：性能剖析与优化">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2028-Python%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-09-30 · 第 028 篇 先测量再优化：用什么工具测、常见慢点长什么样、以及缓存、向量化、内存排查的实操。  📚 Python 系列目录   章节 主题 状态    一 依赖管理与虚拟环境 已发布   二 类型注解与静态检查 已发布   三 异步编程 asyncio 已发布   四 GIL、线程与进程 已发布   五 性能剖析与优化 本篇    开场：没有 p">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-09-30T12:00:00.000Z">
+<meta property="article:modified_time" content="2026-09-30T05:28:24.563Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="python">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 028 · Python（五）：性能剖析与优化 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 028 · Python（五）：性能剖析与优化"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-09-30 20:00" pubdate>
+          2026年9月30日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.7k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          23 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 028 · Python（五）：性能剖析与优化</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-09-30 · 第 028 篇</p>
+<p>先测量再优化：用什么工具测、常见慢点长什么样、以及缓存、向量化、内存排查的实操。</p>
+</blockquote>
+<h2 id="📚-Python-系列目录"><a href="#📚-Python-系列目录" class="headerlink" title="📚 Python 系列目录"></a>📚 Python 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>依赖管理与虚拟环境</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>类型注解与静态检查</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>异步编程 asyncio</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td>GIL、线程与进程</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>五</td>
+<td>性能剖析与优化</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：没有-profile-的优化都是猜"><a href="#开场：没有-profile-的优化都是猜" class="headerlink" title="开场：没有 profile 的优化都是猜"></a>开场：没有 profile 的优化都是猜</h2><p>性能优化的顺序是固定的：<strong>测 → 找热点 → 改一处 → 再测</strong>。跳过第一步的优化，十有八九改在了不重要的地方。</p>
+<table>
+<thead>
+<tr>
+<th>现象</th>
+<th>大概率原因</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>单请求慢，且随数据量线性变差</td>
+<td>算法复杂度选错了（list 做查找 &#x2F; 队列）</td>
+</tr>
+<tr>
+<td>单请求慢，数据量无关</td>
+<td>循环里的重复计算、属性查找、未预编译正则</td>
+</tr>
+<tr>
+<td>内存持续上涨不回落</td>
+<td>无界缓存、全局注册表、异常对象持有 traceback</td>
+</tr>
+<tr>
+<td>多请求下整体吞吐上不去</td>
+<td>GIL &#x2F; 连接池 &#x2F; 线程池上限</td>
+</tr>
+</tbody></table>
+<h2 id="一、工具选型：谁测什么"><a href="#一、工具选型：谁测什么" class="headerlink" title="一、工具选型：谁测什么"></a>一、工具选型：谁测什么</h2><table>
+<thead>
+<tr>
+<th>工具</th>
+<th>粒度</th>
+<th>适合</th>
+<th>侵入性</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>timeit</code></td>
+<td>代码片段</td>
+<td>微基准，比两种写法谁快</td>
+<td>要写代码</td>
+</tr>
+<tr>
+<td><code>cProfile</code></td>
+<td>函数调用</td>
+<td>定位热点函数</td>
+<td>低，<code>-m</code> 即可</td>
+</tr>
+<tr>
+<td><code>pstats</code></td>
+<td>函数调用</td>
+<td>读 <code>cProfile</code> 的结果</td>
+<td>无</td>
+</tr>
+<tr>
+<td><code>py-spy</code></td>
+<td>函数（采样）</td>
+<td><strong>线上进程</strong>，不改代码、可 attach</td>
+<td>无</td>
+</tr>
+<tr>
+<td><code>line_profiler</code></td>
+<td>代码行</td>
+<td>函数内部哪一行慢</td>
+<td>要加装饰器</td>
+</tr>
+<tr>
+<td><code>tracemalloc</code></td>
+<td>分配点</td>
+<td>内存是谁分配的</td>
+<td>低</td>
+</tr>
+<tr>
+<td><code>objgraph</code></td>
+<td>对象引用</td>
+<td>谁在引用这些对象</td>
+<td>低</td>
+</tr>
+<tr>
+<td><code>perf</code> &#x2F; <code>pyperf</code></td>
+<td>系统 + 解释器</td>
+<td>含 C 扩展、系统调用的完整画像</td>
+<td>无</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>别用 <code>time.time()</code> 包一圈就下结论。</strong> 单次测量的噪声通常比你要测的差异还大。要重复、要取最小值、要控制变量。</p>
+</blockquote>
+<h2 id="二、cProfile：最常用的第一步"><a href="#二、cProfile：最常用的第一步" class="headerlink" title="二、cProfile：最常用的第一步"></a>二、cProfile：最常用的第一步</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 直接跑，按累计耗时排序输出</span><br>python -m cProfile -s cumtime app.py<br><br><span class="hljs-comment"># 存成文件，之后用 pstats 慢慢分析</span><br>python -m cProfile -o out.prof app.py<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">import</span> pstats<br><br>p = pstats.Stats(<span class="hljs-string">&quot;out.prof&quot;</span>)<br>p.strip_dirs().sort_stats(<span class="hljs-string">&quot;cumulative&quot;</span>).print_stats(<span class="hljs-number">20</span>)<br>p.sort_stats(<span class="hljs-string">&quot;tottime&quot;</span>).print_stats(<span class="hljs-number">20</span>)<br></code></pre></td></tr></table></figure>
+
+<p>输出各列的含义：</p>
+<table>
+<thead>
+<tr>
+<th>列</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>ncalls</code></td>
+<td>调用次数，<code>A/B</code> 形式表示 A 次调用里 B 次是递归</td>
+</tr>
+<tr>
+<td><code>tottime</code></td>
+<td>函数自身耗时，<strong>不含子函数</strong></td>
+</tr>
+<tr>
+<td><code>percall</code></td>
+<td><code>tottime / ncalls</code></td>
+</tr>
+<tr>
+<td><code>cumtime</code></td>
+<td><strong>含子函数</strong>的累计耗时</td>
+</tr>
+<tr>
+<td><code>cumtime percall</code></td>
+<td><code>cumtime / ncalls</code></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>tottime</code> 高 &#x3D; 这个函数本身慢；<code>cumtime</code> 高但 <code>tottime</code> 低 &#x3D; 它只是调用了很多慢东西。</strong> 找优化点看 <code>tottime</code>，看调用链看 <code>cumtime</code>。<br>⚠️ <code>cProfile</code> 对<strong>每次函数调用</strong>都插桩，开销很大。它用来找热点，不用来测绝对耗时 —— 关掉 profile 后实际可能快好几倍。<br>⚠️ <code>cProfile</code> 看不到 C 扩展内部的耗时归属（比如 <code>numpy</code> 的 <code>dot</code> 只算一次调用），也不会记录行号。那种场景用 <code>py-spy</code>。</p>
+</blockquote>
+<h2 id="三、py-spy：线上不改代码"><a href="#三、py-spy：线上不改代码" class="headerlink" title="三、py-spy：线上不改代码"></a>三、py-spy：线上不改代码</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs bash">pip install py-spy<br><br>py-spy top --pid 12345                    <span class="hljs-comment"># 实时看哪个函数在烧 CPU</span><br>py-spy dump --pid 12345                   <span class="hljs-comment"># 打印所有线程当前调用栈（看卡在哪）</span><br>py-spy record -o profile.svg --pid 12345  <span class="hljs-comment"># 采样若干秒，输出火焰图</span><br>py-spy record -o profile.svg -- python app.py   <span class="hljs-comment"># 直接启动并采样</span><br></code></pre></td></tr></table></figure>
+
+<p>采样式剖析器的特点：</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th><code>cProfile</code></th>
+<th><code>py-spy</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>原理</td>
+<td>逐调用插桩（确定性）</td>
+<td>定时采样（统计性）</td>
+</tr>
+<tr>
+<td>开销</td>
+<td>高</td>
+<td>低</td>
+</tr>
+<tr>
+<td>需要改代码 &#x2F; 重启</td>
+<td>是</td>
+<td>否</td>
+</tr>
+<tr>
+<td>能 attach 生产进程</td>
+<td>否</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>能看到 C 扩展内部</td>
+<td>否</td>
+<td>部分（采样在 C 栈上）</td>
+</tr>
+<tr>
+<td>可能漏掉调用次数极少的函数</td>
+<td>不会</td>
+<td>会</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 采样频率有限，<strong>只跑几十毫秒的函数可能一次都采不到</strong>。排查「偶发慢」要么拉长采样时间，要么回到 <code>cProfile</code>。</p>
+</blockquote>
+<h2 id="四、微基准：timeit"><a href="#四、微基准：timeit" class="headerlink" title="四、微基准：timeit"></a>四、微基准：timeit</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">import</span> timeit<br><br><span class="hljs-comment"># 命令行：-n 次数，-r 重复轮数，-s 初始化语句</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash">python -m timeit -s <span class="hljs-string">&quot;s = &#x27;a,b,c,d&#x27;&quot;</span> <span class="hljs-string">&quot;s.split(&#x27;,&#x27;)&quot;</span><br>python -m timeit -s <span class="hljs-string">&quot;l = list(range(1000))&quot;</span> <span class="hljs-string">&quot;&#x27;x&#x27; in l&quot;</span><br>python -m timeit -s <span class="hljs-string">&quot;s = set(range(1000))&quot;</span> <span class="hljs-string">&quot;999 in s&quot;</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">import</span> timeit<br><br><span class="hljs-built_in">print</span>(timeit.timeit(<span class="hljs-string">&quot;&#x27;&#x27;.join(parts)&quot;</span>, setup=<span class="hljs-string">&quot;parts = [&#x27;a&#x27;] * 1000&quot;</span>, number=<span class="hljs-number">10_000</span>))<br><span class="hljs-built_in">print</span>(timeit.repeat(<span class="hljs-string">&quot;sum(range(100))&quot;</span>, number=<span class="hljs-number">10_000</span>, repeat=<span class="hljs-number">5</span>))   <span class="hljs-comment"># 取 min</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 用 <code>repeat()</code> 取 <strong>min</strong> 而不是取平均。平均会被 GC、调度抖动拉高；最小值更接近真实下界。<br>⚠️ <code>timeit</code> 默认用 <code>number</code> 次循环的<strong>总时间</strong>，不是单次。对比两种写法时 <code>number</code> 必须一致。<br>⚠️ 别在 <code>setup</code> 里做昂贵的一次性工作（那样会稀释掉被测代码的差异），也别让被测代码产生副作用累积（比如往同一个 list 里无限 append）。</p>
+</blockquote>
+<h2 id="五、常见慢点"><a href="#五、常见慢点" class="headerlink" title="五、常见慢点"></a>五、常见慢点</h2><table>
+<thead>
+<tr>
+<th>慢点</th>
+<th>症状</th>
+<th>改法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>循环里重复属性查找</td>
+<td><code>result.append(x)</code> 在百万次循环里</td>
+<td>提到循环外：<code>append = result.append</code></td>
+</tr>
+<tr>
+<td>循环里重复计算</td>
+<td><code>len(s)</code> &#x2F; <code>s.upper()</code> 写在循环条件里</td>
+<td>提到循环外</td>
+</tr>
+<tr>
+<td>字符串 <code>+=</code> 拼接</td>
+<td>拼接次数越多越慢</td>
+<td>收集进 list，最后 <code>&#39;&#39;.join()</code></td>
+</tr>
+<tr>
+<td>正则未预编译</td>
+<td>每轮都 <code>re.match(pattern, s)</code></td>
+<td>模块级 <code>RE = re.compile(...)</code>，用 <code>RE.match(s)</code></td>
+</tr>
+<tr>
+<td>用 <code>list</code> 做成员判断</td>
+<td><code>x in big_list</code></td>
+<td>换 <code>set</code> &#x2F; <code>dict</code></td>
+</tr>
+<tr>
+<td>用 <code>list</code> 做队列</td>
+<td><code>pop(0)</code> 头删</td>
+<td><code>collections.deque.popleft()</code></td>
+</tr>
+<tr>
+<td>用 <code>list</code> 找 top-K</td>
+<td>每次 <code>sorted()</code> 全量排序</td>
+<td><code>heapq.nlargest(k, it)</code></td>
+</tr>
+<tr>
+<td>循环里累加字符串 &#x2F; 多次 <code>dict</code> 查键</td>
+<td>反复 hash 同一 key</td>
+<td>局部变量缓存 <code>d.get</code>，或 <code>defaultdict</code></td>
+</tr>
+<tr>
+<td>手写计数 &#x2F; 分组</td>
+<td><code>for</code> + <code>if</code> 手工累加</td>
+<td><code>collections.Counter</code> &#x2F; <code>defaultdict(list)</code></td>
+</tr>
+<tr>
+<td>逐行读写文件</td>
+<td>百万行</td>
+<td>批量读 + 生成器，见第六节</td>
+</tr>
+</tbody></table>
+<p>数据结构的时间复杂度（平均情况）：</p>
+<table>
+<thead>
+<tr>
+<th>操作</th>
+<th><code>list</code></th>
+<th><code>dict</code> &#x2F; <code>set</code></th>
+<th><code>deque</code></th>
+<th><code>heapq</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>按下标访问</td>
+<td>O(1)</td>
+<td>—</td>
+<td>O(n)</td>
+<td>—</td>
+</tr>
+<tr>
+<td>按 key &#x2F; 成员查找</td>
+<td>O(n)</td>
+<td><strong>O(1)</strong></td>
+<td>O(n)</td>
+<td>O(n)</td>
+</tr>
+<tr>
+<td>尾部追加</td>
+<td>O(1) 摊还</td>
+<td>O(1) 摊还</td>
+<td>O(1)</td>
+<td>O(log n)</td>
+</tr>
+<tr>
+<td>头部插入 &#x2F; 删除</td>
+<td><strong>O(n)</strong></td>
+<td>—</td>
+<td><strong>O(1)</strong></td>
+<td>—</td>
+</tr>
+<tr>
+<td>中间插入 &#x2F; 删除</td>
+<td>O(n)</td>
+<td>—</td>
+<td>O(n)</td>
+<td>—</td>
+</tr>
+<tr>
+<td>取最小 &#x2F; 最大</td>
+<td>O(n)</td>
+<td>O(n)</td>
+<td>O(n)</td>
+<td><strong>O(1)</strong></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 最常见的复杂度事故：<strong>在一个大 <code>list</code> 里做成员判断，或在循环里 <code>pop(0)</code>。</strong> 前者 O(n²)，后者 O(n²)。数据量小的时候完全看不出来。</p>
+</blockquote>
+<h2 id="六、生成器与惰性求值"><a href="#六、生成器与惰性求值" class="headerlink" title="六、生成器与惰性求值"></a>六、生成器与惰性求值</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># ❌ 一次性把 1000 万行读进内存</span><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">read_all</span>(<span class="hljs-params">path</span>):<br>    <span class="hljs-keyword">return</span> [line.strip() <span class="hljs-keyword">for</span> line <span class="hljs-keyword">in</span> <span class="hljs-built_in">open</span>(path)]<br><br><span class="hljs-comment"># ✅ 流式，内存 O(1)</span><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">read_lines</span>(<span class="hljs-params">path</span>):<br>    <span class="hljs-keyword">with</span> <span class="hljs-built_in">open</span>(path) <span class="hljs-keyword">as</span> f:<br>        <span class="hljs-keyword">for</span> line <span class="hljs-keyword">in</span> f:<br>            <span class="hljs-keyword">yield</span> line.rstrip(<span class="hljs-string">&quot;\n&quot;</span>)<br><br>total = <span class="hljs-built_in">sum</span>(<span class="hljs-built_in">len</span>(x) <span class="hljs-keyword">for</span> x <span class="hljs-keyword">in</span> read_lines(<span class="hljs-string">&quot;big.txt&quot;</span>))<br></code></pre></td></tr></table></figure>
+
+<p><code>itertools</code> 里常用的几个：</p>
+<table>
+<thead>
+<tr>
+<th>工具</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>islice(it, n)</code></td>
+<td>只取前 n 个，不物化全部</td>
+</tr>
+<tr>
+<td><code>chain(a, b)</code></td>
+<td>顺序拼接多个可迭代对象</td>
+</tr>
+<tr>
+<td><code>groupby(it, key)</code></td>
+<td>分组（<strong>要求输入已按 key 排序</strong>）</td>
+</tr>
+<tr>
+<td><code>batched(it, n)</code></td>
+<td>按 n 个一批切分（3.12+）</td>
+</tr>
+<tr>
+<td><code>count()</code> &#x2F; <code>cycle()</code> &#x2F; <code>repeat()</code></td>
+<td>无限序列</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>生成器只能遍历一次。</strong> 遍历完再 <code>list(gen)</code> 得到空列表 —— 这个 bug 很常见。<br>⚠️ 生成器不是万能加速器。如果最终还是要全部物化，或者数据量本来就小，生成器的额外开销反而更慢。<strong>它的价值在内存，不在速度。</strong><br>⚠️ 生成器里的异常只在迭代到那一步时才抛出，堆栈信息会变得难读。调试时先 <code>list()</code> 出来。</p>
+</blockquote>
+<h2 id="七、缓存"><a href="#七、缓存" class="headerlink" title="七、缓存"></a>七、缓存</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">from</span> functools <span class="hljs-keyword">import</span> lru_cache, cache<br><br><span class="hljs-meta">@cache                       </span><span class="hljs-comment"># 3.9+，等价于 lru_cache(maxsize=None)</span><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">fib</span>(<span class="hljs-params">n</span>):<br>    <span class="hljs-keyword">return</span> n <span class="hljs-keyword">if</span> n &lt; <span class="hljs-number">2</span> <span class="hljs-keyword">else</span> fib(n - <span class="hljs-number">1</span>) + fib(n - <span class="hljs-number">2</span>)<br><br><span class="hljs-meta">@lru_cache(<span class="hljs-params">maxsize=<span class="hljs-number">1024</span></span>)     </span><span class="hljs-comment"># 有界，超出后 LRU 淘汰</span><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">parse_config</span>(<span class="hljs-params">path</span>):<br>    ...<br><br>fib.cache_info()             <span class="hljs-comment"># hits / misses / maxsize / currsize</span><br>fib.cache_clear()            <span class="hljs-comment"># 手动清</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>选择</th>
+<th>场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>@cache</code></td>
+<td>参数空间有限且可枚举（枚举值、固定配置、小整数）</td>
+</tr>
+<tr>
+<td><code>@lru_cache(maxsize=N)</code></td>
+<td>参数空间大或不可控，<strong>长驻服务默认选这个</strong></td>
+</tr>
+<tr>
+<td>自己写 <code>dict</code> 缓存</td>
+<td>需要按 key 主动失效，或需要 TTL</td>
+</tr>
+<tr>
+<td>Redis &#x2F; Memcached</td>
+<td>跨进程、跨实例共享</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>@cache</code> 在长驻服务里就是内存泄漏。</strong> 参数是用户 ID、URL、时间戳这类高基数时，缓存会无限增长。用 <code>lru_cache(maxsize=...)</code>。<br>⚠️ 被缓存的函数<strong>参数必须可哈希</strong>，且不能依赖会变的外部状态（文件内容、数据库、时间、随机数）。改了外部状态必须 <code>cache_clear()</code>。<br>⚠️ 缓存装饰器加在<strong>方法</strong>上时，<code>self</code> 会成为 key 的一部分，导致实例无法被回收。要缓存实例方法，把逻辑抽成模块级函数，或自己维护 <code>WeakKeyDictionary</code>。</p>
+</blockquote>
+<h2 id="八、向量化与-C-扩展"><a href="#八、向量化与-C-扩展" class="headerlink" title="八、向量化与 C 扩展"></a>八、向量化与 C 扩展</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">import</span> numpy <span class="hljs-keyword">as</span> np<br><br>data = np.random.rand(<span class="hljs-number">1_000_000</span>)<br><br><span class="hljs-comment"># ❌ 纯 Python 循环：慢在解释器</span><br>s = <span class="hljs-number">0.0</span><br><span class="hljs-keyword">for</span> x <span class="hljs-keyword">in</span> data:<br>    s += x * x<br><br><span class="hljs-comment"># ✅ 向量化：整个运算在 C 层完成</span><br>s = <span class="hljs-built_in">float</span>((data * data).<span class="hljs-built_in">sum</span>())<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>手段</th>
+<th>加速量级</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>numpy</code> &#x2F; <code>pandas</code> 向量化</td>
+<td>数十倍</td>
+<td>要重写成数组思维，注意内存放大</td>
+</tr>
+<tr>
+<td>标准库 C 实现的函数（<code>sum</code>、<code>min</code>、<code>sorted</code>、<code>str.join</code>）</td>
+<td>数倍</td>
+<td>无</td>
+</tr>
+<tr>
+<td><code>bisect</code> &#x2F; <code>heapq</code> &#x2F; <code>array</code> &#x2F; <code>memoryview</code></td>
+<td>数倍</td>
+<td>数据结构受限</td>
+</tr>
+<tr>
+<td><code>cython</code> &#x2F; <code>mypyc</code></td>
+<td>数倍到数十倍</td>
+<td>加构建步骤，类型要标注</td>
+</tr>
+<tr>
+<td><code>cffi</code> &#x2F; <code>pybind11</code> &#x2F; C 扩展</td>
+<td>数十倍以上</td>
+<td>要写 C&#x2F;C++，维护成本高</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>向量化的瓶颈会转移到内存。</strong> <code>data * data</code> 会新分配一个同尺寸数组。对超大数组要分批处理，或用 <code>out=</code> 参数复用缓冲区。<br>⚠️ 写 C 扩展前先确认瓶颈真在 Python 层。如果热点其实是 I&#x2F;O 或某个库调用，写 C 扩展毫无意义。</p>
+</blockquote>
+<h2 id="九、内存排查"><a href="#九、内存排查" class="headerlink" title="九、内存排查"></a>九、内存排查</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">import</span> tracemalloc<br><br>tracemalloc.start(<span class="hljs-number">25</span>)                 <span class="hljs-comment"># 保留 25 帧回溯</span><br>snap1 = tracemalloc.take_snapshot()<br><br><span class="hljs-comment"># ... 跑一段会泄漏的业务逻辑 ...</span><br><br>snap2 = tracemalloc.take_snapshot()<br><span class="hljs-keyword">for</span> stat <span class="hljs-keyword">in</span> snap2.compare_to(snap1, <span class="hljs-string">&quot;lineno&quot;</span>)[:<span class="hljs-number">10</span>]:<br>    <span class="hljs-built_in">print</span>(stat)                       <span class="hljs-comment"># 按行号看谁在增长</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">import</span> sys, objgraph<br><br>sys.getsizeof(obj)                     <span class="hljs-comment"># 只算对象本身，不含它引用的对象</span><br>objgraph.show_most_common_types(limit=<span class="hljs-number">15</span>)<br>objgraph.show_backrefs(obj, max_depth=<span class="hljs-number">3</span>)   <span class="hljs-comment"># 谁在引用它（找泄漏源）</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>工具</th>
+<th>回答的问题</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>tracemalloc</code></td>
+<td>内存是<strong>哪一行</strong>分配的、增长了多少</td>
+</tr>
+<tr>
+<td><code>sys.getsizeof</code></td>
+<td>单个对象占多少字节（浅层）</td>
+</tr>
+<tr>
+<td><code>objgraph</code></td>
+<td>这类对象有多少个、被谁引用</td>
+</tr>
+<tr>
+<td><code>gc.get_objects()</code> &#x2F; <code>gc.get_referrers()</code></td>
+<td>底层引用关系</td>
+</tr>
+<tr>
+<td><code>resource.getrusage</code> &#x2F; <code>psutil</code></td>
+<td>进程整体 RSS，判断是否真在涨</td>
+</tr>
+</tbody></table>
+<p>常见的内存泄漏来源：</p>
+<table>
+<thead>
+<tr>
+<th>来源</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>无界缓存 &#x2F; 全局 dict 注册表</td>
+<td>见第七节</td>
+</tr>
+<tr>
+<td>异常对象持有 traceback</td>
+<td>traceback 会链住整条调用栈的帧和局部变量。存 <code>exc_info</code> 到全局前先 <code>traceback.clear_frames()</code></td>
+</tr>
+<tr>
+<td><code>logging</code> handler 重复添加</td>
+<td>每次初始化都 <code>addHandler</code>，handler 累积</td>
+</tr>
+<tr>
+<td>闭包捕获大对象</td>
+<td>回调注册后不注销，闭包一直持有</td>
+</tr>
+<tr>
+<td>循环引用 + 有 <code>__del__</code></td>
+<td>现代 Python 的 GC 能处理，但对象存活时间会变长</td>
+</tr>
+<tr>
+<td>未 <code>close()</code> 的文件 &#x2F; 连接 &#x2F; 会话</td>
+<td>走 <code>with</code> 或显式关闭</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>不要用 <code>sys.getsizeof</code> 判断一个复杂对象的真实内存占用。</strong> 它不含容器里引用的其他对象（<code>getsizeof(list_of_1000_dicts)</code> 只返回 list 本身的大小）。<br>⚠️ 内存涨不等于泄漏。先看<strong>稳态</strong>：跑完多轮 GC 后是否回落。持续单调上涨才是泄漏。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 不 profile 直接凭感觉改代码</li>
+<li><input disabled="" type="checkbox"> 用 <code>time.time()</code> 单次测量下结论</li>
+<li><input disabled="" type="checkbox"> <code>timeit</code> 对比时两边 <code>number</code> 不一致</li>
+<li><input disabled="" type="checkbox"> 把 <code>cProfile</code> 的耗时当成生产环境的真实耗时</li>
+<li><input disabled="" type="checkbox"> 只看 <code>cumtime</code> 找热点，不看 <code>tottime</code></li>
+<li><input disabled="" type="checkbox"> 大 <code>list</code> 里做 <code>in</code> 判断，或在循环里 <code>pop(0)</code></li>
+<li><input disabled="" type="checkbox"> 循环里 <code>str +=</code> 拼接</li>
+<li><input disabled="" type="checkbox"> 正则写在循环里没预编译</li>
+<li><input disabled="" type="checkbox"> 长驻服务上用无界的 <code>@cache</code></li>
+<li><input disabled="" type="checkbox"> 缓存函数依赖了会变的外部状态，却不 <code>cache_clear()</code></li>
+<li><input disabled="" type="checkbox"> 生成器被遍历两次（第二次是空的）</li>
+<li><input disabled="" type="checkbox"> 用 <code>sys.getsizeof</code> 估算容器真实内存</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://docs.python.org/3/library/timeit.html">Python · <code>timeit</code></a> · <a target="_blank" rel="noopener" href="https://docs.python.org/3/library/profile.html">Python · <code>cProfile</code> 与 <code>pstats</code></a> · <a target="_blank" rel="noopener" href="https://docs.python.org/3/library/functools.html">Python · <code>functools</code>（<code>cache</code> &#x2F; <code>lru_cache</code>）</a> · <a target="_blank" rel="noopener" href="https://docs.python.org/3/library/tracemalloc.html">Python · <code>tracemalloc</code></a> · <a target="_blank" rel="noopener" href="https://docs.python.org/3/library/itertools.html">Python · <code>itertools</code></a> · <a target="_blank" rel="noopener" href="https://docs.python.org/3/library/collections.html">Python · <code>collections</code></a> · <a target="_blank" rel="noopener" href="https://docs.python.org/3/library/gc.html">Python · <code>gc</code></a> · <a target="_blank" rel="noopener" href="https://github.com/benfred/py-spy">py-spy 文档</a> · <a target="_blank" rel="noopener" href="https://github.com/pyutils/line_profiler">line_profiler 文档</a> · <a target="_blank" rel="noopener" href="https://mg.pov.lt/objgraph/">objgraph 文档</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/python/" class="category-chain-item">python</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/python/" class="print-no-link">#python</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 028 · Python（五）：性能剖析与优化</div>
+      <div>https://ethan-iopasd.github.io/2026/09/30/每日技术博客028-Python性能优化/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年9月30日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2027-Python%E5%B9%B6%E5%8F%91%E6%A8%A1%E5%9E%8B/" title="每日技术博客 027 · Python（四）：GIL、线程与进程">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 027 · Python（四）：GIL、线程与进程</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

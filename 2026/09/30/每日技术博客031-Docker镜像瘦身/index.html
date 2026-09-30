@@ -1,0 +1,1111 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-09-30 · 第 031 篇 镜像体积来自哪里、怎么量、怎么砍；构建慢在哪、怎么用 BuildKit 的缓存挂载和缓存导出把时间压下去。  📚 Docker 系列目录   章节 主题 状态    一 镜像分层与 Dockerfile 已发布   二 Compose、网络与数据卷 已发布   三 镜像瘦身与构建优化 本篇    开场：瘦身只有三招 少装东西 —— 换">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 031 · Docker（三）：镜像瘦身与构建优化">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2031-Docker%E9%95%9C%E5%83%8F%E7%98%A6%E8%BA%AB/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-09-30 · 第 031 篇 镜像体积来自哪里、怎么量、怎么砍；构建慢在哪、怎么用 BuildKit 的缓存挂载和缓存导出把时间压下去。  📚 Docker 系列目录   章节 主题 状态    一 镜像分层与 Dockerfile 已发布   二 Compose、网络与数据卷 已发布   三 镜像瘦身与构建优化 本篇    开场：瘦身只有三招 少装东西 —— 换">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-09-30T12:30:00.000Z">
+<meta property="article:modified_time" content="2026-09-30T05:41:31.752Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="docker">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 031 · Docker（三）：镜像瘦身与构建优化 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 031 · Docker（三）：镜像瘦身与构建优化"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-09-30 20:30" pubdate>
+          2026年9月30日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.5k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          21 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 031 · Docker（三）：镜像瘦身与构建优化</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-09-30 · 第 031 篇</p>
+<p>镜像体积来自哪里、怎么量、怎么砍；构建慢在哪、怎么用 BuildKit 的缓存挂载和缓存导出把时间压下去。</p>
+</blockquote>
+<h2 id="📚-Docker-系列目录"><a href="#📚-Docker-系列目录" class="headerlink" title="📚 Docker 系列目录"></a>📚 Docker 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>镜像分层与 Dockerfile</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>Compose、网络与数据卷</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>镜像瘦身与构建优化</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：瘦身只有三招"><a href="#开场：瘦身只有三招" class="headerlink" title="开场：瘦身只有三招"></a>开场：瘦身只有三招</h2><ol>
+<li><strong>少装东西</strong> —— 换基础镜像、只拷产物（多阶段构建）</li>
+<li><strong>删干净</strong> —— 同一层里删掉包管理器缓存</li>
+<li><strong>别重复构建</strong> —— BuildKit 缓存挂载 + 外部缓存导出</li>
+</ol>
+<p>体积和构建速度是两件事，但都归到同一个根因：<strong>层里留下了什么</strong>。</p>
+<h2 id="一、先量，再砍"><a href="#一、先量，再砍" class="headerlink" title="一、先量，再砍"></a>一、先量，再砍</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash">docker <span class="hljs-built_in">history</span> myapp:1.0<br>docker image inspect myapp:1.0 --format <span class="hljs-string">&#x27;&#123;&#123;.Size&#125;&#125;&#x27;</span><br></code></pre></td></tr></table></figure>
+
+<p><code>docker history</code> 输出的 <code>SIZE</code> 是<strong>每一层的增量</strong>，<code>CREATED BY</code> 是那一层的指令：</p>
+<table>
+<thead>
+<tr>
+<th>现象</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>SIZE</code> 为 <code>0B</code></td>
+<td>纯元数据层（<code>ENV</code> &#x2F; <code>CMD</code> &#x2F; <code>LABEL</code> &#x2F; <code>WORKDIR</code>），不占体积</td>
+</tr>
+<tr>
+<td>某层几百 MB 且 <code>CREATED BY</code> 是 <code>apt-get install</code></td>
+<td>装完没清缓存，或者没在同一个 <code>RUN</code> 里清</td>
+</tr>
+<tr>
+<td>最后一层特别大且是 <code>COPY</code></td>
+<td>把构建产物以外的东西（源码、node_modules、.git）也拷进去了</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 逐层分析，带一个&quot;浪费空间&quot;的评分</span><br>docker run --<span class="hljs-built_in">rm</span> -it \<br>  -v /var/run/docker.sock:/var/run/docker.sock \<br>  wagoodman/dive:latest myapp:1.0<br></code></pre></td></tr></table></figure>
+
+<p><code>dive</code> 的价值在于它会<strong>同时列出每一层新增&#x2F;删除了哪些文件</strong>。一个常见结论是：某层删掉的 500MB，因为写在下一层，实际上仍然占体积。</p>
+<blockquote>
+<p>⚠️ <strong>层的删除不是真的删除。</strong> <code>RUN apt-get install x &amp;&amp; rm -rf /var/lib/apt/lists/*</code> 写在同一个 <code>RUN</code> 里才算删掉；分成两条 <code>RUN</code>，前一条的数据会固化在那一层，永远带着走。</p>
+</blockquote>
+<h2 id="二、基础镜像选型"><a href="#二、基础镜像选型" class="headerlink" title="二、基础镜像选型"></a>二、基础镜像选型</h2><table>
+<thead>
+<tr>
+<th>基础镜像</th>
+<th>体积量级</th>
+<th>适用场景</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>scratch</code></td>
+<td>0</td>
+<td>静态编译的 Go &#x2F; Rust 二进制</td>
+<td>无 shell、无 libc、无 CA 证书，<code>docker exec</code> 进不去</td>
+</tr>
+<tr>
+<td><code>distroless</code></td>
+<td>几 MB ~ 几十 MB</td>
+<td>需要 glibc &#x2F; CA 证书但不需要 shell</td>
+<td>不能 <code>sh</code>，调试靠临时换镜像</td>
+</tr>
+<tr>
+<td><code>alpine</code></td>
+<td>几 MB</td>
+<td>需要 shell 和包管理</td>
+<td>musl libc，glibc 预编译产物跑不了</td>
+</tr>
+<tr>
+<td><code>debian:*-slim</code></td>
+<td>几十 MB</td>
+<td>需要 apt、需要 glibc</td>
+<td>比 alpine 大</td>
+</tr>
+<tr>
+<td><code>ubuntu</code></td>
+<td>几十 MB</td>
+<td>需要 glibc 且依赖 ubuntu 生态</td>
+<td>同上</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>alpine</code> 不是万能瘦身药。</strong> 它是 musl libc，很多预编译 wheel &#x2F; Node 原生扩展（glibc 构建的）在上面直接报 <code>not found</code> 或 <code>symbol not found</code>。Python 场景换 alpine 常常要从源码编译，构建时间和镜像体积反而都涨。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>scratch</code> 镜像没有 <code>/etc/ssl/certs</code>。</strong> 里面发起 HTTPS 请求会报证书错误。需要从 builder 阶段把 <code>ca-certificates.crt</code> 一起拷进去。</p>
+</blockquote>
+<h2 id="三、多阶段构建：只拷产物"><a href="#三、多阶段构建：只拷产物" class="headerlink" title="三、多阶段构建：只拷产物"></a>三、多阶段构建：只拷产物</h2><figure class="highlight dockerfile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><code class="hljs dockerfile"><span class="hljs-comment"># syntax=docker/dockerfile:1</span><br><span class="hljs-keyword">FROM</span> golang:<span class="hljs-number">1.23</span> AS build<br><span class="hljs-keyword">WORKDIR</span><span class="language-bash"> /src</span><br><span class="hljs-keyword">COPY</span><span class="language-bash"> go.mod go.sum ./</span><br><span class="hljs-keyword">RUN</span><span class="language-bash"> --mount=<span class="hljs-built_in">type</span>=cache,target=/go/pkg/mod go mod download</span><br><span class="hljs-keyword">COPY</span><span class="language-bash"> . .</span><br><span class="hljs-keyword">RUN</span><span class="language-bash"> --mount=<span class="hljs-built_in">type</span>=cache,target=/root/.cache/go-build \</span><br><span class="language-bash">    CGO_ENABLED=0 GOOS=linux go build -ldflags=<span class="hljs-string">&quot;-s -w&quot;</span> -o /out/app ./cmd/app</span><br><br><span class="hljs-keyword">FROM</span> scratch<br><span class="hljs-keyword">COPY</span><span class="language-bash"> --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/</span><br><span class="hljs-keyword">COPY</span><span class="language-bash"> --from=build /out/app /app</span><br><span class="hljs-keyword">EXPOSE</span> <span class="hljs-number">8080</span><br><span class="hljs-keyword">ENTRYPOINT</span><span class="language-bash"> [<span class="hljs-string">&quot;/app&quot;</span>]</span><br></code></pre></td></tr></table></figure>
+
+<p>关键点：</p>
+<table>
+<thead>
+<tr>
+<th>写法</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>FROM ... AS build</code></td>
+<td>命名阶段，最终镜像不会包含它</td>
+</tr>
+<tr>
+<td><code>COPY --from=build /out/app /app</code></td>
+<td><strong>只拷产物</strong>，源码、SDK、模块缓存全部留在 build 阶段</td>
+</tr>
+<tr>
+<td><code>--target build</code></td>
+<td>构建时只跑到某个阶段，用来调试</td>
+</tr>
+<tr>
+<td><code>-ldflags=&quot;-s -w&quot;</code>（Go）</td>
+<td>去掉符号表和调试信息，二进制小一截</td>
+</tr>
+</tbody></table>
+<p>对比一下「多阶段」和「单阶段」的差别：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>单阶段</th>
+<th>多阶段</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>最终镜像包含</td>
+<td>源码 + SDK + 依赖缓存 + 产物</td>
+<td>只有产物（+ 显式 COPY 的文件）</td>
+</tr>
+<tr>
+<td>典型体积</td>
+<td>800MB ~ 1.5GB</td>
+<td>10MB ~ 50MB</td>
+</tr>
+<tr>
+<td>构建缓存</td>
+<td>和产物混在一起</td>
+<td>构建阶段的缓存独立，可长期保留</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>COPY . .</code> 放在 <code>RUN go mod download</code> 之后。反过来写，改一行源码就会让依赖下载那层缓存失效，每次构建都重新拉依赖。</p>
+</blockquote>
+<h2 id="四、层缓存-vs-缓存挂载"><a href="#四、层缓存-vs-缓存挂载" class="headerlink" title="四、层缓存 vs 缓存挂载"></a>四、层缓存 vs 缓存挂载</h2><p>这是两个不同的东西，经常被混为一谈：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>层缓存（layer cache）</th>
+<th><code>RUN --mount=type=cache</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>匹配方式</td>
+<td>指令文本 + 输入文件精确匹配</td>
+<td>按 <code>id</code> 挂载持久目录，内容不参与层哈希</td>
+</tr>
+<tr>
+<td>缓存失效</td>
+<td>指令变一个字就整层重跑</td>
+<td>目录内容变化不影响该层缓存</td>
+</tr>
+<tr>
+<td>存哪</td>
+<td>构建缓存里，跟着镜像层走</td>
+<td>BuildKit 管理的独立缓存卷</td>
+</tr>
+<tr>
+<td>典型用途</td>
+<td><code>COPY</code> + <code>RUN npm ci</code> 分层</td>
+<td>包管理器下载目录（pip &#x2F; npm &#x2F; go mod &#x2F; apt）</td>
+</tr>
+</tbody></table>
+<figure class="highlight dockerfile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs dockerfile"><span class="hljs-comment"># 传统做法：靠分层缓存，依赖没变就不重装</span><br><span class="hljs-keyword">COPY</span><span class="language-bash"> package.json package-lock.json ./</span><br><span class="hljs-keyword">RUN</span><span class="language-bash"> npm ci</span><br><span class="hljs-keyword">COPY</span><span class="language-bash"> . .</span><br><span class="hljs-keyword">RUN</span><span class="language-bash"> npm run build</span><br><br><span class="hljs-comment"># BuildKit 做法：缓存目录挂进来，依赖变了也只需增量下载</span><br><span class="hljs-keyword">COPY</span><span class="language-bash"> package.json package-lock.json ./</span><br><span class="hljs-keyword">RUN</span><span class="language-bash"> --mount=<span class="hljs-built_in">type</span>=cache,target=/root/.npm npm ci</span><br><span class="hljs-keyword">COPY</span><span class="language-bash"> . .</span><br><span class="hljs-keyword">RUN</span><span class="language-bash"> --mount=<span class="hljs-built_in">type</span>=cache,target=/root/.npm npm run build</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight dockerfile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs dockerfile"><span class="hljs-comment"># Python</span><br><span class="hljs-keyword">RUN</span><span class="language-bash"> --mount=<span class="hljs-built_in">type</span>=cache,target=/root/.cache/pip \</span><br><span class="language-bash">    pip install -r requirements.txt</span><br><br><span class="hljs-comment"># apt</span><br><span class="hljs-keyword">RUN</span><span class="language-bash"> --mount=<span class="hljs-built_in">type</span>=cache,target=/var/cache/apt,sharing=locked \</span><br><span class="language-bash">    --mount=<span class="hljs-built_in">type</span>=cache,target=/var/lib/apt,sharing=locked \</span><br><span class="language-bash">    apt-get update &amp;&amp; apt-get install -y --no-install-recommends curl</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>缓存挂载里的内容不会进镜像。</strong> 它只在构建期间可见。所以别指望 <code>--mount=type=cache,target=/app/node_modules</code> 之后 <code>node_modules</code> 能出现在运行镜像里 —— 需要用 <code>npm ci</code> 的正常安装再落到层里，或者构建完 <code>cp</code> 出来。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 多个构建并行写同一个 apt 缓存会冲突，加 <code>sharing=locked</code> 串行化。</p>
+</blockquote>
+<h2 id="五、BuildKit：并行与缓存导出"><a href="#五、BuildKit：并行与缓存导出" class="headerlink" title="五、BuildKit：并行与缓存导出"></a>五、BuildKit：并行与缓存导出</h2><p>BuildKit 是现在 <code>docker build</code> 的默认后端（<code>docker buildx</code> 是其 CLI）。和旧构建器比：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>旧构建器</th>
+<th>BuildKit</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>多阶段执行</td>
+<td>基本串行</td>
+<td><strong>无依赖的阶段并行跑</strong></td>
+</tr>
+<tr>
+<td>未使用的阶段</td>
+<td>仍然执行</td>
+<td>自动跳过</td>
+</tr>
+<tr>
+<td>缓存挂载</td>
+<td>不支持</td>
+<td><code>RUN --mount=type=cache</code></td>
+</tr>
+<tr>
+<td>缓存导出</td>
+<td>不支持</td>
+<td><code>--cache-to</code> &#x2F; <code>--cache-from</code></td>
+</tr>
+<tr>
+<td>构建密钥</td>
+<td>只能 build-arg</td>
+<td><code>--mount=type=secret</code></td>
+</tr>
+<tr>
+<td>输出格式</td>
+<td>只能进 docker images</td>
+<td><code>-o type=local/docker/registry/oci</code></td>
+</tr>
+</tbody></table>
+<p>CI 上最有用的是<strong>把构建缓存导出到外部</strong>，下次构建直接拉回来：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 导出到 registry（推荐，跨机器共享）</span><br>docker buildx build \<br>  --cache-to   <span class="hljs-built_in">type</span>=registry,ref=registry.example.com/myapp:buildcache,mode=max \<br>  --cache-from <span class="hljs-built_in">type</span>=registry,ref=registry.example.com/myapp:buildcache \<br>  -t registry.example.com/myapp:1.0 --push .<br><br><span class="hljs-comment"># 导出到本地目录（单机/挂载卷场景）</span><br>docker buildx build \<br>  --cache-to   <span class="hljs-built_in">type</span>=<span class="hljs-built_in">local</span>,dest=/tmp/buildcache \<br>  --cache-from <span class="hljs-built_in">type</span>=<span class="hljs-built_in">local</span>,src=/tmp/buildcache \<br>  -t myapp:1.0 .<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th><code>mode</code></th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>min</code>（默认）</td>
+<td>只导出最终镜像用到的层的缓存</td>
+</tr>
+<tr>
+<td><code>max</code></td>
+<td>导出<strong>所有中间阶段</strong>的缓存，多阶段构建提速明显，体积也大</td>
+</tr>
+</tbody></table>
+<table>
+<thead>
+<tr>
+<th>缓存后端</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>registry</code></td>
+<td>推到镜像仓库，跨机器共享</td>
+</tr>
+<tr>
+<td><code>local</code></td>
+<td>落到本地目录</td>
+</tr>
+<tr>
+<td><code>gha</code></td>
+<td>GitHub Actions 的缓存服务，CI 里最省事</td>
+</tr>
+<tr>
+<td><code>s3</code> &#x2F; <code>azblob</code></td>
+<td>对象存储</td>
+</tr>
+<tr>
+<td><code>inline</code></td>
+<td>只支持 <code>--cache-to</code>，把缓存元数据塞进镜像本身，适合无法配置外部缓存时</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>inline</code> 缓存的 <code>mode</code> 只能是 <code>min</code>，多阶段构建的中间层缓存它带不走。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>--cache-from</code> 指向的缓存镜像必须<strong>已经存在</strong>，第一次构建会直接忽略（不报错）。CI 里第一次跑必然是冷构建。</p>
+</blockquote>
+<h2 id="六、-squash-的取舍"><a href="#六、-squash-的取舍" class="headerlink" title="六、--squash 的取舍"></a>六、<code>--squash</code> 的取舍</h2><p><code>--squash</code> 会把所有层压成一层。它的现状需要说清楚：</p>
+<table>
+<thead>
+<tr>
+<th>事实</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>它属于<strong>旧版构建器</strong>的实验性开关</td>
+<td>需要 daemon 开 <code>experimental: true</code></td>
+</tr>
+<tr>
+<td><code>docker buildx build</code> <strong>没有这个参数</strong></td>
+<td>官方 buildx 参考里不存在</td>
+</tr>
+<tr>
+<td>BuildKit 下没有等价物</td>
+<td>没有「压成一层」的官方开关</td>
+</tr>
+</tbody></table>
+<p>所以现在想达到「少几层」，正确路径是多阶段构建 + <code>scratch</code>&#x2F;<code>distroless</code>，而不是找 squash。</p>
+<p>即使真能压成一层，也<strong>不建议</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>压层的收益</th>
+<th>压层的代价</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>少几层，镜像略小（省的是层元数据，不是内容）</td>
+<td><strong>层缓存全废</strong>，每次构建从头来</td>
+</tr>
+<tr>
+<td>隐藏历史指令（曾被当成”安全”手段）</td>
+<td>拉取镜像时无法复用已下载的层，只能整块下</td>
+</tr>
+<tr>
+<td>—</td>
+<td>用 <code>docker history</code> 排查体积构成的能力也没了</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 「压成一层能减小体积」是个误解。真正的体积是文件内容本身，层只是索引。压层省下的通常是个位数 MB，换来的是构建和拉取双双变慢。</p>
+</blockquote>
+<h2 id="七、把包管理器缓存清干净"><a href="#七、把包管理器缓存清干净" class="headerlink" title="七、把包管理器缓存清干净"></a>七、把包管理器缓存清干净</h2><p>不清理时，缓存和依赖一起被固化进层。</p>
+<figure class="highlight dockerfile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs dockerfile"><span class="hljs-comment"># Debian/Ubuntu：必须在同一条 RUN 里删</span><br><span class="hljs-keyword">RUN</span><span class="language-bash"> apt-get update &amp;&amp; apt-get install -y --no-install-recommends \</span><br><span class="language-bash">        ca-certificates curl \</span><br><span class="language-bash"> &amp;&amp; <span class="hljs-built_in">rm</span> -rf /var/lib/apt/lists/*</span><br><br><span class="hljs-comment"># pip：直接不写缓存</span><br><span class="hljs-keyword">RUN</span><span class="language-bash"> pip install --no-cache-dir -r requirements.txt</span><br><br><span class="hljs-comment"># npm：用 cache 挂载替代缓存落盘</span><br><span class="hljs-keyword">RUN</span><span class="language-bash"> --mount=<span class="hljs-built_in">type</span>=cache,target=/root/.npm npm ci --omit=dev</span><br><br><span class="hljs-comment"># yum/dnf</span><br><span class="hljs-keyword">RUN</span><span class="language-bash"> dnf install -y curl &amp;&amp; dnf clean all &amp;&amp; <span class="hljs-built_in">rm</span> -rf /var/cache/dnf</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>包管理器</th>
+<th>缓存位置</th>
+<th>处理方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>apt</td>
+<td><code>/var/lib/apt/lists</code></td>
+<td>同一 <code>RUN</code> 内 <code>rm -rf</code>，或 cache 挂载</td>
+</tr>
+<tr>
+<td>pip</td>
+<td><code>~/.cache/pip</code></td>
+<td><code>--no-cache-dir</code>，或 cache 挂载</td>
+</tr>
+<tr>
+<td>npm</td>
+<td><code>~/.npm</code></td>
+<td>cache 挂载（比 <code>--no-cache-dir</code> 更快）</td>
+</tr>
+<tr>
+<td>yarn</td>
+<td><code>~/.cache/yarn</code></td>
+<td>cache 挂载</td>
+</tr>
+<tr>
+<td>go</td>
+<td><code>$GOPATH/pkg/mod</code></td>
+<td>cache 挂载</td>
+</tr>
+<tr>
+<td>dnf&#x2F;yum</td>
+<td><code>/var/cache/dnf</code></td>
+<td>同一 <code>RUN</code> 内 <code>clean all</code></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>apt-get update</code> 和 <code>apt-get install</code> 也要在<strong>同一条 <code>RUN</code></strong> 里。分开写会让 <code>update</code> 的索引层被缓存，过几周构建时用的还是旧索引，装到过期版本甚至装不上。</p>
+</blockquote>
+<h2 id="八、-dockerignore-的实测影响"><a href="#八、-dockerignore-的实测影响" class="headerlink" title="八、.dockerignore 的实测影响"></a>八、<code>.dockerignore</code> 的实测影响</h2><p><code>.dockerignore</code> 的作用是<strong>在把构建上下文发给 daemon 之前就排除掉文件</strong>。它同时影响两件事：</p>
+<ol>
+<li><strong>构建上下文传输量</strong>（每次构建都要传）</li>
+<li><strong><code>COPY . .</code> 拷进去的东西</strong>（直接影响镜像体积）</li>
+</ol>
+<figure class="highlight jboss-cli"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><code class="hljs jboss-cli"><span class="hljs-string">.git</span><br>node_modules<br>__pycache__<br>*<span class="hljs-string">.pyc</span><br><span class="hljs-string">.venv</span><br>dist<br>build<br>*<span class="hljs-string">.log</span><br><span class="hljs-string">.env</span><br><span class="hljs-string">.env.</span>*<br>!<span class="hljs-string">.env.example</span><br>Dockerfile*<br>docker-compose*<span class="hljs-string">.yml</span><br><span class="hljs-string">.vscode</span><br><span class="hljs-string">.idea</span><br>coverage<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>不加 <code>.dockerignore</code></th>
+<th>加了之后</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>.git</code> 全量传给 daemon（大仓库几百 MB）</td>
+<td>上下文只有几 MB</td>
+</tr>
+<tr>
+<td><code>COPY . .</code> 把 <code>node_modules</code> 拷进镜像</td>
+<td>只拷源码，依赖在镜像里重新装</td>
+</tr>
+<tr>
+<td><code>.env</code> 里的密钥被拷进镜像，永久留在层里</td>
+<td>不进去</td>
+</tr>
+<tr>
+<td>改一次 <code>.git</code> 里的文件就可能让 <code>COPY</code> 层缓存失效</td>
+<td>无影响</td>
+</tr>
+</tbody></table>
+<p>实测一下上下文大小：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash">docker build --progress=plain . 2&gt;&amp;1 | grep -i <span class="hljs-string">&quot;transferring context&quot;</span><br><span class="hljs-built_in">du</span> -sh . --exclude=.git --exclude=node_modules<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>.env</code> 被 <code>COPY</code> 进镜像后，删掉也没用</strong> —— 它留在那一层里，<code>docker history</code> 之后能取出来。<code>.dockerignore</code> 必须提前排除。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> <code>apt-get update</code> 和 <code>apt-get install</code> 分成两条 <code>RUN</code>，索引层被缓存成过期数据</li>
+<li><input disabled="" type="checkbox"> <code>rm -rf /var/lib/apt/lists/*</code> 写在 <code>install</code> 的下一层，体积一点没省</li>
+<li><input disabled="" type="checkbox"> 用 <code>alpine</code> 换掉 glibc 镜像，结果预编译依赖跑不起来，改成从源码编译</li>
+<li><input disabled="" type="checkbox"> <code>scratch</code> 镜像里没有 CA 证书，HTTPS 请求全部失败</li>
+<li><input disabled="" type="checkbox"> <code>COPY . .</code> 放在依赖安装之前，改一行代码就重装全部依赖</li>
+<li><input disabled="" type="checkbox"> 没有 <code>.dockerignore</code>，<code>.git</code> &#x2F; <code>node_modules</code> &#x2F; <code>.env</code> 全进镜像</li>
+<li><input disabled="" type="checkbox"> 以为 <code>--mount=type=cache</code> 挂的目录会留在镜像里（它不会）</li>
+<li><input disabled="" type="checkbox"> <code>--cache-from</code> 指向的缓存镜像还不存在，第一次 CI 构建以为配置写错了</li>
+<li><input disabled="" type="checkbox"> <code>--cache-to</code> 用 <code>inline</code> 却期待多阶段中间层被缓存</li>
+<li><input disabled="" type="checkbox"> 用 <code>--squash</code> 压层，体积没降多少，层缓存全废</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://docs.docker.com/build/building/multi-stage/">Docker 多阶段构建</a> · <a target="_blank" rel="noopener" href="https://docs.docker.com/build/cache/">BuildKit 构建缓存</a> · <a target="_blank" rel="noopener" href="https://docs.docker.com/build/cache/backends/">缓存存储后端</a> · <a target="_blank" rel="noopener" href="https://docs.docker.com/reference/dockerfile/">Dockerfile 参考</a> · <a target="_blank" rel="noopener" href="https://docs.docker.com/reference/cli/docker/buildx/build/">docker buildx build</a> · <a target="_blank" rel="noopener" href="https://github.com/wagoodman/dive">dive</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/docker/" class="category-chain-item">docker</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/docker/" class="print-no-link">#docker</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 031 · Docker（三）：镜像瘦身与构建优化</div>
+      <div>https://ethan-iopasd.github.io/2026/09/30/每日技术博客031-Docker镜像瘦身/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年9月30日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2007-DockerCompose/" title="每日技术博客 007 · Docker（二）：Compose、网络与数据卷">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 007 · Docker（二）：Compose、网络与数据卷</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

@@ -1,0 +1,1025 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-09-30 · 第 022 篇 Vitest + @vue&#x2F;test-utils 跑组件测试，以及 Vue DevTools 定位响应式问题 —— 断言失败时先怀疑没等更新，再怀疑没 mock。  📚 Vue 3 系列目录   章节 主题 状态    一 模板语法、响应式与组合式 API 已发布   二 组件、Props &#x2F; Emits &#x2F; 插槽">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 022 · Vue 3（七）：测试与调试">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2022-Vue3%E6%B5%8B%E8%AF%95%E4%B8%8E%E8%B0%83%E8%AF%95/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-09-30 · 第 022 篇 Vitest + @vue&#x2F;test-utils 跑组件测试，以及 Vue DevTools 定位响应式问题 —— 断言失败时先怀疑没等更新，再怀疑没 mock。  📚 Vue 3 系列目录   章节 主题 状态    一 模板语法、响应式与组合式 API 已发布   二 组件、Props &#x2F; Emits &#x2F; 插槽">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-09-30T11:00:00.000Z">
+<meta property="article:modified_time" content="2026-09-30T05:20:04.487Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="vue3">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 022 · Vue 3（七）：测试与调试 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 022 · Vue 3（七）：测试与调试"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-09-30 19:00" pubdate>
+          2026年9月30日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.2k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          19 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 022 · Vue 3（七）：测试与调试</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-09-30 · 第 022 篇</p>
+<p>Vitest + <code>@vue/test-utils</code> 跑组件测试，以及 Vue DevTools 定位响应式问题 —— 断言失败时先怀疑没等更新，再怀疑没 mock。</p>
+</blockquote>
+<h2 id="📚-Vue-3-系列目录"><a href="#📚-Vue-3-系列目录" class="headerlink" title="📚 Vue 3 系列目录"></a>📚 Vue 3 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>模板语法、响应式与组合式 API</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>组件、Props &#x2F; Emits &#x2F; 插槽与双向绑定</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>Vue Router 路由</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td>Pinia 状态管理</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>五</td>
+<td>性能优化与生产构建</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>六</td>
+<td>组合式函数与逻辑复用</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>七</td>
+<td>测试与调试</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：组件测试只有三件事"><a href="#开场：组件测试只有三件事" class="headerlink" title="开场：组件测试只有三件事"></a>开场：组件测试只有三件事</h2><p><strong>挂载、交互、断言。</strong> 90% 的失败不是断言写错，而是<strong>没有等 DOM 更新</strong>或<strong>没有 mock 外部依赖</strong>。</p>
+<p>Vitest 是 Vue 官方文档推荐的测试运行器（基于 Vite，原生处理 <code>.vue</code> 文件）。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">npm i -D vitest @vue/test-utils jsdom @vitest/coverage-v8<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-comment">// vitest.config.ts</span><br><span class="hljs-keyword">import</span> &#123; defineConfig &#125; <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;vitest/config&#x27;</span><br><span class="hljs-keyword">import</span> vue <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@vitejs/plugin-vue&#x27;</span><br><br><span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> <span class="hljs-title function_">defineConfig</span>(&#123;<br>  <span class="hljs-attr">plugins</span>: [<span class="hljs-title function_">vue</span>()],<br>  <span class="hljs-attr">test</span>: &#123;<br>    <span class="hljs-attr">environment</span>: <span class="hljs-string">&#x27;jsdom&#x27;</span>,<br>    <span class="hljs-attr">globals</span>: <span class="hljs-literal">true</span>,<br>    <span class="hljs-attr">setupFiles</span>: [<span class="hljs-string">&#x27;./tests/setup.ts&#x27;</span>],<br>  &#125;,<br>&#125;)<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>environment</code> 默认是 <code>node</code>。组件要操作 DOM，<strong>必须切成 <code>jsdom</code>（或 <code>happy-dom</code>）</strong>，否则 <code>document is not defined</code>。</p>
+</blockquote>
+<h2 id="一、mount-与-shallowMount"><a href="#一、mount-与-shallowMount" class="headerlink" title="一、mount 与 shallowMount"></a>一、<code>mount</code> 与 <code>shallowMount</code></h2><p><code>mount</code> 是 <code>@vue/test-utils</code> 的主要方法：创建一个 Vue 应用并渲染被测组件。</p>
+<table>
+<thead>
+<tr>
+<th>API</th>
+<th>行为</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>mount(Comp)</code></td>
+<td>渲染组件<strong>及其全部子组件</strong></td>
+<td>集成测试，验证父子联动</td>
+</tr>
+<tr>
+<td><code>shallowMount(Comp)</code></td>
+<td>子组件替换为 stub</td>
+<td>单元测试，隔离被测组件</td>
+</tr>
+</tbody></table>
+<figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-keyword">import</span> &#123; mount &#125; <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@vue/test-utils&#x27;</span><br><span class="hljs-keyword">import</span> <span class="hljs-title class_">Counter</span> <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@/components/Counter.vue&#x27;</span><br><br><span class="hljs-keyword">const</span> wrapper = <span class="hljs-title function_">mount</span>(<span class="hljs-title class_">Counter</span>, &#123;<br>  <span class="hljs-attr">props</span>: &#123; <span class="hljs-attr">initial</span>: <span class="hljs-number">3</span> &#125;,<br>  <span class="hljs-attr">global</span>: &#123;<br>    <span class="hljs-attr">plugins</span>: [pinia, router],<br>    <span class="hljs-attr">stubs</span>: &#123; <span class="hljs-title class_">HeavyChart</span>: <span class="hljs-literal">true</span> &#125;,<br>    <span class="hljs-attr">mocks</span>: &#123; <span class="hljs-attr">$t</span>: <span class="hljs-function">(<span class="hljs-params"><span class="hljs-attr">k</span>: <span class="hljs-built_in">string</span></span>) =&gt;</span> k &#125;,<br>    <span class="hljs-attr">provide</span>: &#123; <span class="hljs-attr">api</span>: fakeApi &#125;,<br>  &#125;,<br>&#125;)<br></code></pre></td></tr></table></figure>
+
+<p>最常用的断言入口：</p>
+<table>
+<thead>
+<tr>
+<th>调用</th>
+<th>返回</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>wrapper.text()</code></td>
+<td>去标签后的文本</td>
+</tr>
+<tr>
+<td><code>wrapper.html()</code></td>
+<td>渲染出的 HTML</td>
+</tr>
+<tr>
+<td><code>wrapper.find(&#39;.btn&#39;)</code></td>
+<td>首个匹配的 <code>DOMWrapper</code>（<strong>不匹配不会报错</strong>）</td>
+</tr>
+<tr>
+<td><code>wrapper.findAll(&#39;li&#39;)</code></td>
+<td><code>DOMWrapper[]</code></td>
+</tr>
+<tr>
+<td><code>wrapper.findComponent(Child)</code></td>
+<td>子组件实例 wrapper</td>
+</tr>
+<tr>
+<td><code>wrapper.emitted(&#39;change&#39;)</code></td>
+<td>该事件所有 emit 参数数组</td>
+</tr>
+<tr>
+<td><code>wrapper.vm</code></td>
+<td>组件实例（<strong>仅 <code>mount</code> 有真实实例</strong>）</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>wrapper.find()</code> 找不到元素时<strong>不抛错</strong>，返回一个空的 <code>DOMWrapper</code>。后面 <code>.trigger()</code> &#x2F; <code>.text()</code> 才炸，堆栈指向错误行。断言前先确认 <code>exists()</code>。</p>
+</blockquote>
+<h2 id="二、异步更新必须-await"><a href="#二、异步更新必须-await" class="headerlink" title="二、异步更新必须 await"></a>二、异步更新必须 await</h2><p>Vue 的响应式更新是<strong>异步批处理</strong>的：改数据后 DOM 不会立刻变，要等微任务队列清空。</p>
+<figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-comment">// ❌ 断言的是旧 DOM</span><br>wrapper.<span class="hljs-property">vm</span>.<span class="hljs-property">count</span>++<br><span class="hljs-title function_">expect</span>(wrapper.<span class="hljs-title function_">text</span>()).<span class="hljs-title function_">toContain</span>(<span class="hljs-string">&#x27;1&#x27;</span>)<br><br><span class="hljs-comment">// ✅</span><br>wrapper.<span class="hljs-property">vm</span>.<span class="hljs-property">count</span>++<br><span class="hljs-keyword">await</span> <span class="hljs-title function_">nextTick</span>()<br><span class="hljs-title function_">expect</span>(wrapper.<span class="hljs-title function_">text</span>()).<span class="hljs-title function_">toContain</span>(<span class="hljs-string">&#x27;1&#x27;</span>)<br></code></pre></td></tr></table></figure>
+
+<p><code>@vue/test-utils</code> 里几个方法<strong>本身就返回 <code>nextTick</code> 的 Promise</strong>，<code>await</code> 它们等于顺带等更新：</p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>返回</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>wrapper.trigger(&#39;click&#39;)</code></td>
+<td><code>Promise&lt;void&gt;</code>，resolve 于 <code>nextTick</code></td>
+</tr>
+<tr>
+<td><code>wrapper.setValue(&#39;abc&#39;)</code></td>
+<td>同上</td>
+</tr>
+<tr>
+<td><code>wrapper.setChecked(true)</code></td>
+<td>同上</td>
+</tr>
+<tr>
+<td><code>wrapper.setProps(&#123; x: 1 &#125;)</code></td>
+<td>同上（内部也 <code>nextTick</code>）</td>
+</tr>
+<tr>
+<td><code>wrapper.vm.count = 1</code></td>
+<td>❌ 同步赋值，<strong>不返回 Promise</strong></td>
+</tr>
+</tbody></table>
+<figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-comment">// ✅ 交互 + 断言一气呵成</span><br><span class="hljs-keyword">await</span> wrapper.<span class="hljs-title function_">find</span>(<span class="hljs-string">&#x27;button&#x27;</span>).<span class="hljs-title function_">trigger</span>(<span class="hljs-string">&#x27;click&#x27;</span>)<br><span class="hljs-title function_">expect</span>(wrapper.<span class="hljs-title function_">emitted</span>(<span class="hljs-string">&#x27;update:modelValue&#x27;</span>)![<span class="hljs-number">0</span>]).<span class="hljs-title function_">toEqual</span>([<span class="hljs-number">1</span>])<br></code></pre></td></tr></table></figure>
+
+<h3 id="等待异步请求"><a href="#等待异步请求" class="headerlink" title="等待异步请求"></a>等待异步请求</h3><p><code>trigger</code> 只等一次 <code>nextTick</code>，<strong>等不到 <code>fetch</code> 的 Promise</strong>。用 <code>flushPromises</code>：</p>
+<figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-keyword">import</span> &#123; flushPromises &#125; <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@vue/test-utils&#x27;</span><br><br><span class="hljs-keyword">await</span> wrapper.<span class="hljs-title function_">find</span>(<span class="hljs-string">&#x27;form&#x27;</span>).<span class="hljs-title function_">trigger</span>(<span class="hljs-string">&#x27;submit&#x27;</span>)<br><span class="hljs-keyword">await</span> <span class="hljs-title function_">flushPromises</span>()          <span class="hljs-comment">// 把微任务队列排空</span><br><span class="hljs-title function_">expect</span>(wrapper.<span class="hljs-title function_">text</span>()).<span class="hljs-title function_">toContain</span>(<span class="hljs-string">&#x27;提交成功&#x27;</span>)<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>await nextTick()</code> 不够。<code>fetch</code> 返回的 Promise 至少要多轮微任务才 settle，<strong>只有 <code>flushPromises</code> 能稳定等到</strong>。</p>
+</blockquote>
+<h3 id="路由跳转"><a href="#路由跳转" class="headerlink" title="路由跳转"></a>路由跳转</h3><figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-keyword">await</span> wrapper.<span class="hljs-title function_">find</span>(<span class="hljs-string">&#x27;a&#x27;</span>).<span class="hljs-title function_">trigger</span>(<span class="hljs-string">&#x27;click&#x27;</span>)<br><span class="hljs-keyword">await</span> router.<span class="hljs-title function_">isReady</span>()<br><span class="hljs-title function_">expect</span>(router.<span class="hljs-property">currentRoute</span>.<span class="hljs-property">value</span>.<span class="hljs-property">path</span>).<span class="hljs-title function_">toBe</span>(<span class="hljs-string">&#x27;/detail&#x27;</span>)<br></code></pre></td></tr></table></figure>
+
+<h2 id="三、Mock：vi-mock-vi-fn-vi-spyOn"><a href="#三、Mock：vi-mock-vi-fn-vi-spyOn" class="headerlink" title="三、Mock：vi.mock &#x2F; vi.fn &#x2F; vi.spyOn"></a>三、Mock：<code>vi.mock</code> &#x2F; <code>vi.fn</code> &#x2F; <code>vi.spyOn</code></h2><table>
+<thead>
+<tr>
+<th>API</th>
+<th>作用</th>
+<th>典型场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>vi.fn(impl?)</code></td>
+<td>造一个可断言的假函数</td>
+<td>回调、props 传参</td>
+</tr>
+<tr>
+<td><code>vi.spyOn(obj, &#39;m&#39;)</code></td>
+<td>包装已有方法，保留原实现（可选）</td>
+<td>断言 <code>console.error</code> 被调用</td>
+</tr>
+<tr>
+<td><code>vi.mock(path, factory)</code></td>
+<td>整个模块替换，<strong>会被提升到文件顶部</strong></td>
+<td>替换 <code>@/api/*</code>、<code>vue-router</code></td>
+</tr>
+<tr>
+<td><code>vi.hoisted(fn)</code></td>
+<td>把变量也提到顶部</td>
+<td>factory 里要引用外部变量</td>
+</tr>
+</tbody></table>
+<figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-comment">// tests/setup.ts</span><br><span class="hljs-keyword">import</span> &#123; vi, beforeEach &#125; <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;vitest&#x27;</span><br><br><span class="hljs-title function_">beforeEach</span>(<span class="hljs-function">() =&gt;</span> &#123;<br>  vi.<span class="hljs-title function_">restoreAllMocks</span>()<br>&#125;)<br><br><span class="hljs-comment">// 全局 stub 掉 fetch</span><br>vi.<span class="hljs-title function_">stubGlobal</span>(<span class="hljs-string">&#x27;fetch&#x27;</span>, vi.<span class="hljs-title function_">fn</span>())<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-comment">// UserList.test.ts</span><br><span class="hljs-keyword">import</span> &#123; vi, it, expect &#125; <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;vitest&#x27;</span><br><span class="hljs-keyword">import</span> &#123; flushPromises, mount &#125; <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@vue/test-utils&#x27;</span><br><br><span class="hljs-comment">// hoisted：vi.mock 被提升，factory 里不能直接用外部 const</span><br><span class="hljs-keyword">const</span> getUserList = vi.<span class="hljs-title function_">hoisted</span>(<span class="hljs-function">() =&gt;</span> vi.<span class="hljs-title function_">fn</span>())<br><br>vi.<span class="hljs-title function_">mock</span>(<span class="hljs-string">&#x27;@/api/user&#x27;</span>, <span class="hljs-function">() =&gt;</span> (&#123; getUserList &#125;))<br><br><span class="hljs-title function_">it</span>(<span class="hljs-string">&#x27;渲染用户列表&#x27;</span>, <span class="hljs-title function_">async</span> () =&gt; &#123;<br>  getUserList.<span class="hljs-title function_">mockResolvedValue</span>([&#123; <span class="hljs-attr">id</span>: <span class="hljs-number">1</span>, <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;Ethan&#x27;</span> &#125;])<br><br>  <span class="hljs-keyword">const</span> wrapper = <span class="hljs-title function_">mount</span>(<span class="hljs-title class_">UserList</span>)<br>  <span class="hljs-keyword">await</span> <span class="hljs-title function_">flushPromises</span>()<br><br>  <span class="hljs-title function_">expect</span>(getUserList).<span class="hljs-title function_">toHaveBeenCalledOnce</span>()<br>  <span class="hljs-title function_">expect</span>(wrapper.<span class="hljs-title function_">findAll</span>(<span class="hljs-string">&#x27;li&#x27;</span>)).<span class="hljs-title function_">toHaveLength</span>(<span class="hljs-number">1</span>)<br>&#125;)<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>vi.mock</code> 的工厂函数会被提升到所有 <code>import</code> 之前</strong>。factory 里直接引用顶层 <code>const</code> 会报 <code>Cannot access before initialization</code> —— 这就是 <code>vi.hoisted</code> 存在的理由。</p>
+</blockquote>
+<h3 id="Pinia-与-Router-的测试替身"><a href="#Pinia-与-Router-的测试替身" class="headerlink" title="Pinia 与 Router 的测试替身"></a>Pinia 与 Router 的测试替身</h3><figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-keyword">import</span> &#123; createTestingPinia &#125; <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@pinia/testing&#x27;</span><br><span class="hljs-keyword">import</span> &#123; createRouter, createMemoryHistory &#125; <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;vue-router&#x27;</span><br><br><span class="hljs-keyword">const</span> pinia = <span class="hljs-title function_">createTestingPinia</span>(&#123;<br>  <span class="hljs-attr">createSpy</span>: vi.<span class="hljs-property">fn</span>,<br>  <span class="hljs-attr">initialState</span>: &#123; <span class="hljs-attr">user</span>: &#123; <span class="hljs-attr">name</span>: <span class="hljs-string">&#x27;Ethan&#x27;</span> &#125; &#125;,<br>  <span class="hljs-attr">stubActions</span>: <span class="hljs-literal">true</span>,        <span class="hljs-comment">// action 默认变成 spy，不执行原逻辑</span><br>&#125;)<br><br><span class="hljs-keyword">const</span> router = <span class="hljs-title function_">createRouter</span>(&#123;<br>  <span class="hljs-attr">history</span>: <span class="hljs-title function_">createMemoryHistory</span>(),   <span class="hljs-comment">// 测试用内存历史，别用 web 历史</span><br>  <span class="hljs-attr">routes</span>: [&#123; <span class="hljs-attr">path</span>: <span class="hljs-string">&#x27;/&#x27;</span>, <span class="hljs-attr">component</span>: &#123; <span class="hljs-attr">template</span>: <span class="hljs-string">&#x27;&lt;div /&gt;&#x27;</span> &#125; &#125;],<br>&#125;)<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>stubActions: true</code> 时 action <strong>不会真的改 state</strong>。要测真实逻辑就传 <code>stubActions: false</code>，否则会看到「调了 action 但 state 没变」。</p>
+</blockquote>
+<h2 id="四、常见「改了数据但断言失败」的原因"><a href="#四、常见「改了数据但断言失败」的原因" class="headerlink" title="四、常见「改了数据但断言失败」的原因"></a>四、常见「改了数据但断言失败」的原因</h2><p>按排查顺序：</p>
+<table>
+<thead>
+<tr>
+<th>现象</th>
+<th>原因</th>
+<th>修法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>断言旧值</td>
+<td>没等 <code>nextTick</code></td>
+<td><code>await nextTick()</code> 或 <code>await wrapper.trigger(...)</code></td>
+</tr>
+<tr>
+<td>数据没变</td>
+<td>解构丢了响应式：<code>const &#123; count &#125; = props</code></td>
+<td>用 <code>toRefs(props)</code> 或直接 <code>props.count</code></td>
+</tr>
+<tr>
+<td>state 没变</td>
+<td><code>createTestingPinia</code> 的 <code>stubActions</code> 默认拦截</td>
+<td><code>stubActions: false</code></td>
+</tr>
+<tr>
+<td>元素找不到</td>
+<td><code>shallowMount</code> 把子组件 stub 掉了</td>
+<td>换 <code>mount</code>，或给 <code>stubs</code> 传真实组件</td>
+</tr>
+<tr>
+<td><code>wrapper.vm</code> 报错</td>
+<td>用了 <code>shallowMount</code>，或组件用了 <code>&lt;script setup&gt;</code></td>
+<td>断言 DOM &#x2F; <code>emitted</code>，不要依赖 <code>vm</code></td>
+</tr>
+<tr>
+<td><code>emitted</code> 为空</td>
+<td>事件名大小写不匹配</td>
+<td>模板里用 kebab-case 时 <code>emitted(&#39;my-event&#39;)</code></td>
+</tr>
+<tr>
+<td>整个组件为空</td>
+<td>忘了装插件（pinia &#x2F; router &#x2F; i18n）</td>
+<td><code>global.plugins</code></td>
+</tr>
+<tr>
+<td>时序随机</td>
+<td>依赖真实时间</td>
+<td><code>vi.useFakeTimers()</code> + <code>vi.advanceTimersByTime()</code></td>
+</tr>
+<tr>
+<td>环境报错</td>
+<td><code>environment: &#39;node&#39;</code></td>
+<td>改 <code>jsdom</code></td>
+</tr>
+<tr>
+<td>泄漏到别的用例</td>
+<td>没 <code>restoreAllMocks</code> &#x2F; 没 <code>wrapper.unmount()</code></td>
+<td>加 <code>beforeEach</code> &#x2F; <code>afterEach</code></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>&lt;script setup&gt;</code> 的组件默认是 <strong><code>closed</code></strong> 的实例，<code>wrapper.vm</code> 拿不到内部变量。测试请面向<strong>渲染结果和 <code>emitted</code> 事件</strong>，而不是内部实现 —— 这样重构也不会碎。</p>
+</blockquote>
+<h3 id="假定时器"><a href="#假定时器" class="headerlink" title="假定时器"></a>假定时器</h3><figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs ts">vi.<span class="hljs-title function_">useFakeTimers</span>()<br><span class="hljs-keyword">const</span> wrapper = <span class="hljs-title function_">mount</span>(<span class="hljs-title class_">DebouncedSearch</span>)<br><span class="hljs-keyword">await</span> wrapper.<span class="hljs-title function_">find</span>(<span class="hljs-string">&#x27;input&#x27;</span>).<span class="hljs-title function_">setValue</span>(<span class="hljs-string">&#x27;vue&#x27;</span>)<br>vi.<span class="hljs-title function_">advanceTimersByTime</span>(<span class="hljs-number">300</span>)<br><span class="hljs-keyword">await</span> <span class="hljs-title function_">nextTick</span>()<br><span class="hljs-title function_">expect</span>(wrapper.<span class="hljs-title function_">emitted</span>(<span class="hljs-string">&#x27;search&#x27;</span>)).<span class="hljs-title function_">toBeTruthy</span>()<br>vi.<span class="hljs-title function_">useRealTimers</span>()<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 假定时器会<strong>冻结 <code>nextTick</code> 的微任务调度时机</strong>（它依赖 <code>Promise</code>，不受影响，但 debounce 用的宏任务受影响）。<code>advanceTimersByTime</code> 之后仍要 <code>await nextTick()</code>。</p>
+</blockquote>
+<h2 id="五、Vue-DevTools-调试响应式"><a href="#五、Vue-DevTools-调试响应式" class="headerlink" title="五、Vue DevTools 调试响应式"></a>五、Vue DevTools 调试响应式</h2><p>Vue DevTools v7 只支持 Vue 3（Vue 2 需要旧版 v6）。调试要点：</p>
+<table>
+<thead>
+<tr>
+<th>面板</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Components</td>
+<td>查看组件树、选中组件后<strong>实时编辑 props &#x2F; setup state</strong></td>
+</tr>
+<tr>
+<td>Pinia</td>
+<td>查看每个 store 的 state &#x2F; getters，可手动改 state 触发更新</td>
+</tr>
+<tr>
+<td>Router</td>
+<td>当前路由、路由表、参数</td>
+</tr>
+<tr>
+<td>Timeline</td>
+<td>事件、性能、组件渲染的时间轴</td>
+</tr>
+<tr>
+<td>Inspector</td>
+<td>检查注入的 provide&#x2F;inject、自定义 inspector</td>
+</tr>
+</tbody></table>
+<h3 id="关键开关"><a href="#关键开关" class="headerlink" title="关键开关"></a>关键开关</h3><figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-keyword">const</span> app = <span class="hljs-title function_">createApp</span>(<span class="hljs-title class_">App</span>)<br><br>app.<span class="hljs-property">config</span>.<span class="hljs-property">performance</span> = <span class="hljs-literal">true</span>   <span class="hljs-comment">// 打开 Performance 标记，Timeline 才有组件渲染耗时</span><br>app.<span class="hljs-property">config</span>.<span class="hljs-property">devtools</span> = <span class="hljs-literal">true</span>      <span class="hljs-comment">// 生产构建下强制开启检测（只用于临时调试）</span><br></code></pre></td></tr></table></figure>
+
+<h3 id="自定义-inspector：把业务状态挂到面板"><a href="#自定义-inspector：把业务状态挂到面板" class="headerlink" title="自定义 inspector：把业务状态挂到面板"></a>自定义 inspector：把业务状态挂到面板</h3><p>用 <code>@vue/devtools-api</code> 的 <code>setupDevtoolsPlugin</code>，可以给自己的状态管理&#x2F;数据层做一个专属面板。</p>
+<figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-keyword">import</span> &#123; setupDevtoolsPlugin &#125; <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@vue/devtools-api&#x27;</span><br><br><span class="hljs-keyword">const</span> state = <span class="hljs-title function_">reactive</span>(&#123; <span class="hljs-attr">todos</span>: [] &#125;)<br><br><span class="hljs-title function_">setupDevtoolsPlugin</span>(<br>  &#123; <span class="hljs-attr">id</span>: <span class="hljs-string">&#x27;my-plugin&#x27;</span>, <span class="hljs-attr">label</span>: <span class="hljs-string">&#x27;My Store&#x27;</span>, <span class="hljs-attr">packageName</span>: <span class="hljs-string">&#x27;my-app&#x27;</span>, <span class="hljs-attr">homepage</span>: <span class="hljs-string">&#x27;https://example.com&#x27;</span> &#125;,<br>  <span class="hljs-function">(<span class="hljs-params">api</span>) =&gt;</span> &#123;<br>    <span class="hljs-keyword">const</span> inspect = api.<span class="hljs-title function_">addTimelineLayer</span>(&#123; <span class="hljs-attr">id</span>: <span class="hljs-string">&#x27;my-plugin&#x27;</span>, <span class="hljs-attr">label</span>: <span class="hljs-string">&#x27;My Store&#x27;</span>, <span class="hljs-attr">color</span>: <span class="hljs-number">0x4fc08d</span> &#125;)<br><br>    api.<span class="hljs-title function_">addInspector</span>(&#123;<br>      <span class="hljs-attr">id</span>: <span class="hljs-string">&#x27;my-plugin&#x27;</span>,<br>      <span class="hljs-attr">label</span>: <span class="hljs-string">&#x27;My Store&#x27;</span>,<br>      <span class="hljs-attr">icon</span>: <span class="hljs-string">&#x27;storage&#x27;</span>,<br>      <span class="hljs-attr">treeFilterPlaceholder</span>: <span class="hljs-string">&#x27;搜索状态&#x27;</span>,<br>    &#125;)<br><br>    api.<span class="hljs-property">on</span>.<span class="hljs-title function_">getInspectorTree</span>(<span class="hljs-function">(<span class="hljs-params">payload</span>) =&gt;</span> &#123;<br>      <span class="hljs-keyword">if</span> (payload.<span class="hljs-property">inspectorId</span> !== <span class="hljs-string">&#x27;my-plugin&#x27;</span>) <span class="hljs-keyword">return</span><br>      payload.<span class="hljs-property">rootNodes</span> = [&#123; <span class="hljs-attr">id</span>: <span class="hljs-string">&#x27;root&#x27;</span>, <span class="hljs-attr">label</span>: <span class="hljs-string">`todos (<span class="hljs-subst">$&#123;state.todos.length&#125;</span>)`</span> &#125;]<br>    &#125;)<br><br>    api.<span class="hljs-property">on</span>.<span class="hljs-title function_">getInspectorState</span>(<span class="hljs-function">(<span class="hljs-params">payload</span>) =&gt;</span> &#123;<br>      <span class="hljs-keyword">if</span> (payload.<span class="hljs-property">inspectorId</span> !== <span class="hljs-string">&#x27;my-plugin&#x27;</span>) <span class="hljs-keyword">return</span><br>      payload.<span class="hljs-property">state</span> = &#123; <span class="hljs-string">&#x27;当前状态&#x27;</span>: &#123; <span class="hljs-attr">todos</span>: state.<span class="hljs-property">todos</span> &#125; &#125;<br>    &#125;)<br><br>    <span class="hljs-title function_">watch</span>(state, <span class="hljs-function">() =&gt;</span> api.<span class="hljs-title function_">addTimelineEvent</span>(&#123; <span class="hljs-attr">layerId</span>: <span class="hljs-string">&#x27;my-plugin&#x27;</span>, <span class="hljs-attr">event</span>: &#123; <span class="hljs-attr">title</span>: <span class="hljs-string">&#x27;state 变更&#x27;</span> &#125; &#125;), &#123; <span class="hljs-attr">deep</span>: <span class="hljs-literal">true</span> &#125;)<br>  &#125;<br>)<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 页面用的是<strong>生产构建的 Vue</strong>（<code>vue/dist/vue.runtime.esm-bundler.js</code> 且 <code>NODE_ENV=production</code>）时，DevTools 面板<strong>默认不显示</strong>。本地调试务必跑 <code>vite dev</code>，别用 <code>vite preview</code> 排查响应式问题。</p>
+</blockquote>
+<h3 id="排查响应式失效的固定套路"><a href="#排查响应式失效的固定套路" class="headerlink" title="排查响应式失效的固定套路"></a>排查响应式失效的固定套路</h3><figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-comment">// 在 setup 里临时打印，确认拿到的是不是 proxy</span><br><span class="hljs-keyword">import</span> &#123; isReactive, isRef, toRaw &#125; <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;vue&#x27;</span><br><span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-title function_">isRef</span>(count), <span class="hljs-title function_">isReactive</span>(obj), <span class="hljs-title function_">toRaw</span>(obj))<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>症状</th>
+<th>根因</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>模板不更新</td>
+<td>改了 <code>toRaw()</code> 出来的原始对象</td>
+</tr>
+<tr>
+<td>数组 <code>push</code> 不更新</td>
+<td>用的是 <code>reactive</code> 之后解构出来的<strong>普通数组副本</strong></td>
+</tr>
+<tr>
+<td><code>props</code> 变了但 <code>watch</code> 不触发</td>
+<td><code>watch(() =&gt; props.obj.x)</code> 写法对，但 <code>watch(props.obj, ...)</code> 只是取了一次值</td>
+</tr>
+<tr>
+<td><code>computed</code> 不重算</td>
+<td>内部依赖了非响应式来源（如模块级 <code>let</code>、<code>Date.now()</code>）</td>
+</tr>
+<tr>
+<td>组件不重渲染</td>
+<td><code>v-once</code>、<code>v-memo</code> 命中，或列表 <code>key</code> 用了 index 导致复用</td>
+</tr>
+</tbody></table>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> <code>test.environment</code> 没设成 <code>jsdom</code>，组件一渲染就 <code>document is not defined</code></li>
+<li><input disabled="" type="checkbox"> 改完 <code>wrapper.vm.xxx</code> 直接断言，忘了 <code>await nextTick()</code></li>
+<li><input disabled="" type="checkbox"> 用 <code>await nextTick()</code> 等 <code>fetch</code>，应该用 <code>await flushPromises()</code></li>
+<li><input disabled="" type="checkbox"> <code>vi.mock</code> 的 factory 里引用外部变量，没包 <code>vi.hoisted</code></li>
+<li><input disabled="" type="checkbox"> <code>createTestingPinia</code> 保持默认 <code>stubActions: true</code>，却断言 state 变化</li>
+<li><input disabled="" type="checkbox"> <code>shallowMount</code> 把要断言的子组件 stub 掉了</li>
+<li><input disabled="" type="checkbox"> 对 <code>&lt;script setup&gt;</code> 组件用 <code>wrapper.vm</code> 断言内部变量</li>
+<li><input disabled="" type="checkbox"> 断言 <code>emitted(&#39;myEvent&#39;)</code>，但模板里 emit 的是 <code>my-event</code></li>
+<li><input disabled="" type="checkbox"> 忘了 <code>global.plugins</code> 装 pinia &#x2F; router &#x2F; i18n，整个组件渲染为空</li>
+<li><input disabled="" type="checkbox"> 用例之间没 <code>restoreAllMocks</code> &#x2F; 没 <code>unmount</code>，前一个用例污染后一个</li>
+<li><input disabled="" type="checkbox"> 用假定时器后没调 <code>vi.useRealTimers()</code>，后续用例时间不走</li>
+<li><input disabled="" type="checkbox"> 在 <code>vite preview</code>（生产构建）上排查响应式问题，DevTools 面板根本不显示</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://test-utils.vuejs.org/api/">Vue Test Utils · API 参考</a> · <a target="_blank" rel="noopener" href="https://test-utils.vuejs.org/installation/">Vue Test Utils · 安装与 Vitest</a> · <a target="_blank" rel="noopener" href="https://vitest.dev/">Vitest 官方文档</a> · <a target="_blank" rel="noopener" href="https://vitest.dev/guide/mocking.html">Vitest · Mocking</a> · <a target="_blank" rel="noopener" href="https://devtools.vuejs.org/">Vue DevTools</a> · <a target="_blank" rel="noopener" href="https://devtools.vuejs.org/guide/standalone">Vue DevTools · Standalone App</a> · <a target="_blank" rel="noopener" href="https://pinia.vuejs.org/cookbook/testing.html">Pinia · Testing</a> · <a target="_blank" rel="noopener" href="https://cn.vuejs.org/guide/essentials/reactivity-fundamentals.html">Vue · 响应式基础（异步更新队列）</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/vue3/" class="category-chain-item">vue3</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/vue3/" class="print-no-link">#vue3</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 022 · Vue 3（七）：测试与调试</div>
+      <div>https://ethan-iopasd.github.io/2026/09/30/每日技术博客022-Vue3测试与调试/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年9月30日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2013-Vue3%E7%BB%84%E5%90%88%E5%BC%8F%E5%87%BD%E6%95%B0/" title="每日技术博客 013 · Vue 3（六）：组合式函数与逻辑复用">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 013 · Vue 3（六）：组合式函数与逻辑复用</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

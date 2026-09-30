@@ -1,0 +1,1096 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-09-30 · 第 036 篇 SQL 系列第三篇。从打开慢查询日志到定位根因，一条完整的排查链路，MySQL 和 PostgreSQL 各自的抓手。  📚 SQL 系列目录   章节 主题 状态    一 索引与执行计划 已发布   二 事务、隔离级别与锁 已发布   三 慢查询排查实战 本篇   四 分库分表与读写分离 已发布    开场：排查顺序比工具重要慢查">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 036 · SQL（三）：慢查询排查实战">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2036-SQL%E6%85%A2%E6%9F%A5%E8%AF%A2%E6%8E%92%E6%9F%A5/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-09-30 · 第 036 篇 SQL 系列第三篇。从打开慢查询日志到定位根因，一条完整的排查链路，MySQL 和 PostgreSQL 各自的抓手。  📚 SQL 系列目录   章节 主题 状态    一 索引与执行计划 已发布   二 事务、隔离级别与锁 已发布   三 慢查询排查实战 本篇   四 分库分表与读写分离 已发布    开场：排查顺序比工具重要慢查">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-09-30T13:20:00.000Z">
+<meta property="article:modified_time" content="2026-09-30T05:46:50.876Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="sql">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 036 · SQL（三）：慢查询排查实战 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 036 · SQL（三）：慢查询排查实战"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-09-30 21:20" pubdate>
+          2026年9月30日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.1k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          18 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 036 · SQL（三）：慢查询排查实战</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-09-30 · 第 036 篇</p>
+<p>SQL 系列第三篇。从打开慢查询日志到定位根因，一条完整的排查链路，MySQL 和 PostgreSQL 各自的抓手。</p>
+</blockquote>
+<h2 id="📚-SQL-系列目录"><a href="#📚-SQL-系列目录" class="headerlink" title="📚 SQL 系列目录"></a>📚 SQL 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>索引与执行计划</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>事务、隔离级别与锁</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>慢查询排查实战</td>
+<td><strong>本篇</strong></td>
+</tr>
+<tr>
+<td>四</td>
+<td>分库分表与读写分离</td>
+<td>已发布</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：排查顺序比工具重要"><a href="#开场：排查顺序比工具重要" class="headerlink" title="开场：排查顺序比工具重要"></a>开场：排查顺序比工具重要</h2><p>慢查询排查是三步固定动作，顺序错了就是白干：</p>
+<ol>
+<li><strong>确认是不是数据库慢</strong> —— 网络、应用序列化、N+1 查询都会伪装成「SQL 慢」</li>
+<li><strong>看扫描行数，不看执行时间</strong> —— <code>rows_examined</code> 远大于 <code>rows_sent</code> 才是 SQL 本身的问题</li>
+<li><strong>最后才看执行计划</strong> —— 定位到具体语句之后，再 <code>EXPLAIN</code></li>
+</ol>
+<blockquote>
+<p>⚠️ 直接对线上语句跑 <code>EXPLAIN</code> 然后猜优化方案，是效率最低的做法。绝大多数结论在第二步就已经出来了。</p>
+</blockquote>
+<h2 id="一、先把慢查询日志打开"><a href="#一、先把慢查询日志打开" class="headerlink" title="一、先把慢查询日志打开"></a>一、先把慢查询日志打开</h2><p>MySQL 的慢查询日志<strong>默认关闭</strong>，<code>long_query_time</code> 默认 <strong>10 秒</strong> —— 生产环境这个阈值几乎抓不到任何东西。</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>默认值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>slow_query_log</code></td>
+<td><code>OFF</code></td>
+<td>总开关，默认禁用</td>
+</tr>
+<tr>
+<td><code>long_query_time</code></td>
+<td><code>10</code></td>
+<td>单位秒，微秒精度，最小 0</td>
+</tr>
+<tr>
+<td><code>slow_query_log_file</code></td>
+<td><code>&lt;host_name&gt;-slow.log</code></td>
+<td>默认在数据目录</td>
+</tr>
+<tr>
+<td><code>log_queries_not_using_indexes</code></td>
+<td><code>OFF</code></td>
+<td>未走索引的查询也记录</td>
+</tr>
+<tr>
+<td><code>log_slow_admin_statements</code></td>
+<td><code>OFF</code></td>
+<td>记录慢的 <code>ALTER</code> &#x2F; <code>OPTIMIZE</code> 等管理语句</td>
+</tr>
+<tr>
+<td><code>log_slow_extra</code></td>
+<td><code>OFF</code></td>
+<td>输出额外字段（线程 id、字节数等），<strong>仅对 <code>FILE</code> 输出生效</strong></td>
+</tr>
+<tr>
+<td><code>min_examined_row_limit</code></td>
+<td><code>0</code></td>
+<td>检查行数低于该值不记录</td>
+</tr>
+<tr>
+<td><code>log_throttle_queries_not_using_indexes</code></td>
+<td><code>0</code></td>
+<td>对上面那个参数限流，0 表示不限</td>
+</tr>
+<tr>
+<td><code>log_output</code></td>
+<td><code>FILE</code></td>
+<td>必须含 <code>FILE</code> 才写文件，为 <code>NONE</code> 时什么都不写</td>
+</tr>
+</tbody></table>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs sql"><span class="hljs-keyword">SET</span> <span class="hljs-keyword">GLOBAL</span> slow_query_log <span class="hljs-operator">=</span> <span class="hljs-keyword">ON</span>;<br><span class="hljs-keyword">SET</span> <span class="hljs-keyword">GLOBAL</span> long_query_time <span class="hljs-operator">=</span> <span class="hljs-number">0.5</span>;                          <span class="hljs-comment">-- 先降到 0.5s 抓一轮</span><br><span class="hljs-keyword">SET</span> <span class="hljs-keyword">GLOBAL</span> slow_query_log_file <span class="hljs-operator">=</span> <span class="hljs-string">&#x27;/var/log/mysql/slow.log&#x27;</span>;<br><span class="hljs-keyword">SET</span> <span class="hljs-keyword">GLOBAL</span> log_queries_not_using_indexes <span class="hljs-operator">=</span> <span class="hljs-keyword">ON</span>;<br><span class="hljs-keyword">SET</span> <span class="hljs-keyword">GLOBAL</span> log_throttle_queries_not_using_indexes <span class="hljs-operator">=</span> <span class="hljs-number">10</span>;    <span class="hljs-comment">-- 每分钟最多记 10 条</span><br></code></pre></td></tr></table></figure>
+
+<p>判断一条语句是否入库的顺序（官方定义）：</p>
+<figure class="highlight abnf"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs abnf"><span class="hljs-number">1</span>. 不是管理语句，或 log_slow_admin_statements <span class="hljs-operator">=</span> ON<br><span class="hljs-number">2</span>. 执行时间 &gt;<span class="hljs-operator">=</span> long_query_time，或（未走索引 且 log_queries_not_using_indexes <span class="hljs-operator">=</span> ON）<br><span class="hljs-number">3</span>. 检查行数 &gt;<span class="hljs-operator">=</span> min_examined_row_limit<br><span class="hljs-number">4</span>. 未被 log_throttle_queries_not_using_indexes 限流<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 两个坑：</p>
+<ol>
+<li><code>long_query_time</code> 是 <strong>session 变量</strong>，已存在的连接不会立刻生效，新连接才用新值。</li>
+<li>开了 <code>log_queries_not_using_indexes</code> 之后日志量可能爆炸（连只有两行的小表也会被记），必须配 <code>log_throttle_queries_not_using_indexes</code>。</li>
+</ol>
+</blockquote>
+<blockquote>
+<p>锁获取时间<strong>不计入</strong>执行时间。语句执行完毕、锁释放后才写日志，所以日志顺序 ≠ 执行顺序。</p>
+</blockquote>
+<h2 id="二、把日志汇总成排名"><a href="#二、把日志汇总成排名" class="headerlink" title="二、把日志汇总成排名"></a>二、把日志汇总成排名</h2><p>单条日志没有意义，要看的是「哪一类语句反复出现」。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 按平均耗时排序，取前 10</span><br>mysqldumpslow -s at -t 10 /var/log/mysql/slow.log<br><br><span class="hljs-comment"># 按总耗时排序：更容易发现「单条不慢但调用量巨大」的语句</span><br>mysqldumpslow -s t -t 20 /var/log/mysql/slow.log<br><br><span class="hljs-comment"># 按次数排序，只看涉及 orders 表的</span><br>mysqldumpslow -s c -t 20 -g <span class="hljs-string">&#x27;orders&#x27;</span> /var/log/mysql/slow.log<br></code></pre></td></tr></table></figure>
+
+<p><code>-s</code> 的取值：</p>
+<table>
+<thead>
+<tr>
+<th>值</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>t</code> &#x2F; <code>at</code></td>
+<td>按总耗时 &#x2F; 平均耗时（**默认 <code>at</code>**）</td>
+</tr>
+<tr>
+<td><code>l</code> &#x2F; <code>al</code></td>
+<td>按总锁时间 &#x2F; 平均锁时间</td>
+</tr>
+<tr>
+<td><code>r</code> &#x2F; <code>ar</code></td>
+<td>按总返回行数 &#x2F; 平均返回行数</td>
+</tr>
+<tr>
+<td><code>c</code></td>
+<td>按出现次数</td>
+</tr>
+</tbody></table>
+<p>其他常用：<code>-a</code> 不做数字抽象（默认会把数字抽象成 <code>N</code>、字符串抽象成 <code>&#39;S&#39;</code>）、<code>-l</code> 不扣除锁时间、<code>-r</code> 反向排序。</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>mysqldumpslow</th>
+<th>pt-query-digest</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>依赖</td>
+<td>MySQL 自带</td>
+<td>Percona Toolkit，需另装</td>
+</tr>
+<tr>
+<td>输出</td>
+<td>纯文本</td>
+<td>报表式，含响应时间分布、<code>EXPLAIN</code> 采样</td>
+</tr>
+<tr>
+<td>排序维度</td>
+<td>时间 &#x2F; 锁 &#x2F; 行数 &#x2F; 次数</td>
+<td>同上，另加方差、95 分位</td>
+</tr>
+<tr>
+<td>适用</td>
+<td>快速看一眼</td>
+<td><strong>决定「先改哪一类语句」</strong></td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">pt-query-digest --<span class="hljs-built_in">limit</span> 20 --order-by Query_time:<span class="hljs-built_in">sum</span> /var/log/mysql/slow.log<br></code></pre></td></tr></table></figure>
+
+<h2 id="三、抓现场：SHOW-FULL-PROCESSLIST"><a href="#三、抓现场：SHOW-FULL-PROCESSLIST" class="headerlink" title="三、抓现场：SHOW FULL PROCESSLIST"></a>三、抓现场：SHOW FULL PROCESSLIST</h2><p>日志是事后的，现场是当下的。发现卡顿立刻抓：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs sql"><span class="hljs-keyword">SHOW</span> <span class="hljs-keyword">FULL</span> PROCESSLIST;<br></code></pre></td></tr></table></figure>
+
+<p>重点看 <code>State</code> 列，它直接说明语句卡在哪：</p>
+<table>
+<thead>
+<tr>
+<th>State</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Sending data</code></td>
+<td>正在读数据并回传，<strong>扫描行数过多的最常见外在表现</strong></td>
+</tr>
+<tr>
+<td><code>Sorting result</code></td>
+<td>正在排序，通常对应 <code>Using filesort</code></td>
+</tr>
+<tr>
+<td><code>Copying to tmp table</code></td>
+<td>建临时表，常见于 <code>GROUP BY</code> &#x2F; <code>DISTINCT</code> &#x2F; 大 <code>JOIN</code></td>
+</tr>
+<tr>
+<td><code>Waiting for table metadata lock</code></td>
+<td>等 MDL，多半被长事务或未完成的 <code>ALTER</code> 堵住</td>
+</tr>
+<tr>
+<td><code>Waiting for ... lock</code></td>
+<td>等行锁，需要找阻塞源</td>
+</tr>
+<tr>
+<td><code>update</code> &#x2F; <code>statistics</code></td>
+<td>正在更新数据 &#x2F; 收集统计信息</td>
+</tr>
+</tbody></table>
+<p><code>sys</code> 库的版本可读性更好，还带出了阻塞信息：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs sql"><span class="hljs-keyword">SELECT</span> <span class="hljs-operator">*</span> <span class="hljs-keyword">FROM</span> sys.processlist <span class="hljs-keyword">WHERE</span> command <span class="hljs-operator">&lt;&gt;</span> <span class="hljs-string">&#x27;Sleep&#x27;</span> <span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> <span class="hljs-type">time</span> <span class="hljs-keyword">DESC</span>;<br><span class="hljs-keyword">SELECT</span> <span class="hljs-operator">*</span> <span class="hljs-keyword">FROM</span> sys.session <span class="hljs-keyword">WHERE</span> conn_id <span class="hljs-keyword">IS</span> <span class="hljs-keyword">NOT NULL</span>;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>SHOW FULL PROCESSLIST</code> 只有当前瞬间。已经结束的慢查询只能去日志或 <code>performance_schema</code> 里找。</p>
+</blockquote>
+<h2 id="四、performance-schema-与-sys-库"><a href="#四、performance-schema-与-sys-库" class="headerlink" title="四、performance_schema 与 sys 库"></a>四、performance_schema 与 sys 库</h2><p><code>performance_schema</code> 按<strong>语句指纹（digest）</strong>聚合统计，不依赖慢查询日志，默认开启。</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs sql"><span class="hljs-comment">-- 按 digest 聚合的语句统计：耗时、扫描行数、排序、临时表都在这里</span><br><span class="hljs-keyword">SELECT</span> <span class="hljs-operator">*</span> <span class="hljs-keyword">FROM</span> performance_schema.events_statements_summary_by_digest;<br><br><span class="hljs-comment">-- 当前正在执行的语句（带阶段信息）</span><br><span class="hljs-keyword">SELECT</span> <span class="hljs-operator">*</span> <span class="hljs-keyword">FROM</span> performance_schema.events_statements_current;<br></code></pre></td></tr></table></figure>
+
+<p><code>sys</code> 库把这些包装成可直接读的视图：</p>
+<table>
+<thead>
+<tr>
+<th>视图</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>sys.statement_analysis</code></td>
+<td>全局语句排行，默认按总延迟排</td>
+</tr>
+<tr>
+<td><code>sys.statements_with_full_table_scans</code></td>
+<td>全表扫描的语句排行</td>
+</tr>
+<tr>
+<td><code>sys.statements_with_sorting</code></td>
+<td>有文件排序的语句</td>
+</tr>
+<tr>
+<td><code>sys.statements_with_temp_tables</code></td>
+<td>用了临时表的语句</td>
+</tr>
+<tr>
+<td><code>sys.statements_with_runtimes_in_95th_percentile</code></td>
+<td>长尾语句</td>
+</tr>
+<tr>
+<td><code>sys.schema_table_statistics</code></td>
+<td>按表看 I&#x2F;O、锁等待、扫描行数</td>
+</tr>
+<tr>
+<td><code>sys.schema_tables_with_full_table_scans</code></td>
+<td>哪些表被全表扫得最多</td>
+</tr>
+<tr>
+<td><code>sys.schema_unused_indexes</code></td>
+<td>从未被用过的索引</td>
+</tr>
+<tr>
+<td><code>sys.schema_redundant_indexes</code></td>
+<td>冗余索引</td>
+</tr>
+<tr>
+<td><code>sys.innodb_lock_waits</code></td>
+<td>当前锁等待关系，<strong>直接给出阻塞者</strong></td>
+</tr>
+</tbody></table>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs sql"><span class="hljs-comment">-- 谁在拖后腿：扫描行数 / 返回行数 比值越大越可疑</span><br><span class="hljs-keyword">SELECT</span> query, exec_count, rows_examined_avg, rows_sent_avg, total_latency<br><span class="hljs-keyword">FROM</span> sys.statement_analysis<br><span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> rows_examined_avg <span class="hljs-keyword">DESC</span><br>LIMIT <span class="hljs-number">20</span>;<br><br><span class="hljs-comment">-- 全表扫描排行榜</span><br><span class="hljs-keyword">SELECT</span> <span class="hljs-operator">*</span> <span class="hljs-keyword">FROM</span> sys.statements_with_full_table_scans LIMIT <span class="hljs-number">20</span>;<br><br><span class="hljs-comment">-- 当前谁阻塞了谁</span><br><span class="hljs-keyword">SELECT</span> <span class="hljs-operator">*</span> <span class="hljs-keyword">FROM</span> sys.innodb_lock_waits;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>performance_schema</code> 的统计<strong>重启即清零</strong>，且受 <code>performance_schema_digests_size</code> 限制，超出上限后新 digest 不再被记录。要看趋势必须定期落库。</p>
+</blockquote>
+<h2 id="五、PostgreSQL：pg-stat-statements"><a href="#五、PostgreSQL：pg-stat-statements" class="headerlink" title="五、PostgreSQL：pg_stat_statements"></a>五、PostgreSQL：pg_stat_statements</h2><p>PostgreSQL 没有内置慢查询日志，靠 <code>log_min_duration_statement</code> 打日志；但**统计聚合的标准答案是 <code>pg_stat_statements</code>**。</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs ini"><span class="hljs-comment"># postgresql.conf</span><br><span class="hljs-attr">shared_preload_libraries</span> = <span class="hljs-string">&#x27;pg_stat_statements&#x27;</span><br><span class="hljs-attr">compute_query_id</span> = <span class="hljs-literal">on</span><br><span class="hljs-attr">pg_stat_statements.max</span> = <span class="hljs-number">10000</span><br><span class="hljs-attr">pg_stat_statements.track</span> = all<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs sql"><span class="hljs-keyword">CREATE</span> EXTENSION IF <span class="hljs-keyword">NOT</span> <span class="hljs-keyword">EXISTS</span> pg_stat_statements;<br><br><span class="hljs-keyword">SELECT</span> queryid,<br>       calls,<br>       round(total_exec_time::<span class="hljs-type">numeric</span>, <span class="hljs-number">2</span>) <span class="hljs-keyword">AS</span> total_ms,<br>       round(mean_exec_time::<span class="hljs-type">numeric</span>, <span class="hljs-number">2</span>)  <span class="hljs-keyword">AS</span> mean_ms,<br>       <span class="hljs-keyword">rows</span>, shared_blks_hit, shared_blks_read<br><span class="hljs-keyword">FROM</span> pg_stat_statements<br><span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> total_exec_time <span class="hljs-keyword">DESC</span><br>LIMIT <span class="hljs-number">20</span>;<br></code></pre></td></tr></table></figure>
+
+<p>关键列：</p>
+<table>
+<thead>
+<tr>
+<th>列</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>queryid</code></td>
+<td>规范化语句的哈希，比文本更稳定</td>
+</tr>
+<tr>
+<td><code>query</code></td>
+<td>代表性语句文本，<strong>常量已归一化成 <code>$1</code></strong></td>
+</tr>
+<tr>
+<td><code>calls</code></td>
+<td>执行次数</td>
+</tr>
+<tr>
+<td><code>total_exec_time</code> &#x2F; <code>mean_exec_time</code></td>
+<td>总 &#x2F; 平均执行时间（毫秒）</td>
+</tr>
+<tr>
+<td><code>rows</code></td>
+<td>返回或影响的总行数</td>
+</tr>
+<tr>
+<td><code>shared_blks_hit</code> &#x2F; <code>shared_blks_read</code></td>
+<td>命中 &#x2F; 读盘块数，<strong>比值低说明 Buffer 不够或语句本身扫太多</strong></td>
+</tr>
+</tbody></table>
+<p>参数：</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>默认值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>pg_stat_statements.max</code></td>
+<td><code>5000</code></td>
+<td>跟踪的语句数上限，超出丢弃执行最少的</td>
+</tr>
+<tr>
+<td><code>pg_stat_statements.track</code></td>
+<td><code>top</code></td>
+<td><code>top</code> 只记顶层语句，<code>all</code> 连函数内嵌套语句一起记</td>
+</tr>
+<tr>
+<td><code>pg_stat_statements.track_planning</code></td>
+<td><code>off</code></td>
+<td>是否统计规划耗时，<strong>开启有显著开销</strong></td>
+</tr>
+<tr>
+<td><code>pg_stat_statements.track_utility</code></td>
+<td><code>on</code></td>
+<td>是否跟踪非 DML 的工具命令</td>
+</tr>
+</tbody></table>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs sql"><span class="hljs-keyword">SELECT</span> pg_stat_statements_reset();   <span class="hljs-comment">-- 改完参数后重置，重新观察</span><br></code></pre></td></tr></table></figure>
+
+<p>现场抓取用 <code>pg_stat_activity</code>：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs sql"><span class="hljs-keyword">SELECT</span> pid, now() <span class="hljs-operator">-</span> query_start <span class="hljs-keyword">AS</span> duration, state, wait_event_type, wait_event, query<br><span class="hljs-keyword">FROM</span> pg_stat_activity<br><span class="hljs-keyword">WHERE</span> state <span class="hljs-operator">&lt;&gt;</span> <span class="hljs-string">&#x27;idle&#x27;</span><br><span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> duration <span class="hljs-keyword">DESC</span>;<br><br><span class="hljs-keyword">SELECT</span> <span class="hljs-operator">*</span> <span class="hljs-keyword">FROM</span> pg_locks <span class="hljs-keyword">WHERE</span> <span class="hljs-keyword">NOT</span> granted;   <span class="hljs-comment">-- 谁在等锁</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>queryid</code> 基于解析树计算。<strong>表或函数被删掉重建、改了别名，都会让它变</strong>。拿 <code>queryid</code> 做基线告警时必须知道这一点。</p>
+</blockquote>
+<h2 id="六、排查顺序：先看扫描行数，再看执行计划"><a href="#六、排查顺序：先看扫描行数，再看执行计划" class="headerlink" title="六、排查顺序：先看扫描行数，再看执行计划"></a>六、排查顺序：先看扫描行数，再看执行计划</h2><table>
+<thead>
+<tr>
+<th>观察到的现象</th>
+<th>结论</th>
+<th>改法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>rows_examined</code> &gt;&gt; <code>rows_sent</code>，<code>type = ALL</code></td>
+<td>没走索引，或索引选择性差</td>
+<td>建联合索引 &#x2F; 改查询条件</td>
+</tr>
+<tr>
+<td><code>rows_examined</code> ≈ <code>rows_sent</code>，但耗时长</td>
+<td>不是扫描问题，是锁等待或 I&#x2F;O</td>
+<td>看 <code>Lock_time</code>、<code>sys.innodb_lock_waits</code></td>
+</tr>
+<tr>
+<td><code>Lock_time</code> 高</td>
+<td>等行锁 &#x2F; MDL</td>
+<td>缩短事务、找长事务、拆大批量 <code>UPDATE</code></td>
+</tr>
+<tr>
+<td><code>Extra</code> 含 <code>Using filesort</code></td>
+<td>排序没走索引</td>
+<td>把排序列并入联合索引</td>
+</tr>
+<tr>
+<td><code>Extra</code> 含 <code>Using temporary</code></td>
+<td>用了临时表</td>
+<td>优化 <code>GROUP BY</code>，避免大 <code>DISTINCT</code></td>
+</tr>
+<tr>
+<td><code>type = index</code> 且 <code>rows</code> 很大</td>
+<td>扫了整个索引</td>
+<td>补更精确的索引</td>
+</tr>
+<tr>
+<td>预估行数与实际差几个数量级</td>
+<td>统计信息过期</td>
+<td><code>ANALYZE TABLE</code></td>
+</tr>
+</tbody></table>
+<h3 id="EXPLAIN-ANALYZE-怎么读"><a href="#EXPLAIN-ANALYZE-怎么读" class="headerlink" title="EXPLAIN ANALYZE 怎么读"></a>EXPLAIN ANALYZE 怎么读</h3><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs sql">EXPLAIN ANALYZE <span class="hljs-keyword">SELECT</span> ...;<br></code></pre></td></tr></table></figure>
+
+<ul>
+<li>会<strong>真的执行</strong>语句，输出里同时有 <code>actual time</code> &#x2F; <code>rows</code>（实际）和 <code>cost</code> &#x2F; <code>rows</code>（预估）</li>
+<li>只看两个数字：<strong>预估行数 vs 实际行数</strong>、<strong>实际耗时集中在哪一层</strong></li>
+<li>嵌套节点的 <code>actual time</code> 里，<code>first row</code> 的值包含子节点耗时，要一层层看增量</li>
+</ul>
+<blockquote>
+<p>⚠️ 对写操作跑 <code>EXPLAIN ANALYZE</code> 会改数据。放进事务里执行再回滚：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs sql"><span class="hljs-keyword">BEGIN</span>;<br>EXPLAIN ANALYZE <span class="hljs-keyword">UPDATE</span> ...;<br><span class="hljs-keyword">ROLLBACK</span>;<br></code></pre></td></tr></table></figure>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 慢查询日志默认关闭，生产环境从没开过</li>
+<li><input disabled="" type="checkbox"> <code>long_query_time</code> 保持默认 10 秒，什么都抓不到</li>
+<li><input disabled="" type="checkbox"> 改完 <code>long_query_time</code> 发现老连接没生效（session 变量）</li>
+<li><input disabled="" type="checkbox"> 开了 <code>log_queries_not_using_indexes</code> 没配限流，日志把磁盘写满</li>
+<li><input disabled="" type="checkbox"> <code>log_output = NONE</code> 时开了慢查询日志却没有输出</li>
+<li><input disabled="" type="checkbox"> 只看单条日志，不做 <code>mysqldumpslow</code> &#x2F; <code>pt-query-digest</code> 聚合</li>
+<li><input disabled="" type="checkbox"> 只按平均耗时排序，漏掉「单条不慢但调用百万次」的语句</li>
+<li><input disabled="" type="checkbox"> 用 <code>SHOW FULL PROCESSLIST</code> 试图找已经结束的慢查询</li>
+<li><input disabled="" type="checkbox"> 用 <code>SHOW PROCESSLIST</code> 而不是 <code>SHOW FULL PROCESSLIST</code>，看不到完整 SQL</li>
+<li><input disabled="" type="checkbox"> 拿 <code>Seconds_Behind_Master</code> 式的时间指标判断慢，忽略扫描行数</li>
+<li><input disabled="" type="checkbox"> 对写操作直接跑 <code>EXPLAIN ANALYZE</code>，把数据改了</li>
+<li><input disabled="" type="checkbox"> 看到 <code>Using filesort</code> 就加索引，没先确认返回行数</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://dev.mysql.com/doc/refman/8.4/en/slow-query-log.html">MySQL 8.4 · 慢查询日志</a> · <a target="_blank" rel="noopener" href="https://dev.mysql.com/doc/refman/8.4/en/mysqldumpslow.html">MySQL 8.4 · mysqldumpslow</a> · <a target="_blank" rel="noopener" href="https://dev.mysql.com/doc/refman/8.4/en/sys-schema-views.html">MySQL 8.4 · sys Schema 视图</a> · <a target="_blank" rel="noopener" href="https://www.postgresql.org/docs/current/pgstatstatements.html">PostgreSQL · pg_stat_statements</a> · <a target="_blank" rel="noopener" href="https://www.postgresql.org/docs/current/monitoring-stats.html">PostgreSQL · 监控统计</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/sql/" class="category-chain-item">sql</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/sql/" class="print-no-link">#sql</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 036 · SQL（三）：慢查询排查实战</div>
+      <div>https://ethan-iopasd.github.io/2026/09/30/每日技术博客036-SQL慢查询排查/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年9月30日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2009-SQL%E4%BA%8B%E5%8A%A1%E4%B8%8E%E9%9A%94%E7%A6%BB%E7%BA%A7%E5%88%AB/" title="每日技术博客 009 · SQL（二）：事务、隔离级别与锁">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 009 · SQL（二）：事务、隔离级别与锁</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2037-SQL%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8/" title="每日技术博客 037 · SQL（四）：分库分表与读写分离">
+                        <span class="hidden-mobile">每日技术博客 037 · SQL（四）：分库分表与读写分离</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
