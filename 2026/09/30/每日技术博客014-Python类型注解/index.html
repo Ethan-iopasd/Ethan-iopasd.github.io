@@ -1,0 +1,898 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-09-30 · 第 014 篇 Python 系列第二篇。注解怎么写才不啰嗦、Optional 与 | None 的区别、以及 mypy 里那几个该打开的开关。  📚 Python 系列目录   章节 主题 状态    一 依赖管理与虚拟环境 已发布   二 类型注解与静态检查 本篇   三 异步编程 asyncio 已发布    开场：注解不影响运行，但影响你半夜">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 014 · Python（二）：类型注解与静态检查">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2014-Python%E7%B1%BB%E5%9E%8B%E6%B3%A8%E8%A7%A3/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-09-30 · 第 014 篇 Python 系列第二篇。注解怎么写才不啰嗦、Optional 与 | None 的区别、以及 mypy 里那几个该打开的开关。  📚 Python 系列目录   章节 主题 状态    一 依赖管理与虚拟环境 已发布   二 类型注解与静态检查 本篇   三 异步编程 asyncio 已发布    开场：注解不影响运行，但影响你半夜">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-09-30T08:20:00.000Z">
+<meta property="article:modified_time" content="2026-09-30T05:09:47.293Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="python">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 014 · Python（二）：类型注解与静态检查 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 014 · Python（二）：类型注解与静态检查"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-09-30 16:20" pubdate>
+          2026年9月30日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          1.4k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          12 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 014 · Python（二）：类型注解与静态检查</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-09-30 · 第 014 篇</p>
+<p>Python 系列第二篇。注解怎么写才不啰嗦、<code>Optional</code> 与 <code>| None</code> 的区别、以及 mypy 里那几个该打开的开关。</p>
+</blockquote>
+<h2 id="📚-Python-系列目录"><a href="#📚-Python-系列目录" class="headerlink" title="📚 Python 系列目录"></a>📚 Python 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>依赖管理与虚拟环境</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>类型注解与静态检查</td>
+<td><strong>本篇</strong></td>
+</tr>
+<tr>
+<td>三</td>
+<td>异步编程 asyncio</td>
+<td>已发布</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：注解不影响运行，但影响你半夜是否被叫醒"><a href="#开场：注解不影响运行，但影响你半夜是否被叫醒" class="headerlink" title="开场：注解不影响运行，但影响你半夜是否被叫醒"></a>开场：注解不影响运行，但影响你半夜是否被叫醒</h2><p>Python 的类型注解<strong>运行时不做检查</strong>（除非用 pydantic 这类库主动校验）。它的价值在于：</p>
+<ol>
+<li><strong>IDE 补全和跳转</strong> —— 写 <code>user.</code> 时能列出字段</li>
+<li><strong>静态检查工具</strong> —— mypy &#x2F; pyright 能在提交前发现类型错误</li>
+<li><strong>可读性</strong> —— 函数签名自带文档</li>
+</ol>
+<p><strong>最大收益来自第 1 条。</strong> 即使不做静态检查，注解也值得写。</p>
+<h2 id="一、基础写法"><a href="#一、基础写法" class="headerlink" title="一、基础写法"></a>一、基础写法</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">def</span> <span class="hljs-title function_">greet</span>(<span class="hljs-params">name: <span class="hljs-built_in">str</span>, times: <span class="hljs-built_in">int</span> = <span class="hljs-number">1</span></span>) -&gt; <span class="hljs-built_in">str</span>:<br>    <span class="hljs-keyword">return</span> <span class="hljs-string">f&quot;hi <span class="hljs-subst">&#123;name&#125;</span> &quot;</span> * times<br><br><span class="hljs-comment"># 变量注解</span><br>count: <span class="hljs-built_in">int</span> = <span class="hljs-number">0</span><br>names: <span class="hljs-built_in">list</span>[<span class="hljs-built_in">str</span>] = []<br>mapping: <span class="hljs-built_in">dict</span>[<span class="hljs-built_in">str</span>, <span class="hljs-built_in">int</span>] = &#123;&#125;<br></code></pre></td></tr></table></figure>
+
+<h3 id="内置泛型（3-9-不用再-import）"><a href="#内置泛型（3-9-不用再-import）" class="headerlink" title="内置泛型（3.9+ 不用再 import）"></a>内置泛型（3.9+ 不用再 import）</h3><table>
+<thead>
+<tr>
+<th>旧写法（3.8 及以前）</th>
+<th>新写法（3.9+）</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>List[str]</code></td>
+<td><code>list[str]</code></td>
+</tr>
+<tr>
+<td><code>Dict[str, int]</code></td>
+<td><code>dict[str, int]</code></td>
+</tr>
+<tr>
+<td><code>Tuple[int, str]</code></td>
+<td><code>tuple[int, str]</code></td>
+</tr>
+<tr>
+<td><code>Set[int]</code></td>
+<td><code>set[int]</code></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 用 <code>list[str]</code> 这种写法时，<strong>运行时也会求值</strong>。如果目标版本低于 3.9 会报错，需要加<br><code>from __future__ import annotations</code> 把注解变成字符串延迟求值。</p>
+</blockquote>
+<h2 id="二、Optional-与-None"><a href="#二、Optional-与-None" class="headerlink" title="二、Optional 与 | None"></a>二、<code>Optional</code> 与 <code>| None</code></h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">from</span> typing <span class="hljs-keyword">import</span> <span class="hljs-type">Optional</span><br><br><span class="hljs-comment"># 两种写法等价</span><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">find_a</span>(<span class="hljs-params"><span class="hljs-built_in">id</span>: <span class="hljs-built_in">int</span></span>) -&gt; <span class="hljs-type">Optional</span>[<span class="hljs-built_in">str</span>]: ...<br><span class="hljs-keyword">def</span> <span class="hljs-title function_">find_b</span>(<span class="hljs-params"><span class="hljs-built_in">id</span>: <span class="hljs-built_in">int</span></span>) -&gt; <span class="hljs-built_in">str</span> | <span class="hljs-literal">None</span>: ...<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>写法</th>
+<th>最低版本</th>
+<th>推荐度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Optional[str]</code></td>
+<td>3.5+</td>
+<td>兼容老版本时用</td>
+</tr>
+<tr>
+<td><code>str | None</code></td>
+<td><strong>3.10+</strong></td>
+<td>新项目推荐</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>Optional[X]</code> 的意思不是「可选参数」，是「可能是 <code>None</code>」。</strong><br>有默认值的参数本来就可选，和 <code>Optional</code> 无关：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">def</span> <span class="hljs-title function_">f</span>(<span class="hljs-params">x: <span class="hljs-built_in">int</span> = <span class="hljs-number">0</span></span>) -&gt; <span class="hljs-literal">None</span>: ...        <span class="hljs-comment"># x 可选，但类型是 int，不是 None</span><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">g</span>(<span class="hljs-params">x: <span class="hljs-built_in">int</span> | <span class="hljs-literal">None</span> = <span class="hljs-literal">None</span></span>) -&gt; <span class="hljs-literal">None</span>: ...  <span class="hljs-comment"># x 可以是 None</span><br></code></pre></td></tr></table></figure>
+</blockquote>
+<h2 id="三、容器与泛型"><a href="#三、容器与泛型" class="headerlink" title="三、容器与泛型"></a>三、容器与泛型</h2><h3 id="可变参数与多返回值"><a href="#可变参数与多返回值" class="headerlink" title="可变参数与多返回值"></a>可变参数与多返回值</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">def</span> <span class="hljs-title function_">total</span>(<span class="hljs-params">*nums: <span class="hljs-built_in">int</span></span>) -&gt; <span class="hljs-built_in">int</span>:<br>    <span class="hljs-keyword">return</span> <span class="hljs-built_in">sum</span>(nums)<br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">divmod2</span>(<span class="hljs-params">a: <span class="hljs-built_in">int</span>, b: <span class="hljs-built_in">int</span></span>) -&gt; <span class="hljs-built_in">tuple</span>[<span class="hljs-built_in">int</span>, <span class="hljs-built_in">int</span>]:<br>    <span class="hljs-keyword">return</span> a // b, a % b<br><br><span class="hljs-comment"># 关键字参数</span><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">config</span>(<span class="hljs-params">**kwargs: <span class="hljs-built_in">str</span></span>) -&gt; <span class="hljs-literal">None</span>: ...<br></code></pre></td></tr></table></figure>
+
+<h3 id="Sequence-vs-list"><a href="#Sequence-vs-list" class="headerlink" title="Sequence vs list"></a><code>Sequence</code> vs <code>list</code></h3><table>
+<thead>
+<tr>
+<th>注解</th>
+<th>含义</th>
+<th>该用哪个</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>list[int]</code></td>
+<td>必须是 list</td>
+<td>需要 <code>.append()</code> 时</td>
+</tr>
+<tr>
+<td><code>Sequence[int]</code></td>
+<td>任何有序可迭代</td>
+<td><strong>只读遍历时</strong>（更宽松）</td>
+</tr>
+<tr>
+<td><code>Iterable[int]</code></td>
+<td>任何可迭代</td>
+<td>只遍历一次</td>
+</tr>
+<tr>
+<td><code>Mapping[str, int]</code></td>
+<td>只读字典</td>
+<td>只读查询时</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>原则：参数类型尽量宽，返回类型尽量窄。</strong> 参数写 <code>Sequence[int]</code> 能接受 list 和 tuple；返回写 <code>list[int]</code> 让调用方明确知道拿到什么。</p>
+</blockquote>
+<h3 id="TypedDict：给字典加结构"><a href="#TypedDict：给字典加结构" class="headerlink" title="TypedDict：给字典加结构"></a><code>TypedDict</code>：给字典加结构</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">from</span> typing <span class="hljs-keyword">import</span> TypedDict<br><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">UserDict</span>(<span class="hljs-title class_ inherited__">TypedDict</span>):<br>    <span class="hljs-built_in">id</span>: <span class="hljs-built_in">int</span><br>    name: <span class="hljs-built_in">str</span><br>    email: <span class="hljs-built_in">str</span> | <span class="hljs-literal">None</span><br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">parse</span>(<span class="hljs-params">raw: <span class="hljs-built_in">dict</span></span>) -&gt; UserDict:<br>    <span class="hljs-keyword">return</span> &#123;<span class="hljs-string">&quot;id&quot;</span>: raw[<span class="hljs-string">&quot;id&quot;</span>], <span class="hljs-string">&quot;name&quot;</span>: raw[<span class="hljs-string">&quot;name&quot;</span>], <span class="hljs-string">&quot;email&quot;</span>: raw.get(<span class="hljs-string">&quot;email&quot;</span>)&#125;<br></code></pre></td></tr></table></figure>
+
+<p>适合「接口返回的 JSON 结构」——比 <code>dict[str, Any]</code> 有信息量得多。</p>
+<h3 id="Literal：限定取值"><a href="#Literal：限定取值" class="headerlink" title="Literal：限定取值"></a><code>Literal</code>：限定取值</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">from</span> typing <span class="hljs-keyword">import</span> <span class="hljs-type">Literal</span><br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">set_level</span>(<span class="hljs-params">level: <span class="hljs-type">Literal</span>[<span class="hljs-string">&quot;debug&quot;</span>, <span class="hljs-string">&quot;info&quot;</span>, <span class="hljs-string">&quot;warn&quot;</span>, <span class="hljs-string">&quot;error&quot;</span>]</span>) -&gt; <span class="hljs-literal">None</span>: ...<br><br>set_level(<span class="hljs-string">&quot;info&quot;</span>)     <span class="hljs-comment"># ✅</span><br>set_level(<span class="hljs-string">&quot;trace&quot;</span>)    <span class="hljs-comment"># ❌ mypy 报错</span><br></code></pre></td></tr></table></figure>
+
+<h3 id="Protocol：结构化子类型（鸭子类型的静态版）"><a href="#Protocol：结构化子类型（鸭子类型的静态版）" class="headerlink" title="Protocol：结构化子类型（鸭子类型的静态版）"></a><code>Protocol</code>：结构化子类型（鸭子类型的静态版）</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">from</span> typing <span class="hljs-keyword">import</span> Protocol<br><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">Reader</span>(<span class="hljs-title class_ inherited__">Protocol</span>):<br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">read</span>(<span class="hljs-params">self</span>) -&gt; <span class="hljs-built_in">bytes</span>: ...<br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">load</span>(<span class="hljs-params">r: Reader</span>) -&gt; <span class="hljs-built_in">bytes</span>:<br>    <span class="hljs-keyword">return</span> r.read()<br><br><span class="hljs-comment"># 任何有 read() 方法的对象都能传，不需要继承</span><br>load(<span class="hljs-built_in">open</span>(<span class="hljs-string">&quot;a.txt&quot;</span>, <span class="hljs-string">&quot;rb&quot;</span>))       <span class="hljs-comment"># ✅</span><br>load(MyCustomReader())          <span class="hljs-comment"># ✅</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p><strong>不用改现有类的继承关系</strong>，这是 <code>Protocol</code> 相比抽象基类的最大优势。</p>
+</blockquote>
+<h2 id="四、TypeVar-与泛型函数"><a href="#四、TypeVar-与泛型函数" class="headerlink" title="四、TypeVar 与泛型函数"></a>四、<code>TypeVar</code> 与泛型函数</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">from</span> typing <span class="hljs-keyword">import</span> TypeVar<br><br>T = TypeVar(<span class="hljs-string">&quot;T&quot;</span>)<br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">first</span>(<span class="hljs-params">items: <span class="hljs-built_in">list</span>[T]</span>) -&gt; T | <span class="hljs-literal">None</span>:<br>    <span class="hljs-keyword">return</span> items[<span class="hljs-number">0</span>] <span class="hljs-keyword">if</span> items <span class="hljs-keyword">else</span> <span class="hljs-literal">None</span><br><br>reveal = first([<span class="hljs-number">1</span>, <span class="hljs-number">2</span>, <span class="hljs-number">3</span>])       <span class="hljs-comment"># mypy 推导出 int | None</span><br></code></pre></td></tr></table></figure>
+
+<p>Python 3.12+ 有更简洁的语法：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">def</span> <span class="hljs-title function_">first</span>[T](items: <span class="hljs-built_in">list</span>[T]) -&gt; T | <span class="hljs-literal">None</span>:<br>    <span class="hljs-keyword">return</span> items[<span class="hljs-number">0</span>] <span class="hljs-keyword">if</span> items <span class="hljs-keyword">else</span> <span class="hljs-literal">None</span><br></code></pre></td></tr></table></figure>
+
+<h2 id="五、mypy-配置"><a href="#五、mypy-配置" class="headerlink" title="五、mypy 配置"></a>五、mypy 配置</h2><p><code>pyproject.toml</code>：</p>
+<figure class="highlight toml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><code class="hljs toml"><span class="hljs-section">[tool.mypy]</span><br><span class="hljs-attr">python_version</span> = <span class="hljs-string">&quot;3.12&quot;</span><br><span class="hljs-attr">strict</span> = <span class="hljs-literal">true</span><br><span class="hljs-attr">warn_unused_ignores</span> = <span class="hljs-literal">true</span><br><span class="hljs-attr">warn_redundant_casts</span> = <span class="hljs-literal">true</span><br><span class="hljs-attr">warn_unreachable</span> = <span class="hljs-literal">true</span><br><span class="hljs-attr">no_implicit_optional</span> = <span class="hljs-literal">true</span><br><span class="hljs-attr">disallow_untyped_defs</span> = <span class="hljs-literal">true</span><br><span class="hljs-attr">disallow_incomplete_defs</span> = <span class="hljs-literal">true</span><br><span class="hljs-attr">check_untyped_defs</span> = <span class="hljs-literal">true</span><br><span class="hljs-attr">show_error_codes</span> = <span class="hljs-literal">true</span><br><span class="hljs-attr">pretty</span> = <span class="hljs-literal">true</span><br><br><span class="hljs-comment"># 第三方库没有类型标注时，忽略它的内部实现</span><br><span class="hljs-section">[[tool.mypy.overrides]]</span><br><span class="hljs-attr">module</span> = [<span class="hljs-string">&quot;some_untyped_lib.*&quot;</span>]<br><span class="hljs-attr">ignore_missing_imports</span> = <span class="hljs-literal">true</span><br></code></pre></td></tr></table></figure>
+
+<h3 id="几个开关的作用"><a href="#几个开关的作用" class="headerlink" title="几个开关的作用"></a>几个开关的作用</h3><table>
+<thead>
+<tr>
+<th>配置</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>strict = true</code></td>
+<td>一次打开下面大部分严格选项</td>
+</tr>
+<tr>
+<td><code>disallow_untyped_defs</code></td>
+<td>所有函数必须有注解</td>
+</tr>
+<tr>
+<td><code>check_untyped_defs</code></td>
+<td>连没注解的函数内部也检查</td>
+</tr>
+<tr>
+<td><code>no_implicit_optional</code></td>
+<td><code>x: int = None</code> 报错（必须写 <code>int | None</code>）</td>
+</tr>
+<tr>
+<td><code>warn_unused_ignores</code></td>
+<td><code># type: ignore</code> 没用到时报警，防止滥用</td>
+</tr>
+<tr>
+<td><code>show_error_codes</code></td>
+<td>显示错误码，方便按码屏蔽</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>不要一上来就开 <code>strict = true</code> 跑老项目</strong>，会报几千个错，然后你就把 mypy 关掉了。<br>正确做法：先只对<strong>新增代码</strong>开启，或按模块逐步放开。</p>
+</blockquote>
+<figure class="highlight toml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs toml"><span class="hljs-comment"># 逐步迁移：先只管核心模块</span><br><span class="hljs-section">[tool.mypy]</span><br><span class="hljs-attr">files</span> = [<span class="hljs-string">&quot;src/core&quot;</span>, <span class="hljs-string">&quot;src/api&quot;</span>]<br></code></pre></td></tr></table></figure>
+
+<h3 id="日常用法"><a href="#日常用法" class="headerlink" title="日常用法"></a>日常用法</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash">mypy src/                    <span class="hljs-comment"># 全量检查</span><br>mypy src/api/user.py         <span class="hljs-comment"># 单文件</span><br>mypy --install-types         <span class="hljs-comment"># 自动装缺失的 stub 包</span><br></code></pre></td></tr></table></figure>
+
+<h2 id="六、-type-ignore-的正确姿势"><a href="#六、-type-ignore-的正确姿势" class="headerlink" title="六、# type: ignore 的正确姿势"></a>六、<code># type: ignore</code> 的正确姿势</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># ❌ 屏蔽一切错误，出问题也不知道</span><br>result = weird_call()  <span class="hljs-comment"># type: ignore</span><br><br><span class="hljs-comment"># ✅ 只屏蔽特定错误码</span><br>result = weird_call()  <span class="hljs-comment"># type: ignore[arg-<span class="hljs-built_in">type</span>]</span><br><br><span class="hljs-comment"># ✅ 说明为什么</span><br>result = weird_call()  <span class="hljs-comment"># type: ignore[arg-<span class="hljs-built_in">type</span>]  # 该库的 stub 写错了，见 issue #123</span><br></code></pre></td></tr></table></figure>
+
+<p>配合 <code>warn_unused_ignores = true</code>，用不到的 ignore 会被标记出来，避免残留。</p>
+<h2 id="七、运行时校验：注解不够用时"><a href="#七、运行时校验：注解不够用时" class="headerlink" title="七、运行时校验：注解不够用时"></a>七、运行时校验：注解不够用时</h2><p><strong>注解不校验运行时数据。</strong> 接口传进来一个字符串，注解写 <code>int</code> 也不会拦。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># ❌ 注解只是声明，不会校验</span><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">create_user</span>(<span class="hljs-params">age: <span class="hljs-built_in">int</span></span>) -&gt; <span class="hljs-literal">None</span>:<br>    <span class="hljs-built_in">print</span>(age + <span class="hljs-number">1</span>)          <span class="hljs-comment"># 传 &quot;18&quot; 进来会炸</span><br><br><span class="hljs-comment"># ✅ 用 pydantic 在运行时校验</span><br><span class="hljs-keyword">from</span> pydantic <span class="hljs-keyword">import</span> BaseModel, Field<br><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">UserIn</span>(<span class="hljs-title class_ inherited__">BaseModel</span>):<br>    name: <span class="hljs-built_in">str</span> = Field(min_length=<span class="hljs-number">1</span>, max_length=<span class="hljs-number">50</span>)<br>    age: <span class="hljs-built_in">int</span> = Field(ge=<span class="hljs-number">0</span>, le=<span class="hljs-number">150</span>)<br><br>user = UserIn(**request.json)   <span class="hljs-comment"># 不合法直接抛 ValidationError</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>用什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>内部函数之间</td>
+<td>注解 + mypy</td>
+</tr>
+<tr>
+<td>外部输入（API、配置、文件）</td>
+<td><strong>pydantic</strong> 等运行时校验</td>
+</tr>
+<tr>
+<td>两者都要</td>
+<td>pydantic 的模型本身就是类型</td>
+</tr>
+</tbody></table>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 以为注解会在运行时校验（它不会）</li>
+<li><input disabled="" type="checkbox"> 把 <code>Optional[X]</code> 理解成「可选参数」</li>
+<li><input disabled="" type="checkbox"> 用 <code>x: int = None</code> 而不是 <code>x: int | None = None</code></li>
+<li><input disabled="" type="checkbox"> 参数类型写得太窄（该用 <code>Sequence</code> 却写 <code>list</code>）</li>
+<li><input disabled="" type="checkbox"> 返回类型写 <code>dict</code> 而不给结构（用 <code>TypedDict</code> 或 pydantic 模型）</li>
+<li><input disabled="" type="checkbox"> 老项目一上来就 <code>strict = true</code>，被几千个错误劝退</li>
+<li><input disabled="" type="checkbox"> 到处 <code># type: ignore</code> 且不带错误码</li>
+<li><input disabled="" type="checkbox"> 目标版本低于 3.9 却用了 <code>list[str]</code> 内置泛型</li>
+<li><input disabled="" type="checkbox"> 用 <code>list[str]</code> 时忘了 <code>from __future__ import annotations</code> 的兼容作用</li>
+<li><input disabled="" type="checkbox"> 在 <code>__init__</code> 之外初始化实例属性，mypy 推断不出来</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://docs.python.org/3/library/typing.html">Python 官方 · typing 模块</a> · <a target="_blank" rel="noopener" href="https://mypy.readthedocs.io/">mypy 官方文档</a> · <a target="_blank" rel="noopener" href="https://peps.python.org/pep-0604/">PEP 604 · 联合类型新语法</a> · <a target="_blank" rel="noopener" href="https://docs.pydantic.dev/">Pydantic 官方文档</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/python/" class="category-chain-item">python</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/python/" class="print-no-link">#python</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 014 · Python（二）：类型注解与静态检查</div>
+      <div>https://ethan-iopasd.github.io/2026/09/30/每日技术博客014-Python类型注解/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年9月30日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2003-Python%E4%BE%9D%E8%B5%96%E7%AE%A1%E7%90%86/" title="每日技术博客 003 · Python（一）：依赖管理与虚拟环境">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 003 · Python（一）：依赖管理与虚拟环境</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2015-Python%E5%BC%82%E6%AD%A5%E7%BC%96%E7%A8%8B/" title="每日技术博客 015 · Python（三）：异步编程 asyncio">
+                        <span class="hidden-mobile">每日技术博客 015 · Python（三）：异步编程 asyncio</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

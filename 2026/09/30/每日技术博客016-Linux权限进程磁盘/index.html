@@ -1,0 +1,997 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-09-30 · 第 016 篇 Linux 系列第一篇。三件线上最常要查的事 —— 权限不对、进程没起来、磁盘满了。  📚 Linux 系列目录   章节 主题 状态    一 权限、进程与磁盘排查 本篇   二 systemd、日志与定时任务 已发布    开场：排查先看三个数字磁盘满、内存高、进程不在 —— 线上 80% 的「服务挂了」都能归到这三类。先跑这三条">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 016 · Linux（一）：权限、进程与磁盘排查">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2016-Linux%E6%9D%83%E9%99%90%E8%BF%9B%E7%A8%8B%E7%A3%81%E7%9B%98/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-09-30 · 第 016 篇 Linux 系列第一篇。三件线上最常要查的事 —— 权限不对、进程没起来、磁盘满了。  📚 Linux 系列目录   章节 主题 状态    一 权限、进程与磁盘排查 本篇   二 systemd、日志与定时任务 已发布    开场：排查先看三个数字磁盘满、内存高、进程不在 —— 线上 80% 的「服务挂了」都能归到这三类。先跑这三条">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-09-30T09:00:00.000Z">
+<meta property="article:modified_time" content="2026-09-30T05:10:17.211Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="linux">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 016 · Linux（一）：权限、进程与磁盘排查 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 016 · Linux（一）：权限、进程与磁盘排查"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-09-30 17:00" pubdate>
+          2026年9月30日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          1.6k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          14 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 016 · Linux（一）：权限、进程与磁盘排查</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-09-30 · 第 016 篇</p>
+<p>Linux 系列第一篇。三件线上最常要查的事 —— 权限不对、进程没起来、磁盘满了。</p>
+</blockquote>
+<h2 id="📚-Linux-系列目录"><a href="#📚-Linux-系列目录" class="headerlink" title="📚 Linux 系列目录"></a>📚 Linux 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>权限、进程与磁盘排查</td>
+<td><strong>本篇</strong></td>
+</tr>
+<tr>
+<td>二</td>
+<td>systemd、日志与定时任务</td>
+<td>已发布</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：排查先看三个数字"><a href="#开场：排查先看三个数字" class="headerlink" title="开场：排查先看三个数字"></a>开场：排查先看三个数字</h2><p><strong>磁盘满、内存高、进程不在</strong> —— 线上 80% 的「服务挂了」都能归到这三类。先跑这三条：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-built_in">df</span> -h              <span class="hljs-comment"># 磁盘</span><br>free -h            <span class="hljs-comment"># 内存</span><br>systemctl status &lt;服务名&gt;   <span class="hljs-comment"># 进程</span><br></code></pre></td></tr></table></figure>
+
+<h2 id="一、权限"><a href="#一、权限" class="headerlink" title="一、权限"></a>一、权限</h2><h3 id="看权限"><a href="#看权限" class="headerlink" title="看权限"></a>看权限</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-built_in">ls</span> -l file<br><span class="hljs-comment"># -rwxr-xr--  1 alice dev  1024 Sep 30 12:00 file</span><br><span class="hljs-comment">#  │└┬┘└┬┘└┬┘</span><br><span class="hljs-comment">#  │ │  │  └── 其他人：r--（只读）</span><br><span class="hljs-comment">#  │ │  └───── 所属组：r-x（读 + 执行）</span><br><span class="hljs-comment">#  │ └──────── 所有者：rwx（读 + 写 + 执行）</span><br><span class="hljs-comment">#  └────────── 类型：- 普通文件，d 目录，l 符号链接</span><br></code></pre></td></tr></table></figure>
+
+<h3 id="数字含义"><a href="#数字含义" class="headerlink" title="数字含义"></a>数字含义</h3><table>
+<thead>
+<tr>
+<th>数字</th>
+<th>权限</th>
+<th>对文件</th>
+<th>对目录</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>4</td>
+<td><code>r</code></td>
+<td>读取内容</td>
+<td>列出文件名</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>w</code></td>
+<td>修改内容</td>
+<td>创建&#x2F;删除文件</td>
+</tr>
+<tr>
+<td>1</td>
+<td><code>x</code></td>
+<td>执行</td>
+<td><strong>进入目录（cd）</strong></td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-built_in">chmod</span> 644 file      <span class="hljs-comment"># rw-r--r--</span><br><span class="hljs-built_in">chmod</span> 755 script.sh <span class="hljs-comment"># rwxr-xr-x</span><br><span class="hljs-built_in">chmod</span> +x script.sh  <span class="hljs-comment"># 加执行位</span><br><span class="hljs-built_in">chmod</span> -R 755 <span class="hljs-built_in">dir</span>    <span class="hljs-comment"># 递归（谨慎）</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>目录的 <code>x</code> 位是「能否进入」</strong>。目录只有 <code>r</code> 没有 <code>x</code>，<code>ls</code> 能看到文件名但读不到详情，也 <code>cd</code> 不进去。<br><strong>目录的 <code>w</code> 位是「能否增删文件」</strong>，和文件本身的权限无关 —— 这就是为什么删除文件看的是父目录权限。</p>
+</blockquote>
+<h3 id="所有权"><a href="#所有权" class="headerlink" title="所有权"></a>所有权</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-built_in">chown</span> alice:dev file          <span class="hljs-comment"># 改所有者和组</span><br><span class="hljs-built_in">chown</span> -R www-data:www-data /var/www   <span class="hljs-comment"># 递归</span><br><span class="hljs-built_in">chgrp</span> dev file                <span class="hljs-comment"># 只改组</span><br></code></pre></td></tr></table></figure>
+
+<h3 id="特殊权限位"><a href="#特殊权限位" class="headerlink" title="特殊权限位"></a>特殊权限位</h3><table>
+<thead>
+<tr>
+<th>位</th>
+<th>数字</th>
+<th>作用</th>
+<th>典型场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>SUID</td>
+<td>4000</td>
+<td>以文件所有者身份执行</td>
+<td><code>passwd</code></td>
+</tr>
+<tr>
+<td>SGID</td>
+<td>2000</td>
+<td>以文件所属组身份执行；目录下新建文件继承组</td>
+<td>共享目录</td>
+</tr>
+<tr>
+<td>Sticky</td>
+<td>1000</td>
+<td>只有文件所有者能删</td>
+<td><code>/tmp</code></td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 共享目录：组内成员都能读写，且新建文件自动属于该组</span><br><span class="hljs-built_in">chmod</span> 2775 /shared<br></code></pre></td></tr></table></figure>
+
+<h3 id="umask：新建文件的默认权限"><a href="#umask：新建文件的默认权限" class="headerlink" title="umask：新建文件的默认权限"></a><code>umask</code>：新建文件的默认权限</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-built_in">umask</span>          <span class="hljs-comment"># 0022</span><br></code></pre></td></tr></table></figure>
+
+<p><strong>计算方式：默认权限 − umask</strong></p>
+<table>
+<thead>
+<tr>
+<th>默认</th>
+<th>umask</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>文件 666</td>
+<td>022</td>
+<td>644</td>
+</tr>
+<tr>
+<td>目录 777</td>
+<td>022</td>
+<td>755</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 文件默认不带 <code>x</code>（不会出现 777 的文件），这是刻意的安全设计。</p>
+</blockquote>
+<h3 id="sudo-与-su-的区别"><a href="#sudo-与-su-的区别" class="headerlink" title="sudo 与 su 的区别"></a><code>sudo</code> 与 <code>su</code> 的区别</h3><table>
+<thead>
+<tr>
+<th></th>
+<th><code>su</code></th>
+<th><code>sudo</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>需要</td>
+<td>目标用户的密码</td>
+<td><strong>自己的</strong>密码</td>
+</tr>
+<tr>
+<td>粒度</td>
+<td>整个身份切换</td>
+<td>可按命令授权</td>
+</tr>
+<tr>
+<td>审计</td>
+<td>弱</td>
+<td>有日志</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>不要把服务跑在 root 下。</strong> 用专用用户 + 最小权限。</p>
+</blockquote>
+<h2 id="二、进程"><a href="#二、进程" class="headerlink" title="二、进程"></a>二、进程</h2><h3 id="查看"><a href="#查看" class="headerlink" title="查看"></a>查看</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs bash">ps aux | grep nginx          <span class="hljs-comment"># 全量进程</span><br>ps -ef --forest              <span class="hljs-comment"># 进程树</span><br>top -p $(pgrep -d, nginx)    <span class="hljs-comment"># 只看某几个进程</span><br>pgrep -af nginx              <span class="hljs-comment"># 按名字找（含完整命令行）</span><br></code></pre></td></tr></table></figure>
+
+<p><code>ps aux</code> 各列：</p>
+<table>
+<thead>
+<tr>
+<th>列</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>USER</code></td>
+<td>运行用户</td>
+</tr>
+<tr>
+<td><code>PID</code> &#x2F; <code>PPID</code></td>
+<td>进程号 &#x2F; 父进程号</td>
+</tr>
+<tr>
+<td><code>%CPU</code> &#x2F; <code>%MEM</code></td>
+<td>CPU &#x2F; 内存占比</td>
+</tr>
+<tr>
+<td><code>STAT</code></td>
+<td>状态（见下）</td>
+</tr>
+<tr>
+<td><code>START</code> &#x2F; <code>TIME</code></td>
+<td>启动时间 &#x2F; 累计 CPU 时间</td>
+</tr>
+<tr>
+<td><code>COMMAND</code></td>
+<td>命令行</td>
+</tr>
+</tbody></table>
+<p><code>STAT</code> 常见值：</p>
+<table>
+<thead>
+<tr>
+<th>值</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>R</code></td>
+<td>运行中</td>
+</tr>
+<tr>
+<td><code>S</code></td>
+<td>可中断睡眠（等 I&#x2F;O，最常见）</td>
+</tr>
+<tr>
+<td><code>D</code></td>
+<td><strong>不可中断睡眠</strong>（等磁盘 I&#x2F;O，<code>kill -9</code> 也杀不掉）</td>
+</tr>
+<tr>
+<td><code>Z</code></td>
+<td><strong>僵尸进程</strong>（已结束但父进程没回收）</td>
+</tr>
+<tr>
+<td><code>T</code></td>
+<td>停止</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>D</code> 状态杀不掉是正常的</strong>，它在等内核 I&#x2F;O 返回。要查是不是磁盘有问题。<br>⚠️ <strong>僵尸进程不能直接杀</strong>，它已经死了。要么等父进程回收，要么处理父进程。</p>
+</blockquote>
+<h3 id="结束进程"><a href="#结束进程" class="headerlink" title="结束进程"></a>结束进程</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-built_in">kill</span> &lt;PID&gt;              <span class="hljs-comment"># 发 SIGTERM（15），请求优雅退出</span><br><span class="hljs-built_in">kill</span> -9 &lt;PID&gt;           <span class="hljs-comment"># 发 SIGKILL，强制杀死，无法被捕获</span><br><span class="hljs-built_in">kill</span> -HUP &lt;PID&gt;         <span class="hljs-comment"># 常用于让服务重载配置</span><br>pkill -f <span class="hljs-string">&quot;python app.py&quot;</span>  <span class="hljs-comment"># 按命令行匹配</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>信号</th>
+<th>编号</th>
+<th>能否被捕获</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>SIGTERM</code></td>
+<td>15</td>
+<td>✅</td>
+<td><strong>默认，优雅退出</strong></td>
+</tr>
+<tr>
+<td><code>SIGKILL</code></td>
+<td>9</td>
+<td>❌</td>
+<td>强制杀，<strong>不给清理机会</strong></td>
+</tr>
+<tr>
+<td><code>SIGINT</code></td>
+<td>2</td>
+<td>✅</td>
+<td>Ctrl+C</td>
+</tr>
+<tr>
+<td><code>SIGHUP</code></td>
+<td>1</td>
+<td>✅</td>
+<td>重载配置</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ **优先用 <code>kill</code> 而不是 <code>kill -9</code>**。<code>-9</code> 会让进程没机会关闭连接、刷缓冲、删临时文件。<br>只有 <code>kill</code> 无效时才用 <code>-9</code>。</p>
+</blockquote>
+<h3 id="排查-CPU-高"><a href="#排查-CPU-高" class="headerlink" title="排查 CPU 高"></a>排查 CPU 高</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash">top -o %CPU                  <span class="hljs-comment"># 按 CPU 排序</span><br>top -H -p &lt;PID&gt;              <span class="hljs-comment"># 看某个进程的线程</span><br>pidstat -p &lt;PID&gt; 1           <span class="hljs-comment"># 持续采样</span><br></code></pre></td></tr></table></figure>
+
+<h3 id="排查内存高"><a href="#排查内存高" class="headerlink" title="排查内存高"></a>排查内存高</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash">free -h                      <span class="hljs-comment"># 总体</span><br>ps aux --<span class="hljs-built_in">sort</span>=-%mem | <span class="hljs-built_in">head</span>   <span class="hljs-comment"># 按内存排序</span><br>pmap -x &lt;PID&gt; | <span class="hljs-built_in">tail</span> -1      <span class="hljs-comment"># 某进程内存明细</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>free</code> 里的 <code>available</code> 才是可用内存</strong>，不是 <code>free</code> 那列。<br>Linux 会用空闲内存做缓存（<code>buff/cache</code>），看着「内存快满了」其实是正常的。</p>
+</blockquote>
+<h3 id="排查端口占用"><a href="#排查端口占用" class="headerlink" title="排查端口占用"></a>排查端口占用</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash">ss -tulnp | grep :8080       <span class="hljs-comment"># 谁占用了 8080</span><br>lsof -i :8080                <span class="hljs-comment"># 同上（需要 lsof）</span><br>ss -s                        <span class="hljs-comment"># 连接统计</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>netstat</code> 已被 <code>ss</code> 取代，新系统上可能没装 <code>netstat</code>。</p>
+</blockquote>
+<h2 id="三、磁盘"><a href="#三、磁盘" class="headerlink" title="三、磁盘"></a>三、磁盘</h2><h3 id="看整体"><a href="#看整体" class="headerlink" title="看整体"></a>看整体</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-built_in">df</span> -h                        <span class="hljs-comment"># 各分区使用率</span><br><span class="hljs-built_in">df</span> -i                        <span class="hljs-comment"># inode 使用率</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>df -h</code> 看着还有空间，但写不进去</strong> —— 大概率是 <strong>inode 用完了</strong>（大量小文件）。<br><code>df -i</code> 的 <code>IUse%</code> 到 100% 就是这个问题。</p>
+</blockquote>
+<h3 id="找大目录"><a href="#找大目录" class="headerlink" title="找大目录"></a>找大目录</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-built_in">du</span> -h --max-depth=1 / | <span class="hljs-built_in">sort</span> -rh | <span class="hljs-built_in">head</span> -20<br><span class="hljs-built_in">du</span> -sh /var/* | <span class="hljs-built_in">sort</span> -rh | <span class="hljs-built_in">head</span><br></code></pre></td></tr></table></figure>
+
+<h3 id="找大文件"><a href="#找大文件" class="headerlink" title="找大文件"></a>找大文件</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">find / -<span class="hljs-built_in">type</span> f -size +500M -<span class="hljs-built_in">exec</span> <span class="hljs-built_in">ls</span> -lh &#123;&#125; \; 2&gt;/dev/null | <span class="hljs-built_in">head</span><br></code></pre></td></tr></table></figure>
+
+<h3 id="被删除但空间没释放"><a href="#被删除但空间没释放" class="headerlink" title="被删除但空间没释放"></a>被删除但空间没释放</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 进程还持有已删除文件的句柄，空间不会释放</span><br>lsof | grep deleted | <span class="hljs-built_in">head</span><br></code></pre></td></tr></table></figure>
+
+<p><strong>典型场景</strong>：日志文件被 <code>rm</code> 掉了，但写日志的进程还在写，<code>df</code> 显示空间没回收。</p>
+<p><strong>正确做法</strong>：不要 <code>rm</code> 正在写的日志，用<strong>清空</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash">: &gt; /var/log/app.log        <span class="hljs-comment"># ✅ 清空但保持 inode</span><br><span class="hljs-comment"># 或者用 logrotate 做轮转</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>rm</code> 日志文件是个经典事故</strong>：空间不释放，还得重启进程才能回收。</p>
+</blockquote>
+<h3 id="磁盘-I-O"><a href="#磁盘-I-O" class="headerlink" title="磁盘 I&#x2F;O"></a>磁盘 I&#x2F;O</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash">iostat -x 1                  <span class="hljs-comment"># 每秒刷新，看 %util</span><br>iotop                        <span class="hljs-comment"># 哪个进程在读写（需要 root）</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>%util</code></td>
+<td>设备繁忙度，接近 100% 说明饱和</td>
+</tr>
+<tr>
+<td><code>await</code></td>
+<td>平均等待时间（ms），<strong>明显偏高说明有瓶颈</strong></td>
+</tr>
+<tr>
+<td><code>r/s</code> <code>w/s</code></td>
+<td>每秒读写次数</td>
+</tr>
+</tbody></table>
+<h2 id="四、一个排查套路"><a href="#四、一个排查套路" class="headerlink" title="四、一个排查套路"></a>四、一个排查套路</h2><p>服务响应慢时，按这个顺序看：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-built_in">uptime</span>                       <span class="hljs-comment"># 1. 负载高不高</span><br>top -o %CPU                  <span class="hljs-comment"># 2. CPU 被谁占了</span><br>free -h                      <span class="hljs-comment"># 3. 内存够不够</span><br><span class="hljs-built_in">df</span> -h &amp;&amp; <span class="hljs-built_in">df</span> -i               <span class="hljs-comment"># 4. 磁盘空间和 inode</span><br>iostat -x 1                  <span class="hljs-comment"># 5. 磁盘 I/O 是否饱和</span><br>ss -s                        <span class="hljs-comment"># 6. 连接数是否异常</span><br>dmesg -T | <span class="hljs-built_in">tail</span> -50          <span class="hljs-comment"># 7. 内核有没有报错（OOM、磁盘错误）</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>uptime</code> 的负载值要和 CPU 核数对比</strong>。4 核机器负载 8 表示严重过载；16 核机器负载 8 还算正常。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 目录没有 <code>x</code> 位，<code>cd</code> 不进去</li>
+<li><input disabled="" type="checkbox"> 以为删除文件看文件自身权限（其实看父目录的 <code>w</code>）</li>
+<li><input disabled="" type="checkbox"> 用 <code>chmod -R 777</code> 解决权限问题（安全事故的起点）</li>
+<li><input disabled="" type="checkbox"> 服务跑在 root 下</li>
+<li><input disabled="" type="checkbox"> 习惯性 <code>kill -9</code>，进程没机会清理资源</li>
+<li><input disabled="" type="checkbox"> 想杀掉 <code>D</code> 状态进程（杀不掉，得查 I&#x2F;O）</li>
+<li><input disabled="" type="checkbox"> 想杀掉僵尸进程（它已经死了，要处理父进程）</li>
+<li><input disabled="" type="checkbox"> 只看 <code>free</code> 那列判断内存不足（要看 <code>available</code>）</li>
+<li><input disabled="" type="checkbox"> 磁盘满了只查空间不查 inode（大量小文件场景）</li>
+<li><input disabled="" type="checkbox"> <code>rm</code> 掉正在写入的日志文件，空间不释放</li>
+<li><input disabled="" type="checkbox"> 用 <code>netstat</code> 而不是 <code>ss</code></li>
+<li><input disabled="" type="checkbox"> <code>uptime</code> 负载高就断定 CPU 不够（可能是 I&#x2F;O 等待）</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://man7.org/linux/man-pages/man1/chmod.1.html">Linux man-pages · chmod</a> · <a target="_blank" rel="noopener" href="https://man7.org/linux/man-pages/man1/ps.1.html">Linux man-pages · ps</a> · <a target="_blank" rel="noopener" href="https://man7.org/linux/man-pages/man7/signal.7.html">Linux man-pages · signal</a> · <a target="_blank" rel="noopener" href="https://man7.org/linux/man-pages/man8/ss.8.html">Linux man-pages · ss</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/linux/" class="category-chain-item">linux</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/linux/" class="print-no-link">#linux</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 016 · Linux（一）：权限、进程与磁盘排查</div>
+      <div>https://ethan-iopasd.github.io/2026/09/30/每日技术博客016-Linux权限进程磁盘/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年9月30日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2017-Linux%E6%9C%8D%E5%8A%A1%E4%B8%8E%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1/" title="每日技术博客 017 · Linux（二）：systemd、日志与定时任务">
+                        <span class="hidden-mobile">每日技术博客 017 · Linux（二）：systemd、日志与定时任务</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

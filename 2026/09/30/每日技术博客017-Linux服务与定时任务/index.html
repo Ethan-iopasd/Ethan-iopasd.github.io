@@ -1,0 +1,1069 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-09-30 · 第 017 篇 Linux 系列第二篇。服务怎么托管、日志被谁吃掉了、定时任务为什么没跑 —— 运维日常的三大困惑。  📚 Linux 系列目录   章节 主题 状态    一 权限、进程与磁盘排查 已发布   二 systemd、日志与定时任务 本篇    开场：这三个东西都是「你以为它会自己跑」服务不会自己重启、日志不会自己轮转、cron 不会自">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 017 · Linux（二）：systemd、日志与定时任务">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2017-Linux%E6%9C%8D%E5%8A%A1%E4%B8%8E%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-09-30 · 第 017 篇 Linux 系列第二篇。服务怎么托管、日志被谁吃掉了、定时任务为什么没跑 —— 运维日常的三大困惑。  📚 Linux 系列目录   章节 主题 状态    一 权限、进程与磁盘排查 已发布   二 systemd、日志与定时任务 本篇    开场：这三个东西都是「你以为它会自己跑」服务不会自己重启、日志不会自己轮转、cron 不会自">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-09-30T09:20:00.000Z">
+<meta property="article:modified_time" content="2026-09-30T05:10:34.132Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="linux">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 017 · Linux（二）：systemd、日志与定时任务 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 017 · Linux（二）：systemd、日志与定时任务"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-09-30 17:20" pubdate>
+          2026年9月30日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          1.8k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          16 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 017 · Linux（二）：systemd、日志与定时任务</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-09-30 · 第 017 篇</p>
+<p>Linux 系列第二篇。服务怎么托管、日志被谁吃掉了、定时任务为什么没跑 —— 运维日常的三大困惑。</p>
+</blockquote>
+<h2 id="📚-Linux-系列目录"><a href="#📚-Linux-系列目录" class="headerlink" title="📚 Linux 系列目录"></a>📚 Linux 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>权限、进程与磁盘排查</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>systemd、日志与定时任务</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：这三个东西都是「你以为它会自己跑」"><a href="#开场：这三个东西都是「你以为它会自己跑」" class="headerlink" title="开场：这三个东西都是「你以为它会自己跑」"></a>开场：这三个东西都是「你以为它会自己跑」</h2><p>服务不会自己重启、日志不会自己轮转、cron 不会自己继承你的环境变量。<strong>都要显式配。</strong></p>
+<h2 id="一、systemd-服务"><a href="#一、systemd-服务" class="headerlink" title="一、systemd 服务"></a>一、systemd 服务</h2><h3 id="最小可用单元文件"><a href="#最小可用单元文件" class="headerlink" title="最小可用单元文件"></a>最小可用单元文件</h3><p><code>/etc/systemd/system/myapp.service</code></p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><code class="hljs ini"><span class="hljs-section">[Unit]</span><br><span class="hljs-attr">Description</span>=My Application<br><span class="hljs-attr">After</span>=network.target<br><br><span class="hljs-section">[Service]</span><br><span class="hljs-attr">Type</span>=simple<br><span class="hljs-attr">User</span>=www-data<br><span class="hljs-attr">WorkingDirectory</span>=/opt/myapp<br><span class="hljs-attr">Environment</span>=<span class="hljs-string">&quot;APP_ENV=production&quot;</span><br><span class="hljs-attr">EnvironmentFile</span>=-/etc/myapp/env<br><span class="hljs-attr">ExecStart</span>=/opt/myapp/.venv/bin/python -m myapp<br><span class="hljs-attr">ExecReload</span>=/bin/kill -HUP <span class="hljs-variable">$MAINPID</span><br><span class="hljs-attr">Restart</span>=<span class="hljs-literal">on</span>-failure<br><span class="hljs-attr">RestartSec</span>=<span class="hljs-number">5</span><br><span class="hljs-attr">StandardOutput</span>=journal<br><span class="hljs-attr">StandardError</span>=journal<br><br><span class="hljs-section">[Install]</span><br><span class="hljs-attr">WantedBy</span>=multi-user.target<br></code></pre></td></tr></table></figure>
+
+<h3 id="生效流程（顺序不能错）"><a href="#生效流程（顺序不能错）" class="headerlink" title="生效流程（顺序不能错）"></a>生效流程（顺序不能错）</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-built_in">sudo</span> systemctl daemon-reload      <span class="hljs-comment"># 1. 改了 unit 文件必须先 reload</span><br><span class="hljs-built_in">sudo</span> systemctl <span class="hljs-built_in">enable</span> myapp       <span class="hljs-comment"># 2. 开机自启</span><br><span class="hljs-built_in">sudo</span> systemctl start myapp        <span class="hljs-comment"># 3. 启动</span><br><span class="hljs-built_in">sudo</span> systemctl status myapp       <span class="hljs-comment"># 4. 看状态</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>改了 <code>.service</code> 文件不 <code>daemon-reload</code>，改动不会生效。</strong> 这是最高频的困惑。</p>
+</blockquote>
+<h3 id="Type-的选择"><a href="#Type-的选择" class="headerlink" title="Type 的选择"></a><code>Type</code> 的选择</h3><table>
+<thead>
+<tr>
+<th>Type</th>
+<th>含义</th>
+<th>适合</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>simple</code></td>
+<td>启动命令即为服务（默认）</td>
+<td>前台运行的程序</td>
+</tr>
+<tr>
+<td><code>forking</code></td>
+<td>进程会 fork 到后台</td>
+<td>老式守护进程</td>
+</tr>
+<tr>
+<td><code>oneshot</code></td>
+<td>执行一次就退出</td>
+<td>初始化脚本</td>
+</tr>
+<tr>
+<td><code>notify</code></td>
+<td>程序主动 <code>sd_notify</code> 通知就绪</td>
+<td>支持该协议的守护进程</td>
+</tr>
+<tr>
+<td><code>exec</code></td>
+<td>类似 <code>simple</code>，但等 <code>exec</code> 成功</td>
+<td>更精确的就绪判断</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>前台运行是前提</strong>。<code>ExecStart</code> 里不要用 <code>&amp;</code>、不要用 <code>nohup</code>、不要用 <code>daemon</code> 模式<br>—— systemd 需要自己掌控进程，程序自己 daemon 化会让 systemd 认为服务已退出。</p>
+</blockquote>
+<h3 id="Restart-策略"><a href="#Restart-策略" class="headerlink" title="Restart 策略"></a><code>Restart</code> 策略</h3><table>
+<thead>
+<tr>
+<th>值</th>
+<th>行为</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>no</code></td>
+<td>不重启（默认）</td>
+</tr>
+<tr>
+<td><code>on-failure</code></td>
+<td>非 0 退出 &#x2F; 被信号杀死才重启</td>
+</tr>
+<tr>
+<td><code>always</code></td>
+<td>总是重启</td>
+</tr>
+<tr>
+<td><code>on-abnormal</code></td>
+<td>超时或被信号杀死才重启</td>
+</tr>
+</tbody></table>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs ini"><span class="hljs-attr">Restart</span>=<span class="hljs-literal">on</span>-failure<br><span class="hljs-attr">RestartSec</span>=<span class="hljs-number">5</span><br><span class="hljs-attr">StartLimitIntervalSec</span>=<span class="hljs-number">60</span>      <span class="hljs-comment"># 60 秒内</span><br><span class="hljs-attr">StartLimitBurst</span>=<span class="hljs-number">5</span>             <span class="hljs-comment"># 最多重启 5 次，超过就放弃</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ **一定要配 <code>StartLimitBurst</code>**。否则配置写错导致启动即崩，systemd 会无限重启，<br>CPU 打满，日志刷爆。</p>
+</blockquote>
+<h3 id="资源与安全限制"><a href="#资源与安全限制" class="headerlink" title="资源与安全限制"></a>资源与安全限制</h3><figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs ini"><span class="hljs-section">[Service]</span><br><span class="hljs-comment"># 资源限制</span><br><span class="hljs-attr">MemoryMax</span>=<span class="hljs-number">512</span>M<br><span class="hljs-attr">CPUQuota</span>=<span class="hljs-number">50</span>%<br><br><span class="hljs-comment"># 安全加固</span><br><span class="hljs-attr">NoNewPrivileges</span>=<span class="hljs-literal">true</span><br><span class="hljs-attr">PrivateTmp</span>=<span class="hljs-literal">true</span><br><span class="hljs-attr">ProtectSystem</span>=strict<br><span class="hljs-attr">ProtectHome</span>=<span class="hljs-literal">true</span><br><span class="hljs-attr">ReadWritePaths</span>=/var/lib/myapp<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>指令</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>NoNewPrivileges</code></td>
+<td>禁止提权</td>
+</tr>
+<tr>
+<td><code>PrivateTmp</code></td>
+<td>独立的 <code>/tmp</code>，互不可见</td>
+</tr>
+<tr>
+<td><code>ProtectSystem=strict</code></td>
+<td>整个文件系统只读（除 <code>ReadWritePaths</code>）</td>
+</tr>
+<tr>
+<td><code>ProtectHome</code></td>
+<td>看不到 <code>/home</code> <code>/root</code></td>
+</tr>
+</tbody></table>
+<h3 id="环境变量"><a href="#环境变量" class="headerlink" title="环境变量"></a>环境变量</h3><figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs ini"><span class="hljs-attr">Environment</span>=<span class="hljs-string">&quot;APP_ENV=production&quot;</span><br><span class="hljs-attr">EnvironmentFile</span>=-/etc/myapp/env<br></code></pre></td></tr></table></figure>
+
+<p><code>EnvironmentFile</code> 文件格式：</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs ini"><span class="hljs-attr">APP_ENV</span>=production<br><span class="hljs-attr">DB_HOST</span>=<span class="hljs-number">127.0</span>.<span class="hljs-number">0.1</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 前面的 <code>-</code> 表示「文件不存在也不报错」。<strong>注意文件里不要写 <code>export</code>、不要加引号</strong>，<br>这不是 shell 脚本。</p>
+</blockquote>
+<h3 id="常用命令"><a href="#常用命令" class="headerlink" title="常用命令"></a>常用命令</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs bash">systemctl status myapp            <span class="hljs-comment"># 状态 + 最近日志</span><br>systemctl restart myapp<br>systemctl reload myapp            <span class="hljs-comment"># 重新加载配置（需配 ExecReload）</span><br>systemctl stop myapp<br>systemctl <span class="hljs-built_in">disable</span> myapp<br>systemctl list-units --failed     <span class="hljs-comment"># 所有失败的服务</span><br>systemctl <span class="hljs-built_in">cat</span> myapp               <span class="hljs-comment"># 看最终生效的 unit 内容</span><br>systemctl show myapp -p MainPID   <span class="hljs-comment"># 看主进程号</span><br></code></pre></td></tr></table></figure>
+
+<h2 id="二、日志"><a href="#二、日志" class="headerlink" title="二、日志"></a>二、日志</h2><h3 id="journald-与-rsyslog"><a href="#journald-与-rsyslog" class="headerlink" title="journald 与 rsyslog"></a>journald 与 rsyslog</h3><p>现代发行版有两套并存：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>systemd-journald</th>
+<th>rsyslog</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>格式</td>
+<td>二进制</td>
+<td>纯文本</td>
+</tr>
+<tr>
+<td>查看</td>
+<td><code>journalctl</code></td>
+<td><code>cat /var/log/syslog</code></td>
+</tr>
+<tr>
+<td>结构化字段</td>
+<td>✅ 支持</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>默认持久化</td>
+<td><strong>可能只在内存</strong>（<code>/run/log/journal</code>）</td>
+<td>✅</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>默认配置下 journald 重启就丢日志。</strong> 要持久化：</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-built_in">sudo</span> <span class="hljs-built_in">mkdir</span> -p /var/log/journal<br><span class="hljs-built_in">sudo</span> systemd-tmpfiles --create --prefix /var/log/journal<br><span class="hljs-built_in">sudo</span> systemctl restart systemd-journald<br></code></pre></td></tr></table></figure>
+
+<h3 id="journalctl-常用姿势"><a href="#journalctl-常用姿势" class="headerlink" title="journalctl 常用姿势"></a><code>journalctl</code> 常用姿势</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs bash">journalctl -u myapp                   <span class="hljs-comment"># 某个服务的日志</span><br>journalctl -u myapp -f                <span class="hljs-comment"># 实时跟踪</span><br>journalctl -u myapp --since <span class="hljs-string">&quot;10 min ago&quot;</span><br>journalctl -u myapp --since today --<span class="hljs-keyword">until</span> <span class="hljs-string">&quot;1 hour ago&quot;</span><br>journalctl -p err -b                  <span class="hljs-comment"># 本次启动以来的 error 及以上</span><br>journalctl -u myapp -o json-pretty    <span class="hljs-comment"># 结构化输出</span><br>journalctl --disk-usage               <span class="hljs-comment"># 占用多少磁盘</span><br>journalctl --vacuum-size=500M         <span class="hljs-comment"># 清理到只剩 500M</span><br>journalctl --vacuum-time=7d           <span class="hljs-comment"># 只保留 7 天</span><br></code></pre></td></tr></table></figure>
+
+<p><code>-p</code> 的级别：</p>
+<table>
+<thead>
+<tr>
+<th>值</th>
+<th>级别</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>emerg</td>
+</tr>
+<tr>
+<td>1</td>
+<td>alert</td>
+</tr>
+<tr>
+<td>2</td>
+<td>crit</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>err</strong></td>
+</tr>
+<tr>
+<td>4</td>
+<td>warning</td>
+</tr>
+<tr>
+<td>5</td>
+<td>notice</td>
+</tr>
+<tr>
+<td>6</td>
+<td>info</td>
+</tr>
+<tr>
+<td>7</td>
+<td>debug</td>
+</tr>
+</tbody></table>
+<h3 id="日志轮转：logrotate"><a href="#日志轮转：logrotate" class="headerlink" title="日志轮转：logrotate"></a>日志轮转：logrotate</h3><p><code>/etc/logrotate.d/myapp</code></p>
+<figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs gradle"><span class="hljs-regexp">/var/</span>log<span class="hljs-regexp">/myapp/</span>*.log &#123;<br>    daily<br>    rotate <span class="hljs-number">14</span><br>    compress<br>    delaycompress<br>    missingok<br>    notifempty<br>    create <span class="hljs-number">0640</span> www-data adm<br>    sharedscripts<br>    postrotate<br>        systemctl reload myapp &gt; <span class="hljs-regexp">/dev/</span><span class="hljs-keyword">null</span> <span class="hljs-number">2</span>&gt;&amp;<span class="hljs-number">1</span> || <span class="hljs-keyword">true</span><br>    endscript<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>指令</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>daily</code> &#x2F; <code>weekly</code> &#x2F; <code>size=100M</code></td>
+<td>轮转触发条件</td>
+</tr>
+<tr>
+<td><code>rotate 14</code></td>
+<td>保留 14 份</td>
+</tr>
+<tr>
+<td><code>compress</code></td>
+<td>旧日志 gzip</td>
+</tr>
+<tr>
+<td><code>delaycompress</code></td>
+<td>延迟一轮再压缩（避免程序还在写）</td>
+</tr>
+<tr>
+<td><code>missingok</code></td>
+<td>文件不存在不报错</td>
+</tr>
+<tr>
+<td><code>notifempty</code></td>
+<td>空文件不轮转</td>
+</tr>
+<tr>
+<td><code>create</code></td>
+<td>轮转后新建文件的权限</td>
+</tr>
+<tr>
+<td><code>postrotate</code></td>
+<td>轮转后执行的命令</td>
+</tr>
+</tbody></table>
+<p><strong>测试配置（不实际轮转）：</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-built_in">sudo</span> logrotate -d /etc/logrotate.d/myapp    <span class="hljs-comment"># 只演练</span><br><span class="hljs-built_in">sudo</span> logrotate -f /etc/logrotate.d/myapp    <span class="hljs-comment"># 强制执行一次</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>create</code> 的权限要和应用需要的权限匹配</strong>。权限写错会导致应用轮转后写不了日志。</p>
+</blockquote>
+<h3 id="应用日志的几条经验"><a href="#应用日志的几条经验" class="headerlink" title="应用日志的几条经验"></a>应用日志的几条经验</h3><table>
+<thead>
+<tr>
+<th>做法</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>输出到 stdout，交给 systemd 收集</td>
+<td>不用自己管文件、轮转</td>
+</tr>
+<tr>
+<td>结构化（JSON）</td>
+<td>便于检索和聚合</td>
+</tr>
+<tr>
+<td>带请求 id</td>
+<td>串联一次请求的所有日志</td>
+</tr>
+<tr>
+<td>日志级别可运行时调整</td>
+<td>排查时不用重启</td>
+</tr>
+<tr>
+<td>不要打敏感信息</td>
+<td>密码、token、身份证号</td>
+</tr>
+</tbody></table>
+<h2 id="三、定时任务"><a href="#三、定时任务" class="headerlink" title="三、定时任务"></a>三、定时任务</h2><h3 id="cron-的五个字段"><a href="#cron-的五个字段" class="headerlink" title="cron 的五个字段"></a>cron 的五个字段</h3><figure class="highlight subunit"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs subunit">* * * * * command<br>│ │ │ │ └── 星期（0<span class="hljs-string">-7</span>，0 和 7 都是周日）<br>│ │ │ └──── 月（1<span class="hljs-string">-12</span>）<br>│ │ └────── 日（1<span class="hljs-string">-31</span>）<br>│ └──────── 时（0<span class="hljs-string">-23</span>）<br>└────────── 分（0<span class="hljs-string">-59</span>）<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 每天凌晨 3 点</span><br>0 3 * * * /opt/backup.sh<br><br><span class="hljs-comment"># 每 5 分钟</span><br>*/5 * * * * /opt/check.sh<br><br><span class="hljs-comment"># 工作日 9 点到 18 点，每小时</span><br>0 9-18 * * 1-5 /opt/report.sh<br><br><span class="hljs-comment"># 每月 1 号和 15 号</span><br>0 0 1,15 * * /opt/billing.sh<br></code></pre></td></tr></table></figure>
+
+<h3 id="⚠️-cron-最坑的地方：环境变量不一样"><a href="#⚠️-cron-最坑的地方：环境变量不一样" class="headerlink" title="⚠️ cron 最坑的地方：环境变量不一样"></a>⚠️ cron 最坑的地方：环境变量不一样</h3><p><strong>cron 不读你的 <code>.bashrc</code> &#x2F; <code>.profile</code>。</strong> 它的 <code>PATH</code> 通常只有 <code>/usr/bin:/bin</code>。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># ❌ 在终端能跑，在 cron 里找不到 python</span><br>* * * * * python /opt/app/main.py<br><br><span class="hljs-comment"># ✅ 用绝对路径</span><br>* * * * * /opt/app/.venv/bin/python /opt/app/main.py<br><br><span class="hljs-comment"># ✅ 或者在脚本开头显式设置</span><br><span class="hljs-comment">#!/bin/bash</span><br><span class="hljs-built_in">export</span> PATH=/usr/local/bin:/usr/bin:/bin<br><span class="hljs-built_in">export</span> APP_ENV=production<br><span class="hljs-built_in">cd</span> /opt/app || <span class="hljs-built_in">exit</span> 1<br></code></pre></td></tr></table></figure>
+
+<p><strong>排查思路</strong>：把命令包成一个脚本，脚本开头 <code>set -x</code> 并重定向输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">* * * * * /opt/task.sh &gt;&gt; /var/log/task.log 2&gt;&amp;1<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>cron 的任务默认没有输出去处</strong>。不重定向的话，错误信息会进邮件系统（很多机器没配），<br>你就只能看到「任务没跑」而不知道原因。</p>
+</blockquote>
+<h3 id="在-crontab-里要转义"><a href="#在-crontab-里要转义" class="headerlink" title="% 在 crontab 里要转义"></a><code>%</code> 在 crontab 里要转义</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># ❌ % 在 crontab 里有特殊含义（表示换行）</span><br>0 3 * * * <span class="hljs-built_in">date</span> +%Y%m%d &gt; /tmp/d.txt<br><br><span class="hljs-comment"># ✅ 转义</span><br>0 3 * * * <span class="hljs-built_in">date</span> +\%Y\%m\%d &gt; /tmp/d.txt<br><br><span class="hljs-comment"># ✅ 或者干脆放进脚本里</span><br>0 3 * * * /opt/dump.sh<br></code></pre></td></tr></table></figure>
+
+<h3 id="crontab-e-与-etc-cron-d"><a href="#crontab-e-与-etc-cron-d" class="headerlink" title="crontab -e 与 /etc/cron.d/"></a><code>crontab -e</code> 与 <code>/etc/cron.d/</code></h3><table>
+<thead>
+<tr>
+<th>位置</th>
+<th>用户</th>
+<th>特点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>crontab -e</code></td>
+<td>当前用户</td>
+<td>存在 <code>/var/spool/cron/crontabs/</code></td>
+</tr>
+<tr>
+<td><code>/etc/crontab</code></td>
+<td>有用户字段</td>
+<td>系统级</td>
+</tr>
+<tr>
+<td><code>/etc/cron.d/*</code></td>
+<td>有用户字段</td>
+<td>按应用分文件，<strong>推荐</strong></td>
+</tr>
+<tr>
+<td><code>/etc/cron.&#123;hourly,daily,weekly,monthly&#125;</code></td>
+<td>root</td>
+<td>放脚本即可</td>
+</tr>
+</tbody></table>
+<p><code>/etc/cron.d/myapp</code>：</p>
+<figure class="highlight groovy"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs groovy">SHELL=<span class="hljs-regexp">/bin/</span>bash<br>PATH=<span class="hljs-regexp">/usr/</span>local<span class="hljs-regexp">/bin:/</span>usr<span class="hljs-regexp">/bin:/</span>bin<br>MAILTO=<span class="hljs-string">&quot;&quot;</span><br><br><span class="hljs-number">0</span> <span class="hljs-number">3</span> * * * www-data <span class="hljs-regexp">/opt/</span>myapp<span class="hljs-regexp">/backup.sh &gt;&gt; /</span><span class="hljs-keyword">var</span><span class="hljs-regexp">/log/</span>myapp/backup.log <span class="hljs-number">2</span>&gt;&amp;<span class="hljs-number">1</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>/etc/cron.d/</code> 里的文件<strong>必须带用户字段</strong>，且**文件名不能含 <code>.</code>**（会被忽略）。</p>
+</blockquote>
+<h3 id="systemd-timer-替代-cron"><a href="#systemd-timer-替代-cron" class="headerlink" title="systemd timer 替代 cron"></a>systemd timer 替代 cron</h3><p>需要「开机后延迟」「错过补跑」「依赖其他服务」时，timer 更强：</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs ini"><span class="hljs-comment"># /etc/systemd/system/backup.timer</span><br><span class="hljs-section">[Unit]</span><br><span class="hljs-attr">Description</span>=Daily backup<br><br><span class="hljs-section">[Timer]</span><br><span class="hljs-attr">OnCalendar</span>=*-*-* <span class="hljs-number">03</span>:<span class="hljs-number">00</span>:<span class="hljs-number">00</span><br><span class="hljs-attr">Persistent</span>=<span class="hljs-literal">true</span>          <span class="hljs-comment"># 关机期间错过的话，开机后补跑</span><br><span class="hljs-attr">RandomizedDelaySec</span>=<span class="hljs-number">300</span>   <span class="hljs-comment"># 随机延迟，避免集群同时执行</span><br><br><span class="hljs-section">[Install]</span><br><span class="hljs-attr">WantedBy</span>=timers.target<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-built_in">sudo</span> systemctl <span class="hljs-built_in">enable</span> --now backup.timer<br>systemctl list-timers        <span class="hljs-comment"># 看所有 timer 的下次执行时间</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th></th>
+<th>cron</th>
+<th>systemd timer</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>环境变量</td>
+<td>需要显式设置</td>
+<td>继承 unit 配置</td>
+</tr>
+<tr>
+<td>日志</td>
+<td>需自己重定向</td>
+<td>自动进 journald</td>
+</tr>
+<tr>
+<td>错过补跑</td>
+<td>❌</td>
+<td>✅ <code>Persistent=true</code></td>
+</tr>
+<tr>
+<td>依赖管理</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>随机延迟</td>
+<td>需自己实现</td>
+<td>✅</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>新项目建议用 timer。</strong> cron 只在需要极简或兼容老环境时用。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 改了 <code>.service</code> 文件忘了 <code>systemctl daemon-reload</code></li>
+<li><input disabled="" type="checkbox"> <code>ExecStart</code> 里用了 <code>&amp;</code> &#x2F; <code>nohup</code> &#x2F; <code>daemon</code> 模式（systemd 管不住）</li>
+<li><input disabled="" type="checkbox"> 配了 <code>Restart=always</code> 却没配 <code>StartLimitBurst</code>，崩了以后无限重启</li>
+<li><input disabled="" type="checkbox"> journald 没开持久化，重启后日志全丢</li>
+<li><input disabled="" type="checkbox"> 日志不轮转，把磁盘写满</li>
+<li><input disabled="" type="checkbox"> <code>logrotate</code> 的 <code>create</code> 权限不对，轮转后应用写不了日志</li>
+<li><input disabled="" type="checkbox"> cron 里用相对路径或没设 <code>PATH</code></li>
+<li><input disabled="" type="checkbox"> cron 任务不重定向输出，出错了也不知道原因</li>
+<li><input disabled="" type="checkbox"> crontab 里的 <code>%</code> 没转义</li>
+<li><input disabled="" type="checkbox"> <code>/etc/cron.d/</code> 的文件名带 <code>.</code>，被静默忽略</li>
+<li><input disabled="" type="checkbox"> 集群里多个节点同一时间跑定时任务，把下游打挂（该加随机延迟）</li>
+<li><input disabled="" type="checkbox"> 用 <code>rm</code> 清日志而不是 logrotate，导致句柄未释放</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html">systemd.service 手册</a> · <a target="_blank" rel="noopener" href="https://www.freedesktop.org/software/systemd/man/latest/systemd.timer.html">systemd.timer 手册</a> · <a target="_blank" rel="noopener" href="https://www.freedesktop.org/software/systemd/man/latest/journalctl.html">journalctl 手册</a> · <a target="_blank" rel="noopener" href="https://man7.org/linux/man-pages/man5/crontab.5.html">crontab(5) 手册</a> · <a target="_blank" rel="noopener" href="https://man7.org/linux/man-pages/man8/logrotate.8.html">logrotate 手册</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/linux/" class="category-chain-item">linux</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/linux/" class="print-no-link">#linux</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 017 · Linux（二）：systemd、日志与定时任务</div>
+      <div>https://ethan-iopasd.github.io/2026/09/30/每日技术博客017-Linux服务与定时任务/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年9月30日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2016-Linux%E6%9D%83%E9%99%90%E8%BF%9B%E7%A8%8B%E7%A3%81%E7%9B%98/" title="每日技术博客 016 · Linux（一）：权限、进程与磁盘排查">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 016 · Linux（一）：权限、进程与磁盘排查</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

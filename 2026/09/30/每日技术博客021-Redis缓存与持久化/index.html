@@ -1,0 +1,996 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-09-30 · 第 021 篇 Redis 系列第二篇。穿透、击穿、雪崩三兄弟怎么区分、内存满了淘汰谁、以及 RDB 和 AOF 该怎么配。  📚 Redis 系列目录   章节 主题 状态    一 数据结构与典型场景 已发布   二 缓存三大问题与持久化 本篇    开场：三兄弟一次分清   问题 一句话 表现    穿透 查不存在的数据，请求全打到数据库 数据">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 021 · Redis（二）：缓存三大问题与持久化">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2021-Redis%E7%BC%93%E5%AD%98%E4%B8%8E%E6%8C%81%E4%B9%85%E5%8C%96/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-09-30 · 第 021 篇 Redis 系列第二篇。穿透、击穿、雪崩三兄弟怎么区分、内存满了淘汰谁、以及 RDB 和 AOF 该怎么配。  📚 Redis 系列目录   章节 主题 状态    一 数据结构与典型场景 已发布   二 缓存三大问题与持久化 本篇    开场：三兄弟一次分清   问题 一句话 表现    穿透 查不存在的数据，请求全打到数据库 数据">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-09-30T10:40:00.000Z">
+<meta property="article:modified_time" content="2026-09-30T05:11:48.788Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="redis">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 021 · Redis（二）：缓存三大问题与持久化 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 021 · Redis（二）：缓存三大问题与持久化"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-09-30 18:40" pubdate>
+          2026年9月30日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          1.9k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          17 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 021 · Redis（二）：缓存三大问题与持久化</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-09-30 · 第 021 篇</p>
+<p>Redis 系列第二篇。穿透、击穿、雪崩三兄弟怎么区分、内存满了淘汰谁、以及 RDB 和 AOF 该怎么配。</p>
+</blockquote>
+<h2 id="📚-Redis-系列目录"><a href="#📚-Redis-系列目录" class="headerlink" title="📚 Redis 系列目录"></a>📚 Redis 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>数据结构与典型场景</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>缓存三大问题与持久化</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：三兄弟一次分清"><a href="#开场：三兄弟一次分清" class="headerlink" title="开场：三兄弟一次分清"></a>开场：三兄弟一次分清</h2><table>
+<thead>
+<tr>
+<th>问题</th>
+<th>一句话</th>
+<th>表现</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>穿透</strong></td>
+<td>查<strong>不存在</strong>的数据，请求全打到数据库</td>
+<td>数据库压力持续偏高</td>
+</tr>
+<tr>
+<td><strong>击穿</strong></td>
+<td><strong>一个热点 key</strong> 过期瞬间，请求全打到数据库</td>
+<td>某个 key 一过期就抖一下</td>
+</tr>
+<tr>
+<td><strong>雪崩</strong></td>
+<td><strong>大量 key 同时过期</strong>，或 Redis 整体挂了</td>
+<td>数据库瞬间被打垮</td>
+</tr>
+</tbody></table>
+<p><strong>记忆法</strong>：穿透是「查不到」，击穿是「一个热点没了」，雪崩是「一片全没了」。</p>
+<h2 id="一、缓存穿透"><a href="#一、缓存穿透" class="headerlink" title="一、缓存穿透"></a>一、缓存穿透</h2><p><strong>原因</strong>：查询一个数据库里也没有的数据，缓存不命中 → 每次都查库 → 缓存永远不生效。</p>
+<p><strong>典型场景</strong>：恶意用不存在的 id 刷接口。</p>
+<h3 id="方案一：缓存空值"><a href="#方案一：缓存空值" class="headerlink" title="方案一：缓存空值"></a>方案一：缓存空值</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs python">data = cache.get(key)<br><span class="hljs-keyword">if</span> data <span class="hljs-keyword">is</span> <span class="hljs-literal">None</span>:<br>    data = db.query(key)<br>    <span class="hljs-keyword">if</span> data <span class="hljs-keyword">is</span> <span class="hljs-literal">None</span>:<br>        cache.<span class="hljs-built_in">set</span>(key, <span class="hljs-string">&quot;&quot;</span>, ex=<span class="hljs-number">60</span>)      <span class="hljs-comment"># 缓存空值，短期过期</span><br>        <span class="hljs-keyword">return</span> <span class="hljs-literal">None</span><br>    cache.<span class="hljs-built_in">set</span>(key, data, ex=<span class="hljs-number">3600</span>)<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>优点</th>
+<th>缺点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>实现简单</td>
+<td>大量不同 key 会占用内存</td>
+</tr>
+<tr>
+<td>立即生效</td>
+<td>数据后来真的存在了，要等过期才恢复</td>
+</tr>
+</tbody></table>
+<h3 id="方案二：布隆过滤器"><a href="#方案二：布隆过滤器" class="headerlink" title="方案二：布隆过滤器"></a>方案二：布隆过滤器</h3><p>在缓存之前挡一层：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> bloom.might_contain(key):<br>    <span class="hljs-keyword">return</span> <span class="hljs-literal">None</span>        <span class="hljs-comment"># 一定不存在，直接返回</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>特性</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>空间</td>
+<td>极省（百万级约 1MB 量级）</td>
+</tr>
+<tr>
+<td>假阳性</td>
+<td><strong>有</strong>（可能误判「存在」）</td>
+</tr>
+<tr>
+<td>假阴性</td>
+<td><strong>没有</strong>（说不存在就一定不存在）</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>布隆过滤器只能加不能删</strong>（标准实现）。删除元素需要 Counting Bloom Filter。<br>如果数据会删除，要考虑重建策略。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>Redis 8 已内置布隆过滤器</strong>（<code>BF.ADD</code> &#x2F; <code>BF.EXISTS</code>），不必自己实现。</p>
+</blockquote>
+<h3 id="方案三：参数校验"><a href="#方案三：参数校验" class="headerlink" title="方案三：参数校验"></a>方案三：参数校验</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> re.<span class="hljs-keyword">match</span>(<span class="hljs-string">r&#x27;^\d+$&#x27;</span>, id_str) <span class="hljs-keyword">or</span> <span class="hljs-built_in">int</span>(id_str) &lt;= <span class="hljs-number">0</span>:<br>    <span class="hljs-keyword">return</span> <span class="hljs-literal">None</span>        <span class="hljs-comment"># 格式都不对，直接拒绝</span><br></code></pre></td></tr></table></figure>
+
+<p><strong>最便宜的一层</strong>，先做这个。</p>
+<h2 id="二、缓存击穿"><a href="#二、缓存击穿" class="headerlink" title="二、缓存击穿"></a>二、缓存击穿</h2><p><strong>原因</strong>：某个<strong>热点 key</strong> 过期的瞬间，大量并发请求同时穿透到数据库。</p>
+<p><strong>和穿透的区别</strong>：数据<strong>是存在的</strong>，只是刚好在这一刻缓存没了。</p>
+<h3 id="方案一：互斥锁"><a href="#方案一：互斥锁" class="headerlink" title="方案一：互斥锁"></a>方案一：互斥锁</h3><p>只让一个请求去查库，其他等：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">def</span> <span class="hljs-title function_">get_with_lock</span>(<span class="hljs-params">key</span>):<br>    data = cache.get(key)<br>    <span class="hljs-keyword">if</span> data <span class="hljs-keyword">is</span> <span class="hljs-keyword">not</span> <span class="hljs-literal">None</span>:<br>        <span class="hljs-keyword">return</span> data<br><br>    <span class="hljs-comment"># 只有一个请求能拿到锁</span><br>    <span class="hljs-keyword">if</span> cache.<span class="hljs-built_in">set</span>(<span class="hljs-string">f&quot;lock:<span class="hljs-subst">&#123;key&#125;</span>&quot;</span>, <span class="hljs-string">&quot;1&quot;</span>, nx=<span class="hljs-literal">True</span>, ex=<span class="hljs-number">10</span>):<br>        <span class="hljs-keyword">try</span>:<br>            data = db.query(key)<br>            cache.<span class="hljs-built_in">set</span>(key, data, ex=<span class="hljs-number">3600</span>)<br>            <span class="hljs-keyword">return</span> data<br>        <span class="hljs-keyword">finally</span>:<br>            cache.delete(<span class="hljs-string">f&quot;lock:<span class="hljs-subst">&#123;key&#125;</span>&quot;</span>)<br>    <span class="hljs-keyword">else</span>:<br>        time.sleep(<span class="hljs-number">0.05</span>)<br>        <span class="hljs-keyword">return</span> get_with_lock(key)      <span class="hljs-comment"># 重试</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>重试要有上限</strong>，否则会变成无限递归。</p>
+</blockquote>
+<h3 id="方案二：逻辑过期（不设-TTL）"><a href="#方案二：逻辑过期（不设-TTL）" class="headerlink" title="方案二：逻辑过期（不设 TTL）"></a>方案二：逻辑过期（不设 TTL）</h3><p>value 里自带过期时间，<strong>物理上永不过期</strong>：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs python">&#123;<br>  <span class="hljs-string">&quot;data&quot;</span>: &#123;...&#125;,<br>  <span class="hljs-string">&quot;expire_at&quot;</span>: <span class="hljs-number">1790816400</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>读到已过期的数据时，<strong>返回旧值 + 异步刷新</strong>：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">if</span> payload[<span class="hljs-string">&quot;expire_at&quot;</span>] &lt; now:<br>    <span class="hljs-comment"># 异步起一个线程去刷新，当前请求先用旧数据</span><br>    thread_pool.submit(refresh, key)<br><span class="hljs-keyword">return</span> payload[<span class="hljs-string">&quot;data&quot;</span>]<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th></th>
+<th>互斥锁</th>
+<th>逻辑过期</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一致性</td>
+<td>强（拿到的一定是新数据）</td>
+<td>弱（可能返回旧数据）</td>
+</tr>
+<tr>
+<td>可用性</td>
+<td>差（要等）</td>
+<td>好（不阻塞）</td>
+</tr>
+<tr>
+<td>适合</td>
+<td>对一致性要求高</td>
+<td>对可用性要求高</td>
+</tr>
+</tbody></table>
+<h3 id="方案三：热点数据不过期"><a href="#方案三：热点数据不过期" class="headerlink" title="方案三：热点数据不过期"></a>方案三：热点数据不过期</h3><p>对确认的热点 key，<strong>不设 TTL</strong>，靠主动更新维护。简单粗暴但有效。</p>
+<h2 id="三、缓存雪崩"><a href="#三、缓存雪崩" class="headerlink" title="三、缓存雪崩"></a>三、缓存雪崩</h2><p><strong>原因</strong>：大量 key 在同一时刻过期，或 Redis 实例整体不可用。</p>
+<h3 id="方案一：过期时间加随机"><a href="#方案一：过期时间加随机" class="headerlink" title="方案一：过期时间加随机"></a>方案一：过期时间加随机</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs python">base = <span class="hljs-number">3600</span><br>jitter = random.randint(<span class="hljs-number">0</span>, <span class="hljs-number">600</span>)      <span class="hljs-comment"># 0~10 分钟随机</span><br>cache.<span class="hljs-built_in">set</span>(key, data, ex=base + jitter)<br></code></pre></td></tr></table></figure>
+
+<p><strong>这是最有效也最简单的一招。</strong> 避免「同一批数据同时写入、同时过期」。</p>
+<h3 id="方案二：多级缓存"><a href="#方案二：多级缓存" class="headerlink" title="方案二：多级缓存"></a>方案二：多级缓存</h3><figure class="highlight nix"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs nix">请求 → 本地缓存（Caffeine <span class="hljs-symbol">/</span> 进程内）→ Redis → 数据库<br></code></pre></td></tr></table></figure>
+
+<p>Redis 挂了，本地缓存还能挡一层。</p>
+<h3 id="方案三：熔断与降级"><a href="#方案三：熔断与降级" class="headerlink" title="方案三：熔断与降级"></a>方案三：熔断与降级</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">try</span>:<br>    <span class="hljs-keyword">return</span> cache.get(key)<br><span class="hljs-keyword">except</span> RedisError:<br>    <span class="hljs-comment"># Redis 不可用时：限流 + 走降级逻辑</span><br>    <span class="hljs-keyword">if</span> rate_limiter.allow():<br>        <span class="hljs-keyword">return</span> db.query(key)<br>    <span class="hljs-keyword">return</span> default_response()<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>Redis 挂了不能无脑全部查库</strong>，那等于把 Redis 的负载直接转给数据库。<br>必须有限流或降级。</p>
+</blockquote>
+<h3 id="方案四：集群高可用"><a href="#方案四：集群高可用" class="headerlink" title="方案四：集群高可用"></a>方案四：集群高可用</h3><p>主从 + 哨兵，或 Redis Cluster。<strong>但要清楚故障转移期间会有短暂不可用</strong>。</p>
+<h2 id="四、内存满了怎么办"><a href="#四、内存满了怎么办" class="headerlink" title="四、内存满了怎么办"></a>四、内存满了怎么办</h2><h3 id="淘汰策略"><a href="#淘汰策略" class="headerlink" title="淘汰策略"></a>淘汰策略</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash">maxmemory 4gb<br>maxmemory-policy allkeys-lru<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>策略</th>
+<th>行为</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>noeviction</code></td>
+<td><strong>不淘汰，写入报错</strong>（默认）</td>
+</tr>
+<tr>
+<td><code>allkeys-lru</code></td>
+<td>所有 key 里淘汰最久未使用的</td>
+</tr>
+<tr>
+<td><code>allkeys-lfu</code></td>
+<td>所有 key 里淘汰使用频率最低的</td>
+</tr>
+<tr>
+<td><code>allkeys-random</code></td>
+<td>随机淘汰</td>
+</tr>
+<tr>
+<td><code>volatile-lru</code></td>
+<td><strong>只从设了过期时间的</strong> key 里淘汰</td>
+</tr>
+<tr>
+<td><code>volatile-lfu</code></td>
+<td>同上，按频率</td>
+</tr>
+<tr>
+<td><code>volatile-ttl</code></td>
+<td>淘汰即将过期的</td>
+</tr>
+<tr>
+<td><code>volatile-random</code></td>
+<td>随机（限有 TTL 的）</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>volatile-*</code> 系列的风险</strong>：如果没有任何 key 设了 TTL，这些策略**等同于 <code>noeviction</code>**，<br>内存满了直接写入失败。</p>
+</blockquote>
+<h3 id="LRU-还是-LFU"><a href="#LRU-还是-LFU" class="headerlink" title="LRU 还是 LFU"></a>LRU 还是 LFU</h3><table>
+<thead>
+<tr>
+<th></th>
+<th>LRU</th>
+<th>LFU</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>依据</td>
+<td>最近是否被访问</td>
+<td>访问<strong>频率</strong></td>
+</tr>
+<tr>
+<td>适合</td>
+<td>访问模式随时间变化</td>
+<td>有明显热点（少数 key 撑起大部分流量）</td>
+</tr>
+<tr>
+<td>缺点</td>
+<td>一次全表扫描会污染缓存</td>
+<td>新 key 需要时间累积频率</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>缓存场景通常 LFU 更好</strong>，因为热点是稳定的。Redis 4.0+ 支持 LFU。</p>
+</blockquote>
+<h3 id="淘汰不是删除"><a href="#淘汰不是删除" class="headerlink" title="淘汰不是删除"></a>淘汰不是删除</h3><blockquote>
+<p>⚠️ <strong>被淘汰的 key 是「消失」，不是「过期」</strong>。所以如果业务依赖 key 存在（比如分布式锁），<br>淘汰会让锁凭空失效。<strong>锁这类关键 key 应该放在独立实例，或调大内存避免淘汰。</strong></p>
+</blockquote>
+<h2 id="五、持久化"><a href="#五、持久化" class="headerlink" title="五、持久化"></a>五、持久化</h2><h3 id="RDB：快照"><a href="#RDB：快照" class="headerlink" title="RDB：快照"></a>RDB：快照</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash">save 900 1        <span class="hljs-comment"># 900 秒内至少 1 次修改就快照</span><br>save 300 10<br>save 60 10000<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>优点</th>
+<th>缺点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>文件紧凑、体积小</td>
+<td><strong>可能丢最后一次快照之后的数据</strong></td>
+</tr>
+<tr>
+<td>恢复快</td>
+<td>fork 时可能卡顿（数据量大时）</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>RDB 的 <code>save</code> 配置是在主线程 fork 子进程</strong>。数据量大（几十 GB）时，<br>fork 本身会阻塞主线程几百毫秒甚至更久。</p>
+</blockquote>
+<h3 id="AOF：追加日志"><a href="#AOF：追加日志" class="headerlink" title="AOF：追加日志"></a>AOF：追加日志</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash">appendonly <span class="hljs-built_in">yes</span><br>appendfsync everysec      <span class="hljs-comment"># 每秒刷盘（推荐）</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th><code>appendfsync</code></th>
+<th>行为</th>
+<th>丢数据风险</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>always</code></td>
+<td>每条命令都刷盘</td>
+<td>几乎不丢，<strong>性能差</strong></td>
+</tr>
+<tr>
+<td><code>everysec</code></td>
+<td>每秒刷一次（默认推荐）</td>
+<td>最多丢 1 秒</td>
+</tr>
+<tr>
+<td><code>no</code></td>
+<td>交给操作系统</td>
+<td>可能丢较多</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>AOF 文件会越来越大</strong>，因为记录了所有写命令。需要重写（rewrite）压缩：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash">auto-aof-rewrite-percentage 100<br>auto-aof-rewrite-min-size 64mb<br></code></pre></td></tr></table></figure>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>Redis 7 起 AOF 变成多文件结构</strong>（<code>appendonlydir/</code>），<br>包含 base 文件和 incr 文件。老教程里的单文件路径已经过时。</p>
+</blockquote>
+<h3 id="怎么选"><a href="#怎么选" class="headerlink" title="怎么选"></a>怎么选</h3><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>配置</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>纯缓存，丢了能重建</td>
+<td><strong>RDB 就够</strong>，甚至可以不持久化</td>
+</tr>
+<tr>
+<td>有业务数据，不能丢太多</td>
+<td><strong>RDB + AOF</strong> 混合</td>
+</tr>
+<tr>
+<td>绝对不能丢</td>
+<td><code>appendfsync always</code>（性能代价大）</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>实践建议</strong>：<code>appendonly yes</code> + <code>appendfsync everysec</code>，<br>Redis 7+ 默认用混合持久化（RDB 快照 + AOF 增量），恢复快且丢得少。</p>
+</blockquote>
+<h3 id="恢复顺序"><a href="#恢复顺序" class="headerlink" title="恢复顺序"></a>恢复顺序</h3><p>Redis 启动时：<strong>先加载 AOF（如果开启），没有才加载 RDB</strong>。因为 AOF 通常更完整。</p>
+<h2 id="六、上线前的检查清单"><a href="#六、上线前的检查清单" class="headerlink" title="六、上线前的检查清单"></a>六、上线前的检查清单</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 内存与淘汰策略</span><br>redis-cli CONFIG GET maxmemory<br>redis-cli CONFIG GET maxmemory-policy<br><br><span class="hljs-comment"># 持久化状态</span><br>redis-cli INFO persistence<br><br><span class="hljs-comment"># 慢查询</span><br>redis-cli SLOWLOG GET 10<br><br><span class="hljs-comment"># 大 key（需要 redis-cli --bigkeys）</span><br>redis-cli --bigkeys<br><br><span class="hljs-comment"># 实时监控（⚠️ 会降低性能，只短时用）</span><br>redis-cli MONITOR<br></code></pre></td></tr></table></figure>
+
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 把穿透、击穿、雪崩混为一谈，用错方案</li>
+<li><input disabled="" type="checkbox"> 缓存空值没设过期时间，内存被垃圾 key 占满</li>
+<li><input disabled="" type="checkbox"> 布隆过滤器用在会删除的数据上（它删不掉）</li>
+<li><input disabled="" type="checkbox"> 互斥锁的重试没有上限，变成无限递归</li>
+<li><input disabled="" type="checkbox"> 缓存 key 的过期时间完全一致，形成雪崩</li>
+<li><input disabled="" type="checkbox"> Redis 挂了直接全量查库，把数据库打垮</li>
+<li><input disabled="" type="checkbox"> 用了 <code>volatile-lru</code> 但 key 都没设 TTL，内存满了写入直接失败</li>
+<li><input disabled="" type="checkbox"> 以为「淘汰」等于「过期」，依赖 key 存在做业务判断</li>
+<li><input disabled="" type="checkbox"> 只配 RDB，接受不了丢几分钟数据</li>
+<li><input disabled="" type="checkbox"> 开了 AOF 但没配 rewrite，磁盘被 AOF 撑满</li>
+<li><input disabled="" type="checkbox"> 用 Redis 7 之前的 AOF 单文件路径去运维新版本</li>
+<li><input disabled="" type="checkbox"> 大 key 没提前排查，故障时才用 <code>--bigkeys</code> 发现</li>
+<li><input disabled="" type="checkbox"> 生产环境长时间开着 <code>MONITOR</code></li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://redis.io/docs/latest/develop/reference/eviction/">Redis 官方文档 · 淘汰策略</a> · <a target="_blank" rel="noopener" href="https://redis.io/docs/latest/operate/oss_and_stack/management/persistence/">Redis 官方文档 · 持久化</a> · <a target="_blank" rel="noopener" href="https://redis.io/docs/latest/develop/clients/client-side-caching/">Redis 官方文档 · 客户端缓存</a> · <a target="_blank" rel="noopener" href="https://redis.io/docs/latest/develop/data-types/probabilistic/">Redis 8 内置的概率型数据结构</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/redis/" class="category-chain-item">redis</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/redis/" class="print-no-link">#redis</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 021 · Redis（二）：缓存三大问题与持久化</div>
+      <div>https://ethan-iopasd.github.io/2026/09/30/每日技术博客021-Redis缓存与持久化/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年9月30日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2020-Redis%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" title="每日技术博客 020 · Redis（一）：数据结构与典型场景">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 020 · Redis（一）：数据结构与典型场景</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

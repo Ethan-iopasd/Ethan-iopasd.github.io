@@ -1,0 +1,864 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-09-30 · 第 013 篇 Vue 3 系列第六篇。把重复逻辑抽成 useXxx 函数，以及 mixin 时代那些坑为什么不会再犯。  📚 Vue 3 系列目录   章节 主题 状态    一 模板语法、响应式与组合式 API 已发布   二 组件、Props &#x2F; Emits &#x2F; 插槽与双向绑定 已发布   三 Vue Router 路由 已">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 013 · Vue 3（六）：组合式函数与逻辑复用">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2013-Vue3%E7%BB%84%E5%90%88%E5%BC%8F%E5%87%BD%E6%95%B0/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-09-30 · 第 013 篇 Vue 3 系列第六篇。把重复逻辑抽成 useXxx 函数，以及 mixin 时代那些坑为什么不会再犯。  📚 Vue 3 系列目录   章节 主题 状态    一 模板语法、响应式与组合式 API 已发布   二 组件、Props &#x2F; Emits &#x2F; 插槽与双向绑定 已发布   三 Vue Router 路由 已">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-09-30T08:00:00.000Z">
+<meta property="article:modified_time" content="2026-09-30T05:09:33.040Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="vue3">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 013 · Vue 3（六）：组合式函数与逻辑复用 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 013 · Vue 3（六）：组合式函数与逻辑复用"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-09-30 16:00" pubdate>
+          2026年9月30日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          1.6k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          13 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 013 · Vue 3（六）：组合式函数与逻辑复用</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-09-30 · 第 013 篇</p>
+<p>Vue 3 系列第六篇。把重复逻辑抽成 <code>useXxx</code> 函数，以及 <code>mixin</code> 时代那些坑为什么不会再犯。</p>
+</blockquote>
+<h2 id="📚-Vue-3-系列目录"><a href="#📚-Vue-3-系列目录" class="headerlink" title="📚 Vue 3 系列目录"></a>📚 Vue 3 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>模板语法、响应式与组合式 API</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>组件、Props &#x2F; Emits &#x2F; 插槽与双向绑定</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>Vue Router 路由</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td>Pinia 状态管理</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>五</td>
+<td>性能优化与生产构建</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>六</td>
+<td>组合式函数与逻辑复用</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：组合式函数就是普通函数"><a href="#开场：组合式函数就是普通函数" class="headerlink" title="开场：组合式函数就是普通函数"></a>开场：组合式函数就是普通函数</h2><p><strong>没有任何特殊语法。</strong> 一个用到 Vue 响应式 API 的普通函数，命名以 <code>use</code> 开头，就是组合式函数（composable）。</p>
+<p><code>mixin</code> 的坑它天然免疫 —— 因为数据来源是<strong>显式 import 的</strong>，不是隐式合并的。</p>
+<h2 id="一、为什么不用-mixin"><a href="#一、为什么不用-mixin" class="headerlink" title="一、为什么不用 mixin"></a>一、为什么不用 <code>mixin</code></h2><p><code>mixin</code> 的三个经典问题：</p>
+<table>
+<thead>
+<tr>
+<th>问题</th>
+<th>表现</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>来源不明</td>
+<td>组件里出现一个 <code>loading</code> 变量，不知道是哪个 mixin 注入的</td>
+</tr>
+<tr>
+<td>命名冲突</td>
+<td>两个 mixin 都有 <code>loading</code>，后注册的静默覆盖</td>
+</tr>
+<tr>
+<td>隐式依赖</td>
+<td>mixin 依赖组件的 <code>data</code> 字段，删掉组件字段就崩</td>
+</tr>
+</tbody></table>
+<p>组合式函数的做法：<strong>要什么就 import 什么，返回值自己起名。</strong></p>
+<figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-comment">// 想要 loading 就显式解构出来，还可以改名</span><br><span class="hljs-keyword">const</span> &#123; <span class="hljs-attr">loading</span>: tableLoading &#125; = <span class="hljs-title function_">useTable</span>()<br></code></pre></td></tr></table></figure>
+
+<h2 id="二、写一个组合式函数"><a href="#二、写一个组合式函数" class="headerlink" title="二、写一个组合式函数"></a>二、写一个组合式函数</h2><figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-comment">// src/composables/useCounter.ts</span><br><span class="hljs-keyword">import</span> &#123; ref, computed &#125; <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;vue&#x27;</span><br><br><span class="hljs-keyword">export</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">useCounter</span>(<span class="hljs-params">initial = <span class="hljs-number">0</span></span>) &#123;<br>  <span class="hljs-keyword">const</span> count = <span class="hljs-title function_">ref</span>(initial)<br><br>  <span class="hljs-keyword">const</span> double = <span class="hljs-title function_">computed</span>(<span class="hljs-function">() =&gt;</span> count.<span class="hljs-property">value</span> * <span class="hljs-number">2</span>)<br><br>  <span class="hljs-keyword">function</span> <span class="hljs-title function_">increment</span>(<span class="hljs-params">step = <span class="hljs-number">1</span></span>) &#123;<br>    count.<span class="hljs-property">value</span> += step<br>  &#125;<br>  <span class="hljs-keyword">function</span> <span class="hljs-title function_">reset</span>(<span class="hljs-params"></span>) &#123;<br>    count.<span class="hljs-property">value</span> = initial<br>  &#125;<br><br>  <span class="hljs-keyword">return</span> &#123; count, double, increment, reset &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>用起来：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs vue">&lt;script setup lang=&quot;ts&quot;&gt;<br>import &#123; useCounter &#125; from &#x27;@/composables/useCounter&#x27;<br><br>const &#123; count, double, increment, reset &#125; = useCounter(10)<br>&lt;/script&gt;<br><br>&lt;template&gt;<br>  &lt;p&gt;&#123;&#123; count &#125;&#125; / &#123;&#123; double &#125;&#125;&lt;/p&gt;<br>  &lt;button @click=&quot;increment()&quot;&gt;+1&lt;/button&gt;<br>  &lt;button @click=&quot;reset&quot;&gt;重置&lt;/button&gt;<br>&lt;/template&gt;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>返回值必须是 <code>ref</code> 或 <code>reactive</code>，不能是解构后的普通值。</strong></p>
+<figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-keyword">return</span> &#123; <span class="hljs-attr">count</span>: count.<span class="hljs-property">value</span> &#125;   <span class="hljs-comment">// ❌ 失去响应式</span><br><span class="hljs-keyword">return</span> &#123; count &#125;                <span class="hljs-comment">// ✅</span><br></code></pre></td></tr></table></figure>
+</blockquote>
+<h2 id="三、四个真实场景"><a href="#三、四个真实场景" class="headerlink" title="三、四个真实场景"></a>三、四个真实场景</h2><h3 id="1-数据请求：useRequest"><a href="#1-数据请求：useRequest" class="headerlink" title="1. 数据请求：useRequest"></a>1. 数据请求：<code>useRequest</code></h3><figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-comment">// src/composables/useRequest.ts</span><br><span class="hljs-keyword">import</span> &#123; ref, shallowRef &#125; <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;vue&#x27;</span><br><br><span class="hljs-keyword">export</span> <span class="hljs-keyword">function</span> useRequest&lt;T&gt;(<span class="hljs-attr">fetcher</span>: <span class="hljs-function">() =&gt;</span> <span class="hljs-title class_">Promise</span>&lt;T&gt;, <span class="hljs-attr">options</span>: &#123; <span class="hljs-attr">immediate</span>?: <span class="hljs-built_in">boolean</span> &#125; = &#123;&#125;) &#123;<br>  <span class="hljs-keyword">const</span> data = shallowRef&lt;T | <span class="hljs-literal">null</span>&gt;(<span class="hljs-literal">null</span>)<br>  <span class="hljs-keyword">const</span> loading = <span class="hljs-title function_">ref</span>(<span class="hljs-literal">false</span>)<br>  <span class="hljs-keyword">const</span> error = ref&lt;<span class="hljs-title class_">Error</span> | <span class="hljs-literal">null</span>&gt;(<span class="hljs-literal">null</span>)<br><br>  <span class="hljs-keyword">async</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">run</span>(<span class="hljs-params"></span>) &#123;<br>    loading.<span class="hljs-property">value</span> = <span class="hljs-literal">true</span><br>    error.<span class="hljs-property">value</span> = <span class="hljs-literal">null</span><br>    <span class="hljs-keyword">try</span> &#123;<br>      data.<span class="hljs-property">value</span> = <span class="hljs-keyword">await</span> <span class="hljs-title function_">fetcher</span>()<br>    &#125; <span class="hljs-keyword">catch</span> (e) &#123;<br>      error.<span class="hljs-property">value</span> = e <span class="hljs-keyword">as</span> <span class="hljs-title class_">Error</span><br>    &#125; <span class="hljs-keyword">finally</span> &#123;<br>      loading.<span class="hljs-property">value</span> = <span class="hljs-literal">false</span><br>    &#125;<br>  &#125;<br><br>  <span class="hljs-keyword">if</span> (options.<span class="hljs-property">immediate</span> !== <span class="hljs-literal">false</span>) &#123;<br>    <span class="hljs-title function_">run</span>()<br>  &#125;<br><br>  <span class="hljs-keyword">return</span> &#123; data, loading, error, run &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><code class="hljs vue">&lt;script setup lang=&quot;ts&quot;&gt;<br>const &#123; data, loading, error, run &#125; = useRequest(<br>  () =&gt; fetch(&#x27;/api/users&#x27;).then(r =&gt; r.json())<br>)<br>&lt;/script&gt;<br><br>&lt;template&gt;<br>  &lt;div v-if=&quot;loading&quot;&gt;加载中...&lt;/div&gt;<br>  &lt;div v-else-if=&quot;error&quot;&gt;出错了：&#123;&#123; error.message &#125;&#125;&lt;/div&gt;<br>  &lt;ul v-else&gt;<br>    &lt;li v-for=&quot;u in data&quot; :key=&quot;u.id&quot;&gt;&#123;&#123; u.name &#125;&#125;&lt;/li&gt;<br>  &lt;/ul&gt;<br>  &lt;button @click=&quot;run&quot;&gt;重新加载&lt;/button&gt;<br>&lt;/template&gt;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>用 <code>shallowRef</code> 装接口数据：整体替换，不需要深层代理，性能更好。</p>
+</blockquote>
+<h3 id="2-本地存储：useLocalStorage"><a href="#2-本地存储：useLocalStorage" class="headerlink" title="2. 本地存储：useLocalStorage"></a>2. 本地存储：<code>useLocalStorage</code></h3><figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-keyword">import</span> &#123; ref, watch &#125; <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;vue&#x27;</span><br><br><span class="hljs-keyword">export</span> <span class="hljs-keyword">function</span> useLocalStorage&lt;T&gt;(<span class="hljs-attr">key</span>: <span class="hljs-built_in">string</span>, <span class="hljs-attr">defaultValue</span>: T) &#123;<br>  <span class="hljs-keyword">const</span> raw = <span class="hljs-variable language_">localStorage</span>.<span class="hljs-title function_">getItem</span>(key)<br>  <span class="hljs-keyword">const</span> data = ref&lt;T&gt;(raw ? <span class="hljs-title class_">JSON</span>.<span class="hljs-title function_">parse</span>(raw) : defaultValue)<br><br>  <span class="hljs-title function_">watch</span>(data, <span class="hljs-function"><span class="hljs-params">v</span> =&gt;</span> &#123;<br>    <span class="hljs-variable language_">localStorage</span>.<span class="hljs-title function_">setItem</span>(key, <span class="hljs-title class_">JSON</span>.<span class="hljs-title function_">stringify</span>(v))<br>  &#125;, &#123; <span class="hljs-attr">deep</span>: <span class="hljs-literal">true</span> &#125;)<br><br>  <span class="hljs-keyword">return</span> data<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<h3 id="3-防抖：useDebouncedRef"><a href="#3-防抖：useDebouncedRef" class="headerlink" title="3. 防抖：useDebouncedRef"></a>3. 防抖：<code>useDebouncedRef</code></h3><figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-keyword">import</span> &#123; customRef &#125; <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;vue&#x27;</span><br><br><span class="hljs-keyword">export</span> <span class="hljs-keyword">function</span> useDebouncedRef&lt;T&gt;(<span class="hljs-attr">value</span>: T, delay = <span class="hljs-number">300</span>) &#123;<br>  <span class="hljs-keyword">let</span> <span class="hljs-attr">timer</span>: <span class="hljs-built_in">number</span> | <span class="hljs-literal">undefined</span><br>  <span class="hljs-keyword">return</span> customRef&lt;T&gt;(<span class="hljs-function">(<span class="hljs-params">track, trigger</span>) =&gt;</span> &#123;<br>    <span class="hljs-keyword">let</span> inner = value<br>    <span class="hljs-keyword">return</span> &#123;<br>      <span class="hljs-title function_">get</span>(<span class="hljs-params"></span>) &#123;<br>        <span class="hljs-title function_">track</span>()<br>        <span class="hljs-keyword">return</span> inner<br>      &#125;,<br>      <span class="hljs-title function_">set</span>(<span class="hljs-params">v</span>) &#123;<br>        <span class="hljs-built_in">clearTimeout</span>(timer)<br>        timer = <span class="hljs-built_in">setTimeout</span>(<span class="hljs-function">() =&gt;</span> &#123;<br>          inner = v<br>          <span class="hljs-title function_">trigger</span>()<br>        &#125;, delay) <span class="hljs-keyword">as</span> <span class="hljs-built_in">unknown</span> <span class="hljs-keyword">as</span> <span class="hljs-built_in">number</span><br>      &#125;<br>    &#125;<br>  &#125;)<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs vue">&lt;script setup lang=&quot;ts&quot;&gt;<br>import &#123; computed &#125; from &#x27;vue&#x27;<br><br>const keyword = useDebouncedRef(&#x27;&#x27;, 300)<br>// 只有停止输入 300ms 后才会重新计算<br>const results = computed(() =&gt; search(keyword.value))<br>&lt;/script&gt;<br><br>&lt;template&gt;<br>  &lt;input v-model=&quot;keyword&quot;&gt;<br>&lt;/template&gt;<br></code></pre></td></tr></table></figure>
+
+<h3 id="4-事件监听：useEventListener"><a href="#4-事件监听：useEventListener" class="headerlink" title="4. 事件监听：useEventListener"></a>4. 事件监听：<code>useEventListener</code></h3><figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-keyword">import</span> &#123; onMounted, onBeforeUnmount &#125; <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;vue&#x27;</span><br><br><span class="hljs-keyword">export</span> <span class="hljs-keyword">function</span> useEventListener&lt;K <span class="hljs-keyword">extends</span> keyof <span class="hljs-title class_">WindowEventMap</span>&gt;(<br>  <span class="hljs-attr">target</span>: <span class="hljs-title class_">Window</span>,<br>  <span class="hljs-attr">event</span>: K,<br>  <span class="hljs-attr">handler</span>: <span class="hljs-function">(<span class="hljs-params"><span class="hljs-attr">e</span>: <span class="hljs-title class_">WindowEventMap</span>[K]</span>) =&gt;</span> <span class="hljs-built_in">void</span><br>) &#123;<br>  <span class="hljs-title function_">onMounted</span>(<span class="hljs-function">() =&gt;</span> target.<span class="hljs-title function_">addEventListener</span>(event, handler <span class="hljs-keyword">as</span> <span class="hljs-title class_">EventListener</span>))<br>  <span class="hljs-title function_">onBeforeUnmount</span>(<span class="hljs-function">() =&gt;</span> target.<span class="hljs-title function_">removeEventListener</span>(event, handler <span class="hljs-keyword">as</span> <span class="hljs-title class_">EventListener</span>))<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p><strong>关键点</strong>：<code>onMounted</code> &#x2F; <code>onBeforeUnmount</code> <strong>可以在组合式函数里调用</strong>，它们会绑定到当前组件实例。所以清理逻辑可以封在函数内部，调用方不用管。</p>
+</blockquote>
+<h2 id="四、组织约定"><a href="#四、组织约定" class="headerlink" title="四、组织约定"></a>四、组织约定</h2><h3 id="目录与命名"><a href="#目录与命名" class="headerlink" title="目录与命名"></a>目录与命名</h3><figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs stylus"><span class="hljs-attribute">src</span>/<br>├── composables/          ← 通用组合式函数<br>│   ├── useRequest<span class="hljs-selector-class">.ts</span><br>│   ├── useLocalStorage<span class="hljs-selector-class">.ts</span><br>│   └── useEventListener<span class="hljs-selector-class">.ts</span><br>└── features/<br>    └── user/<br>        └── useUserProfile<span class="hljs-selector-class">.ts</span>   ← 业务相关的放功能目录<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>约定</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>命名以 <code>use</code> 开头</td>
+<td>一眼看出是组合式函数</td>
+</tr>
+<tr>
+<td>文件名与函数名一致</td>
+<td><code>useCounter.ts</code> 导出 <code>useCounter</code></td>
+</tr>
+<tr>
+<td>一个文件一个函数</td>
+<td>除非是紧密相关的一组</td>
+</tr>
+<tr>
+<td>参数用对象</td>
+<td><code>useRequest(fn, &#123; immediate: true &#125;)</code> 比位置参数好扩展</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>不要在组合式函数里调用 <code>onMounted</code> 之后再做 <code>await</code>。</strong> 组件实例只在同步执行阶段可用，异步之后调用生命周期钩子会失效。</p>
+</blockquote>
+<h2 id="五、几个边界"><a href="#五、几个边界" class="headerlink" title="五、几个边界"></a>五、几个边界</h2><h3 id="组合式函数-vs-工具函数"><a href="#组合式函数-vs-工具函数" class="headerlink" title="组合式函数 vs 工具函数"></a>组合式函数 vs 工具函数</h3><table>
+<thead>
+<tr>
+<th></th>
+<th>组合式函数</th>
+<th>纯工具函数</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>用 Vue API</td>
+<td>✅</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>能调生命周期</td>
+<td>✅</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>例子</td>
+<td><code>useRequest</code>、<code>useLocalStorage</code></td>
+<td><code>formatDate</code>、<code>debounce</code></td>
+</tr>
+</tbody></table>
+<p><strong>纯计算逻辑不要写成组合式函数</strong>，放 <code>utils/</code> 就行。</p>
+<h3 id="组合式函数-vs-Pinia-store"><a href="#组合式函数-vs-Pinia-store" class="headerlink" title="组合式函数 vs Pinia store"></a>组合式函数 vs Pinia store</h3><table>
+<thead>
+<tr>
+<th></th>
+<th>组合式函数</th>
+<th>Pinia store</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>状态作用域</td>
+<td><strong>每个调用者一份独立状态</strong></td>
+<td>全局共享一份</td>
+</tr>
+<tr>
+<td>适合</td>
+<td>组件内部逻辑复用</td>
+<td>跨组件共享数据</td>
+</tr>
+</tbody></table>
+<figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-comment">// 两个组件各自调用，各自一份 count，互不影响</span><br><span class="hljs-keyword">const</span> a = <span class="hljs-title function_">useCounter</span>()<br><span class="hljs-keyword">const</span> b = <span class="hljs-title function_">useCounter</span>()<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p><strong>要共享状态就用 Pinia。</strong> 组合式函数默认是「一次调用一份状态」。</p>
+</blockquote>
+<h3 id="状态共享的例外做法"><a href="#状态共享的例外做法" class="headerlink" title="状态共享的例外做法"></a>状态共享的例外做法</h3><p>确实需要在多个组件间共享，但又不想建 store 时：</p>
+<figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-comment">// 模块级作用域，所有调用者共用同一份</span><br><span class="hljs-keyword">const</span> count = <span class="hljs-title function_">ref</span>(<span class="hljs-number">0</span>)<br><br><span class="hljs-keyword">export</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">useSharedCounter</span>(<span class="hljs-params"></span>) &#123;<br>  <span class="hljs-keyword">return</span> &#123; count, <span class="hljs-attr">increment</span>: <span class="hljs-function">() =&gt;</span> count.<span class="hljs-property">value</span>++ &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 这种写法的状态<strong>在模块加载时就创建</strong>，SSR 场景下会跨请求串数据。SSR 项目还是用 Pinia。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 返回值里写了 <code>count.value</code>，导致丢响应式</li>
+<li><input disabled="" type="checkbox"> 在组合式函数里 <code>await</code> 之后再调用 <code>onMounted</code>（组件实例已失效）</li>
+<li><input disabled="" type="checkbox"> 需要跨组件共享状态却用组合式函数，结果各自一份数据</li>
+<li><input disabled="" type="checkbox"> 纯计算逻辑也写成组合式函数（应该放 <code>utils/</code>）</li>
+<li><input disabled="" type="checkbox"> 事件监听 &#x2F; 定时器在组合式函数里注册了却没清理</li>
+<li><input disabled="" type="checkbox"> 参数用一长串位置参数，后续没法扩展</li>
+<li><input disabled="" type="checkbox"> 在模块顶层创建共享状态，SSR 下跨请求污染</li>
+<li><input disabled="" type="checkbox"> 组合式函数里直接 <code>import</code> 某个 store，导致函数只能在有该 store 的场景用</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://cn.vuejs.org/guide/reusability/composables">Vue 3 · 组合式函数</a> · <a target="_blank" rel="noopener" href="https://cn.vuejs.org/api/reactivity-advanced.html#customref">Vue 3 · <code>customRef</code></a> · <a target="_blank" rel="noopener" href="https://vueuse.org/">VueUse（现成的组合式函数集合）</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/vue3/" class="category-chain-item">vue3</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/vue3/" class="print-no-link">#vue3</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 013 · Vue 3（六）：组合式函数与逻辑复用</div>
+      <div>https://ethan-iopasd.github.io/2026/09/30/每日技术博客013-Vue3组合式函数/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年9月30日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2012-Vue3%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/" title="每日技术博客 012 · Vue 3（五）：性能优化与生产构建">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 012 · Vue 3（五）：性能优化与生产构建</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
