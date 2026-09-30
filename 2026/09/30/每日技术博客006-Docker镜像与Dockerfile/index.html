@@ -1,0 +1,880 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="每日技术博客 · 2026-09-30 · 第 006 篇 Docker 系列第一篇。搞清镜像分层、容器可写层，以及 Dockerfile 里那些直接影响构建速度和镜像体积的写法。  📚 Docker 系列目录   章节 主题 状态    一 镜像分层与 Dockerfile 本篇   二 Compose、网络与数据卷 已发布    开场：镜像是一层层叠出来的每一条会改动文件系统的 Docke">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 006 · Docker（一）：镜像分层与 Dockerfile">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2006-Docker%E9%95%9C%E5%83%8F%E4%B8%8EDockerfile/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-09-30 · 第 006 篇 Docker 系列第一篇。搞清镜像分层、容器可写层，以及 Dockerfile 里那些直接影响构建速度和镜像体积的写法。  📚 Docker 系列目录   章节 主题 状态    一 镜像分层与 Dockerfile 本篇   二 Compose、网络与数据卷 已发布    开场：镜像是一层层叠出来的每一条会改动文件系统的 Docke">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-09-30T05:40:00.000Z">
+<meta property="article:modified_time" content="2026-09-30T04:50:49.385Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="docker">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 006 · Docker（一）：镜像分层与 Dockerfile - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 006 · Docker（一）：镜像分层与 Dockerfile"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-09-30 13:40" pubdate>
+          2026年9月30日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          1.4k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          12 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 006 · Docker（一）：镜像分层与 Dockerfile</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-09-30 · 第 006 篇</p>
+<p>Docker 系列第一篇。搞清镜像分层、容器可写层，以及 Dockerfile 里那些直接影响构建速度和镜像体积的写法。</p>
+</blockquote>
+<h2 id="📚-Docker-系列目录"><a href="#📚-Docker-系列目录" class="headerlink" title="📚 Docker 系列目录"></a>📚 Docker 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>镜像分层与 Dockerfile</td>
+<td><strong>本篇</strong></td>
+</tr>
+<tr>
+<td>二</td>
+<td>Compose、网络与数据卷</td>
+<td>已发布</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：镜像是一层层叠出来的"><a href="#开场：镜像是一层层叠出来的" class="headerlink" title="开场：镜像是一层层叠出来的"></a>开场：镜像是一层层叠出来的</h2><p>每一条会改动文件系统的 Dockerfile 指令都产生一个<strong>只读层</strong>。容器启动时，在镜像最上面加一个<strong>可写层</strong>。</p>
+<p>理解这一点，缓存、体积、数据丢失的疑问都能自己推出来。</p>
+<h2 id="一、镜像分层"><a href="#一、镜像分层" class="headerlink" title="一、镜像分层"></a>一、镜像分层</h2><figure class="highlight dockerfile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs dockerfile">容器可写层        ← 容器运行时的改动都在这，删容器就没了<br>─────────────<br><span class="hljs-keyword">COPY</span><span class="language-bash"> app.py       ← 层 4（只读）</span><br><span class="hljs-keyword">RUN</span><span class="language-bash"> pip install   ← 层 3（只读）</span><br><span class="hljs-keyword">COPY</span><span class="language-bash"> requirements ← 层 2（只读）</span><br><span class="hljs-keyword">FROM</span> python:<span class="hljs-number">3.12</span>  ← 层 <span class="hljs-number">1</span>（基础镜像）<br></code></pre></td></tr></table></figure>
+
+<p>三个直接推论：</p>
+<ol>
+<li><strong>同一层被多个镜像共享</strong> —— 10 个基于 <code>python:3.12</code> 的镜像，基础层在磁盘上只有一份</li>
+<li><strong>层是只读的，容器改文件是「写时复制」</strong> —— 改一个文件会把整份复制到可写层，所以容器内改大文件很慢</li>
+<li><strong>容器删掉，可写层就没了</strong> —— 这就是必须用数据卷的原因</li>
+</ol>
+<h2 id="二、Dockerfile-常用指令"><a href="#二、Dockerfile-常用指令" class="headerlink" title="二、Dockerfile 常用指令"></a>二、Dockerfile 常用指令</h2><table>
+<thead>
+<tr>
+<th>指令</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>FROM</code></td>
+<td>指定基础镜像</td>
+</tr>
+<tr>
+<td><code>WORKDIR</code></td>
+<td>设置工作目录，<strong>后续指令都在此目录下执行</strong></td>
+</tr>
+<tr>
+<td><code>COPY</code></td>
+<td>从构建上下文复制文件进镜像</td>
+</tr>
+<tr>
+<td><code>ADD</code></td>
+<td>类似 <code>COPY</code>，还能解压 tar、拉远程 URL（<strong>不推荐</strong>，语义不清晰）</td>
+</tr>
+<tr>
+<td><code>RUN</code></td>
+<td>构建时执行命令，产生新层</td>
+</tr>
+<tr>
+<td><code>ENV</code></td>
+<td>设置环境变量，构建时和运行时都生效</td>
+</tr>
+<tr>
+<td><code>ARG</code></td>
+<td>构建时参数，<strong>运行时不可见</strong></td>
+</tr>
+<tr>
+<td><code>EXPOSE</code></td>
+<td>声明端口，<strong>仅是文档性质</strong>，不真的开放</td>
+</tr>
+<tr>
+<td><code>CMD</code></td>
+<td>容器启动的默认命令，<strong>可被 <code>docker run</code> 覆盖</strong></td>
+</tr>
+<tr>
+<td><code>ENTRYPOINT</code></td>
+<td>容器启动的固定命令，<code>CMD</code> 变成它的默认参数</td>
+</tr>
+<tr>
+<td><code>VOLUME</code></td>
+<td>声明匿名数据卷</td>
+</tr>
+</tbody></table>
+<h3 id="CMD-vs-ENTRYPOINT"><a href="#CMD-vs-ENTRYPOINT" class="headerlink" title="CMD vs ENTRYPOINT"></a><code>CMD</code> vs <code>ENTRYPOINT</code></h3><figure class="highlight dockerfile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs dockerfile"><span class="hljs-comment"># CMD：docker run myimg bash 会覆盖成 bash</span><br><span class="hljs-keyword">CMD</span><span class="language-bash"> [<span class="hljs-string">&quot;python&quot;</span>, <span class="hljs-string">&quot;app.py&quot;</span>]</span><br><br><span class="hljs-comment"># ENTRYPOINT：docker run myimg bash 会把 bash 作为参数追加</span><br><span class="hljs-keyword">ENTRYPOINT</span><span class="language-bash"> [<span class="hljs-string">&quot;python&quot;</span>, <span class="hljs-string">&quot;app.py&quot;</span>]</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th></th>
+<th><code>CMD</code></th>
+<th><code>ENTRYPOINT</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>能否被覆盖</td>
+<td>✅ 完全覆盖</td>
+<td>❌ 只能追加参数</td>
+</tr>
+<tr>
+<td>适合</td>
+<td>可变的默认行为</td>
+<td>固定的主程序</td>
+</tr>
+</tbody></table>
+<p><strong>组合用法</strong>（最常见）：</p>
+<figure class="highlight dockerfile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs dockerfile"><span class="hljs-keyword">ENTRYPOINT</span><span class="language-bash"> [<span class="hljs-string">&quot;python&quot;</span>, <span class="hljs-string">&quot;app.py&quot;</span>]</span><br><span class="hljs-keyword">CMD</span><span class="language-bash"> [<span class="hljs-string">&quot;--port&quot;</span>, <span class="hljs-string">&quot;8000&quot;</span>]     <span class="hljs-comment"># 不传参时的默认参数</span></span><br></code></pre></td></tr></table></figure>
+
+<h3 id="ENV-vs-ARG"><a href="#ENV-vs-ARG" class="headerlink" title="ENV vs ARG"></a><code>ENV</code> vs <code>ARG</code></h3><figure class="highlight dockerfile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs dockerfile"><span class="hljs-keyword">ARG</span> VERSION=<span class="hljs-number">3.12</span>              <span class="hljs-comment"># 只在构建期存在</span><br><span class="hljs-keyword">FROM</span> python:$&#123;VERSION&#125;<br><br><span class="hljs-keyword">ENV</span> APP_ENV=production        <span class="hljs-comment"># 构建期 + 运行期都在</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>不要用 <code>ENV</code> 存密码</strong>。<code>ENV</code> 会写进镜像元数据，<code>docker history</code> 就能看到。<code>ARG</code> 也会留在构建缓存里，同样不安全。</p>
+</blockquote>
+<h2 id="三、缓存：决定构建速度"><a href="#三、缓存：决定构建速度" class="headerlink" title="三、缓存：决定构建速度"></a>三、缓存：决定构建速度</h2><p><strong>Docker 按层顺序比对缓存。任何一层的输入变了，它和它之后的所有层全部失效。</strong></p>
+<h3 id="错误写法"><a href="#错误写法" class="headerlink" title="错误写法"></a>错误写法</h3><figure class="highlight dockerfile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs dockerfile"><span class="hljs-keyword">FROM</span> python:<span class="hljs-number">3.12</span><br><span class="hljs-keyword">WORKDIR</span><span class="language-bash"> /app</span><br><br><span class="hljs-keyword">COPY</span><span class="language-bash"> . .                      <span class="hljs-comment"># ← 改一行代码，这层就变了</span></span><br><span class="hljs-keyword">RUN</span><span class="language-bash"> pip install -r requirements.txt   <span class="hljs-comment"># ← 于是每次都重新装依赖</span></span><br></code></pre></td></tr></table></figure>
+
+<p>改一行业务代码 → <code>COPY . .</code> 失效 → 依赖重新安装（可能几分钟）。</p>
+<h3 id="正确写法：把变化频率低的放前面"><a href="#正确写法：把变化频率低的放前面" class="headerlink" title="正确写法：把变化频率低的放前面"></a>正确写法：把变化频率低的放前面</h3><figure class="highlight dockerfile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs dockerfile"><span class="hljs-keyword">FROM</span> python:<span class="hljs-number">3.12</span><br><span class="hljs-keyword">WORKDIR</span><span class="language-bash"> /app</span><br><br><span class="hljs-keyword">COPY</span><span class="language-bash"> requirements.txt .       <span class="hljs-comment"># 依赖清单很少变</span></span><br><span class="hljs-keyword">RUN</span><span class="language-bash"> pip install --no-cache-dir -r requirements.txt</span><br><br><span class="hljs-keyword">COPY</span><span class="language-bash"> . .                      <span class="hljs-comment"># 代码经常变，放最后</span></span><br><br><span class="hljs-keyword">CMD</span><span class="language-bash"> [<span class="hljs-string">&quot;python&quot;</span>, <span class="hljs-string">&quot;app.py&quot;</span>]</span><br></code></pre></td></tr></table></figure>
+
+<p><strong>原则：越稳定的指令越靠前。</strong></p>
+<h3 id="还要注意-dockerignore"><a href="#还要注意-dockerignore" class="headerlink" title="还要注意 .dockerignore"></a>还要注意 <code>.dockerignore</code></h3><figure class="highlight asciidoc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs asciidoc"><span class="hljs-title">.git</span><br><span class="hljs-emphasis">__pycache__</span><br>*.pyc<br>node_modules<br><span class="hljs-title">.venv</span><br><span class="hljs-title">.env</span><br></code></pre></td></tr></table></figure>
+
+<p>没有它，<code>COPY . .</code> 会把 <code>.git</code>（可能几百 MB）也复制进去，还破坏缓存。</p>
+<h2 id="四、多阶段构建：把体积压下来"><a href="#四、多阶段构建：把体积压下来" class="headerlink" title="四、多阶段构建：把体积压下来"></a>四、多阶段构建：把体积压下来</h2><p>编译型语言（Go &#x2F; Java &#x2F; Rust）的构建依赖很大，但运行时不需要。</p>
+<figure class="highlight dockerfile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><code class="hljs dockerfile"><span class="hljs-comment"># 阶段一：构建</span><br><span class="hljs-keyword">FROM</span> golang:<span class="hljs-number">1.23</span> AS builder<br><span class="hljs-keyword">WORKDIR</span><span class="language-bash"> /src</span><br><span class="hljs-keyword">COPY</span><span class="language-bash"> go.mod go.sum ./</span><br><span class="hljs-keyword">RUN</span><span class="language-bash"> go mod download</span><br><span class="hljs-keyword">COPY</span><span class="language-bash"> . .</span><br><span class="hljs-keyword">RUN</span><span class="language-bash"> CGO_ENABLED=0 go build -o /out/app .</span><br><br><span class="hljs-comment"># 阶段二：运行（只保留二进制）</span><br><span class="hljs-keyword">FROM</span> alpine:<span class="hljs-number">3.20</span><br><span class="hljs-keyword">WORKDIR</span><span class="language-bash"> /app</span><br><span class="hljs-keyword">COPY</span><span class="language-bash"> --from=builder /out/app .</span><br><span class="hljs-keyword">EXPOSE</span> <span class="hljs-number">8080</span><br><span class="hljs-keyword">CMD</span><span class="language-bash"> [<span class="hljs-string">&quot;./app&quot;</span>]</span><br></code></pre></td></tr></table></figure>
+
+<p>体积对比：<code>golang:1.23</code> 约 800MB → <code>alpine</code> + 二进制约 15MB。</p>
+<blockquote>
+<p>前端项目同理：用 <code>node</code> 镜像构建，产物拷进 <code>nginx</code> 镜像。</p>
+</blockquote>
+<h2 id="五、几个容易踩的点"><a href="#五、几个容易踩的点" class="headerlink" title="五、几个容易踩的点"></a>五、几个容易踩的点</h2><h3 id="RUN-合并能减小层数"><a href="#RUN-合并能减小层数" class="headerlink" title="RUN 合并能减小层数"></a><code>RUN</code> 合并能减小层数</h3><figure class="highlight dockerfile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs dockerfile"><span class="hljs-comment"># ❌ 三层，且 apt 缓存留在镜像里</span><br><span class="hljs-keyword">RUN</span><span class="language-bash"> apt-get update</span><br><span class="hljs-keyword">RUN</span><span class="language-bash"> apt-get install -y curl</span><br><span class="hljs-keyword">RUN</span><span class="language-bash"> <span class="hljs-built_in">rm</span> -rf /var/lib/apt/lists/*</span><br><br><span class="hljs-comment"># ✅ 一层，且同层内清理掉缓存</span><br><span class="hljs-keyword">RUN</span><span class="language-bash"> apt-get update \</span><br><span class="language-bash">    &amp;&amp; apt-get install -y --no-install-recommends curl \</span><br><span class="language-bash">    &amp;&amp; <span class="hljs-built_in">rm</span> -rf /var/lib/apt/lists/*</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 关键点：<strong>清理必须在同一个 <code>RUN</code> 里</strong>。分成两条指令时，<code>rm</code> 只会在新层里「删除」文件，文件仍然存在于下面的层里，镜像并不会变小。</p>
+</blockquote>
+<h3 id="基础镜像选型"><a href="#基础镜像选型" class="headerlink" title="基础镜像选型"></a>基础镜像选型</h3><table>
+<thead>
+<tr>
+<th>镜像</th>
+<th>体积</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>python:3.12</code></td>
+<td>~1GB</td>
+<td>完整 Debian，工具齐全</td>
+</tr>
+<tr>
+<td><code>python:3.12-slim</code></td>
+<td>~130MB</td>
+<td>精简 Debian，<strong>日常推荐</strong></td>
+</tr>
+<tr>
+<td><code>python:3.12-alpine</code></td>
+<td>~50MB</td>
+<td>基于 musl libc，<strong>可能编译不过某些 wheel</strong></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ Alpine 用 musl 而不是 glibc。带 C 扩展的包（<code>numpy</code>、<code>psycopg2</code> 等）可能没有预编译 wheel，需要现场编译，反而更慢更麻烦。<strong>不确定就选 <code>-slim</code>。</strong></p>
+</blockquote>
+<h2 id="六、常用命令对照"><a href="#六、常用命令对照" class="headerlink" title="六、常用命令对照"></a>六、常用命令对照</h2><table>
+<thead>
+<tr>
+<th>目的</th>
+<th>命令</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>构建并打标签</td>
+<td><code>docker build -t myapp:1.0 .</code></td>
+</tr>
+<tr>
+<td>看镜像分层与体积</td>
+<td><code>docker history myapp:1.0</code></td>
+</tr>
+<tr>
+<td>看镜像总大小</td>
+<td><code>docker images myapp</code></td>
+</tr>
+<tr>
+<td>查看构建上下文是否过大</td>
+<td>构建时留意 <code>Sending build context to Docker daemon</code> 那行</td>
+</tr>
+<tr>
+<td>进入运行中的容器</td>
+<td><code>docker exec -it &lt;container&gt; sh</code></td>
+</tr>
+<tr>
+<td>看容器日志</td>
+<td><code>docker logs -f &lt;container&gt;</code></td>
+</tr>
+</tbody></table>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 先 <code>COPY . .</code> 再装依赖，导致每次改代码都重装依赖</li>
+<li><input disabled="" type="checkbox"> 忘了写 <code>.dockerignore</code>，把 <code>.git</code>、<code>node_modules</code> 打进镜像</li>
+<li><input disabled="" type="checkbox"> 清理缓存的 <code>rm</code> 和安装命令不在同一个 <code>RUN</code> 里（镜像不会变小）</li>
+<li><input disabled="" type="checkbox"> 用 <code>ENV</code> 传密码（<code>docker history</code> 可见）</li>
+<li><input disabled="" type="checkbox"> 以为 <code>EXPOSE</code> 会真的开放端口（它只是声明，映射靠 <code>-p</code>）</li>
+<li><input disabled="" type="checkbox"> <code>CMD</code> 和 <code>ENTRYPOINT</code> 搞混，导致 <code>docker run</code> 传参行为不符预期</li>
+<li><input disabled="" type="checkbox"> 无脑用 Alpine，遇到带 C 扩展的包编译失败</li>
+<li><input disabled="" type="checkbox"> 用 <code>ADD</code> 拉远程 URL（下载的文件不会进构建缓存，且无法校验）</li>
+<li><input disabled="" type="checkbox"> 把数据写在容器可写层，删容器就丢</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://docs.docker.com/reference/dockerfile/">Docker 官方文档 · Dockerfile 参考</a> · <a target="_blank" rel="noopener" href="https://docs.docker.com/build/building/best-practices/">Docker 官方文档 · 构建最佳实践</a> · <a target="_blank" rel="noopener" href="https://docs.docker.com/build/building/multi-stage/">多阶段构建</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/docker/" class="category-chain-item">docker</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/docker/" class="print-no-link">#docker</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 006 · Docker（一）：镜像分层与 Dockerfile</div>
+      <div>https://ethan-iopasd.github.io/2026/09/30/每日技术博客006-Docker镜像与Dockerfile/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年9月30日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2007-DockerCompose/" title="每日技术博客 007 · Docker（二）：Compose、网络与数据卷">
+                        <span class="hidden-mobile">每日技术博客 007 · Docker（二）：Compose、网络与数据卷</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

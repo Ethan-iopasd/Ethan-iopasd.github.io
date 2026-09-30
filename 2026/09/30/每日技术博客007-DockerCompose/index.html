@@ -1,0 +1,926 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="每日技术博客 · 2026-09-30 · 第 007 篇 Docker 系列第二篇。多容器怎么编排、容器之间怎么互相找到、数据怎么不丢 —— 也就是 Compose、网络和数据卷这三件事。  📚 Docker 系列目录   章节 主题 状态    一 镜像分层与 Dockerfile 已发布   二 Compose、网络与数据卷 本篇    开场：容器只有三个需要关心的问题 怎么跑起来 ——">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 007 · Docker（二）：Compose、网络与数据卷">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2007-DockerCompose/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-09-30 · 第 007 篇 Docker 系列第二篇。多容器怎么编排、容器之间怎么互相找到、数据怎么不丢 —— 也就是 Compose、网络和数据卷这三件事。  📚 Docker 系列目录   章节 主题 状态    一 镜像分层与 Dockerfile 已发布   二 Compose、网络与数据卷 本篇    开场：容器只有三个需要关心的问题 怎么跑起来 ——">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-09-30T06:00:00.000Z">
+<meta property="article:modified_time" content="2026-09-30T04:51:02.368Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="docker">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 007 · Docker（二）：Compose、网络与数据卷 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 007 · Docker（二）：Compose、网络与数据卷"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-09-30 14:00" pubdate>
+          2026年9月30日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          1.4k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          12 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 007 · Docker（二）：Compose、网络与数据卷</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-09-30 · 第 007 篇</p>
+<p>Docker 系列第二篇。多容器怎么编排、容器之间怎么互相找到、数据怎么不丢 —— 也就是 Compose、网络和数据卷这三件事。</p>
+</blockquote>
+<h2 id="📚-Docker-系列目录"><a href="#📚-Docker-系列目录" class="headerlink" title="📚 Docker 系列目录"></a>📚 Docker 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>镜像分层与 Dockerfile</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>Compose、网络与数据卷</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：容器只有三个需要关心的问题"><a href="#开场：容器只有三个需要关心的问题" class="headerlink" title="开场：容器只有三个需要关心的问题"></a>开场：容器只有三个需要关心的问题</h2><ol>
+<li><strong>怎么跑起来</strong> —— <code>docker run</code> 参数太长就用 Compose</li>
+<li><strong>怎么互相通信</strong> —— 网络与 DNS</li>
+<li><strong>数据放哪</strong> —— 数据卷，别放容器里</li>
+</ol>
+<h2 id="一、docker-run-的参数长什么样"><a href="#一、docker-run-的参数长什么样" class="headerlink" title="一、docker run 的参数长什么样"></a>一、<code>docker run</code> 的参数长什么样</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs bash">docker run -d \<br>  --name web \<br>  -p 8080:80 \<br>  -e APP_ENV=production \<br>  -v /data/web:/app/data \<br>  --network mynet \<br>  --restart unless-stopped \<br>  myapp:1.0<br></code></pre></td></tr></table></figure>
+
+<p>参数一多就该换 Compose 了 —— <strong>把命令行参数写成声明式文件</strong>。</p>
+<h2 id="二、Compose"><a href="#二、Compose" class="headerlink" title="二、Compose"></a>二、Compose</h2><h3 id="compose-yaml"><a href="#compose-yaml" class="headerlink" title="compose.yaml"></a><code>compose.yaml</code></h3><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-attr">services:</span><br>  <span class="hljs-attr">web:</span><br>    <span class="hljs-attr">build:</span> <span class="hljs-string">.</span><br>    <span class="hljs-attr">ports:</span><br>      <span class="hljs-bullet">-</span> <span class="hljs-string">&quot;8080:80&quot;</span><br>    <span class="hljs-attr">environment:</span><br>      <span class="hljs-bullet">-</span> <span class="hljs-string">APP_ENV=production</span><br>    <span class="hljs-attr">depends_on:</span><br>      <span class="hljs-bullet">-</span> <span class="hljs-string">db</span><br>    <span class="hljs-attr">networks:</span><br>      <span class="hljs-bullet">-</span> <span class="hljs-string">backend</span><br>    <span class="hljs-attr">restart:</span> <span class="hljs-string">unless-stopped</span><br><br>  <span class="hljs-attr">db:</span><br>    <span class="hljs-attr">image:</span> <span class="hljs-string">postgres:16</span><br>    <span class="hljs-attr">environment:</span><br>      <span class="hljs-attr">POSTGRES_PASSWORD_FILE:</span> <span class="hljs-string">/run/secrets/db_password</span><br>    <span class="hljs-attr">volumes:</span><br>      <span class="hljs-bullet">-</span> <span class="hljs-string">pgdata:/var/lib/postgresql/data</span><br>    <span class="hljs-attr">networks:</span><br>      <span class="hljs-bullet">-</span> <span class="hljs-string">backend</span><br><br><span class="hljs-attr">volumes:</span><br>  <span class="hljs-attr">pgdata:</span><br><br><span class="hljs-attr">networks:</span><br>  <span class="hljs-attr">backend:</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>文件名现在推荐 <code>compose.yaml</code>（旧版是 <code>docker-compose.yml</code>，仍然兼容）。</p>
+</blockquote>
+<h3 id="常用命令"><a href="#常用命令" class="headerlink" title="常用命令"></a>常用命令</h3><table>
+<thead>
+<tr>
+<th>命令</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>docker compose up -d</code></td>
+<td>后台启动全部服务</td>
+</tr>
+<tr>
+<td><code>docker compose up -d --build</code></td>
+<td>重新构建镜像再启动</td>
+</tr>
+<tr>
+<td><code>docker compose ps</code></td>
+<td>看服务状态</td>
+</tr>
+<tr>
+<td><code>docker compose logs -f web</code></td>
+<td>跟踪某个服务日志</td>
+</tr>
+<tr>
+<td><code>docker compose exec web sh</code></td>
+<td>进某个服务的容器</td>
+</tr>
+<tr>
+<td><code>docker compose down</code></td>
+<td>停止并删除容器、网络</td>
+</tr>
+<tr>
+<td><code>docker compose down -v</code></td>
+<td><strong>连数据卷一起删</strong>（危险）</td>
+</tr>
+<tr>
+<td><code>docker compose config</code></td>
+<td>校验并展开配置（排查变量替换问题很好用）</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>docker compose down -v</code> 会删掉命名卷，<strong>数据库数据一起没</strong>。确认清楚再敲。</p>
+</blockquote>
+<h3 id="depends-on-不等健康检查"><a href="#depends-on-不等健康检查" class="headerlink" title="depends_on 不等健康检查"></a><code>depends_on</code> 不等健康检查</h3><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-attr">depends_on:</span><br>  <span class="hljs-bullet">-</span> <span class="hljs-string">db</span>            <span class="hljs-comment"># 只保证启动顺序，不保证 db 已经能接受连接</span><br></code></pre></td></tr></table></figure>
+
+<p>应用启动时数据库还没就绪 → 连接失败。正确做法：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-attr">db:</span><br>  <span class="hljs-attr">image:</span> <span class="hljs-string">postgres:16</span><br>  <span class="hljs-attr">healthcheck:</span><br>    <span class="hljs-attr">test:</span> [<span class="hljs-string">&quot;CMD-SHELL&quot;</span>, <span class="hljs-string">&quot;pg_isready -U postgres&quot;</span>]<br>    <span class="hljs-attr">interval:</span> <span class="hljs-string">5s</span><br>    <span class="hljs-attr">timeout:</span> <span class="hljs-string">3s</span><br>    <span class="hljs-attr">retries:</span> <span class="hljs-number">10</span><br><br><span class="hljs-attr">web:</span><br>  <span class="hljs-attr">depends_on:</span><br>    <span class="hljs-attr">db:</span><br>      <span class="hljs-attr">condition:</span> <span class="hljs-string">service_healthy</span>      <span class="hljs-comment"># ← 等到健康检查通过</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 更稳的做法是<strong>应用自身带重试</strong>。健康检查只是减少问题，不能替代重试逻辑。</p>
+</blockquote>
+<h3 id="ports-与-expose"><a href="#ports-与-expose" class="headerlink" title="ports 与 expose"></a><code>ports</code> 与 <code>expose</code></h3><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-attr">ports:</span><br>  <span class="hljs-bullet">-</span> <span class="hljs-string">&quot;8080:80&quot;</span>      <span class="hljs-comment"># 宿主机:容器，对外暴露</span><br><span class="hljs-attr">expose:</span><br>  <span class="hljs-bullet">-</span> <span class="hljs-string">&quot;80&quot;</span>           <span class="hljs-comment"># 只对同一网络内的其他服务可见</span><br></code></pre></td></tr></table></figure>
+
+<p><strong>只给需要被外部访问的服务写 <code>ports</code>。</strong> 数据库不需要 <code>ports</code>，同一网络里的应用用服务名就能连。</p>
+<h3 id="环境变量与-secrets"><a href="#环境变量与-secrets" class="headerlink" title="环境变量与 secrets"></a>环境变量与 secrets</h3><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-attr">environment:</span><br>  <span class="hljs-bullet">-</span> <span class="hljs-string">APP_ENV=production</span><br><br><span class="hljs-attr">env_file:</span><br>  <span class="hljs-bullet">-</span> <span class="hljs-string">.env</span>            <span class="hljs-comment"># 从文件读，记得把 .env 加进 .gitignore</span><br><br><span class="hljs-attr">secrets:</span><br>  <span class="hljs-attr">db_password:</span><br>    <span class="hljs-attr">file:</span> <span class="hljs-string">./secrets/db_password.txt</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>不要把密码写在 <code>compose.yaml</code> 里提交到仓库。</strong> 用 <code>env_file</code> 或 <code>secrets</code>，并把对应文件写进 <code>.gitignore</code>。</p>
+</blockquote>
+<h2 id="三、网络"><a href="#三、网络" class="headerlink" title="三、网络"></a>三、网络</h2><h3 id="默认行为"><a href="#默认行为" class="headerlink" title="默认行为"></a>默认行为</h3><p>Compose 会为项目创建一个<strong>默认网络</strong>，所有服务都接进去。<strong>服务名就是主机名</strong>，可以直接 ping 通：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 在 web 容器里</span><br>ping db<br>curl http://db:5432<br></code></pre></td></tr></table></figure>
+
+<p>这就是为什么连接串写 <code>postgres://db:5432/mydb</code> 而不是 <code>localhost</code>。</p>
+<h3 id="四种网络驱动"><a href="#四种网络驱动" class="headerlink" title="四种网络驱动"></a>四种网络驱动</h3><table>
+<thead>
+<tr>
+<th>驱动</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>bridge</code></td>
+<td>默认，单机内容器互通</td>
+</tr>
+<tr>
+<td><code>host</code></td>
+<td>直接用宿主机网络栈，无隔离（Linux 有效）</td>
+</tr>
+<tr>
+<td><code>none</code></td>
+<td>无网络</td>
+</tr>
+<tr>
+<td><code>overlay</code></td>
+<td>跨多台宿主机（Swarm &#x2F; 集群）</td>
+</tr>
+</tbody></table>
+<h3 id="一个高频困惑"><a href="#一个高频困惑" class="headerlink" title="一个高频困惑"></a>一个高频困惑</h3><table>
+<thead>
+<tr>
+<th>从哪访问</th>
+<th>连什么地址</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>宿主机上的进程 → 容器</td>
+<td><code>localhost:8080</code>（映射后的端口）</td>
+</tr>
+<tr>
+<td>容器 A → 容器 B</td>
+<td><code>db:5432</code>（服务名 + <strong>容器内端口</strong>）</td>
+</tr>
+<tr>
+<td>容器 → 宿主机</td>
+<td><code>host.docker.internal</code>（Docker Desktop）</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>容器里写 <code>localhost</code> 指的是容器自己</strong>，不是宿主机。这是新手最常见的连接失败原因。</p>
+</blockquote>
+<h2 id="四、数据卷"><a href="#四、数据卷" class="headerlink" title="四、数据卷"></a>四、数据卷</h2><h3 id="三种挂载方式"><a href="#三种挂载方式" class="headerlink" title="三种挂载方式"></a>三种挂载方式</h3><table>
+<thead>
+<tr>
+<th>类型</th>
+<th>写法</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>命名卷</td>
+<td><code>pgdata:/var/lib/postgresql/data</code></td>
+<td>Docker 管理，<strong>存数据推荐</strong></td>
+</tr>
+<tr>
+<td>绑定挂载</td>
+<td><code>./src:/app/src</code></td>
+<td>挂宿主机目录，<strong>开发时同步代码用</strong></td>
+</tr>
+<tr>
+<td>匿名卷</td>
+<td><code>/var/lib/postgresql/data</code></td>
+<td>不推荐，名字随机难管理</td>
+</tr>
+</tbody></table>
+<h3 id="为什么必须用卷"><a href="#为什么必须用卷" class="headerlink" title="为什么必须用卷"></a>为什么必须用卷</h3><p>容器的可写层随容器删除而消失：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash">docker run -d --name db postgres:16<br>docker <span class="hljs-built_in">rm</span> -f db            <span class="hljs-comment"># 数据库数据全部丢失</span><br></code></pre></td></tr></table></figure>
+
+<h3 id="命名卷-vs-绑定挂载"><a href="#命名卷-vs-绑定挂载" class="headerlink" title="命名卷 vs 绑定挂载"></a>命名卷 vs 绑定挂载</h3><table>
+<thead>
+<tr>
+<th></th>
+<th>命名卷</th>
+<th>绑定挂载</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>存储位置</td>
+<td>Docker 管理（Linux 在 <code>/var/lib/docker/volumes</code>）</td>
+<td>你指定的宿主机路径</td>
+</tr>
+<tr>
+<td>性能</td>
+<td>好</td>
+<td>在 macOS &#x2F; Windows 上<strong>较慢</strong>（要走文件同步）</td>
+</tr>
+<tr>
+<td>适合</td>
+<td>数据库数据、需要持久化的业务数据</td>
+<td>开发时挂源码、配置文件</td>
+</tr>
+<tr>
+<td>备份</td>
+<td><code>docker run --rm -v pgdata:/data alpine tar czf - /data</code></td>
+<td>直接复制目录</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>macOS &#x2F; Windows 上不要用绑定挂载跑数据库</strong>，I&#x2F;O 性能会差很多倍。用命名卷。</p>
+</blockquote>
+<h3 id="常见操作"><a href="#常见操作" class="headerlink" title="常见操作"></a>常见操作</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs bash">docker volume <span class="hljs-built_in">ls</span><br>docker volume inspect pgdata<br>docker volume <span class="hljs-built_in">rm</span> pgdata           <span class="hljs-comment"># 必须先删掉用它的容器</span><br>docker volume prune               <span class="hljs-comment"># 清理所有未被使用的卷（危险，会删数据）</span><br></code></pre></td></tr></table></figure>
+
+<h2 id="五、几个实战建议"><a href="#五、几个实战建议" class="headerlink" title="五、几个实战建议"></a>五、几个实战建议</h2><h3 id="restart-策略"><a href="#restart-策略" class="headerlink" title="restart 策略"></a><code>restart</code> 策略</h3><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-attr">restart:</span> <span class="hljs-string">unless-stopped</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>值</th>
+<th>行为</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>no</code></td>
+<td>不重启（默认）</td>
+</tr>
+<tr>
+<td><code>on-failure</code></td>
+<td>非 0 退出码才重启</td>
+</tr>
+<tr>
+<td><code>always</code></td>
+<td>总是重启（包括手动停掉后重启宿主机）</td>
+</tr>
+<tr>
+<td><code>unless-stopped</code></td>
+<td>总是重启，<strong>但你手动 stop 的不会</strong>（推荐）</td>
+</tr>
+</tbody></table>
+<h3 id="资源限制"><a href="#资源限制" class="headerlink" title="资源限制"></a>资源限制</h3><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-attr">services:</span><br>  <span class="hljs-attr">web:</span><br>    <span class="hljs-attr">deploy:</span><br>      <span class="hljs-attr">resources:</span><br>        <span class="hljs-attr">limits:</span><br>          <span class="hljs-attr">cpus:</span> <span class="hljs-string">&quot;1.0&quot;</span><br>          <span class="hljs-attr">memory:</span> <span class="hljs-string">512M</span><br></code></pre></td></tr></table></figure>
+
+<h3 id="健康检查写进-Compose"><a href="#健康检查写进-Compose" class="headerlink" title="健康检查写进 Compose"></a>健康检查写进 Compose</h3><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-attr">healthcheck:</span><br>  <span class="hljs-attr">test:</span> [<span class="hljs-string">&quot;CMD&quot;</span>, <span class="hljs-string">&quot;curl&quot;</span>, <span class="hljs-string">&quot;-f&quot;</span>, <span class="hljs-string">&quot;http://localhost:8080/health&quot;</span>]<br>  <span class="hljs-attr">interval:</span> <span class="hljs-string">30s</span><br>  <span class="hljs-attr">timeout:</span> <span class="hljs-string">5s</span><br>  <span class="hljs-attr">retries:</span> <span class="hljs-number">3</span><br>  <span class="hljs-attr">start_period:</span> <span class="hljs-string">20s</span>        <span class="hljs-comment"># 给应用启动留时间，这段时间失败不计入 retries</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p><code>start_period</code> 很关键。没有它，应用启动慢的容器会被反复判定为不健康。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 容器里用 <code>localhost</code> 连另一个容器（应该用服务名）</li>
+<li><input disabled="" type="checkbox"> 只写 <code>depends_on</code> 就以为依赖已就绪（它不管健康状态）</li>
+<li><input disabled="" type="checkbox"> 数据库不用数据卷，<code>docker compose down</code> 后数据全丢</li>
+<li><input disabled="" type="checkbox"> 在 macOS &#x2F; Windows 上用绑定挂载跑数据库，I&#x2F;O 慢到怀疑人生</li>
+<li><input disabled="" type="checkbox"> 密码写在 <code>compose.yaml</code> 里提交进仓库</li>
+<li><input disabled="" type="checkbox"> 给数据库也写 <code>ports</code>，把端口暴露到公网</li>
+<li><input disabled="" type="checkbox"> 用 <code>docker compose down -v</code> 顺手清环境，把数据卷一起删了</li>
+<li><input disabled="" type="checkbox"> 健康检查没配 <code>start_period</code>，启动慢的服务被反复重启</li>
+<li><input disabled="" type="checkbox"> 容器里以 root 运行应用，出问题影响面更大</li>
+<li><input disabled="" type="checkbox"> 忘了 <code>restart</code> 策略，宿主机重启后服务不会自动起来</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://docs.docker.com/compose/">Docker Compose 官方文档</a> · <a target="_blank" rel="noopener" href="https://docs.docker.com/engine/network/">Docker 网络</a> · <a target="_blank" rel="noopener" href="https://docs.docker.com/engine/storage/volumes/">Docker 数据卷</a> · <a target="_blank" rel="noopener" href="https://docs.docker.com/reference/compose-file/">Compose 文件参考</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/docker/" class="category-chain-item">docker</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/docker/" class="print-no-link">#docker</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 007 · Docker（二）：Compose、网络与数据卷</div>
+      <div>https://ethan-iopasd.github.io/2026/09/30/每日技术博客007-DockerCompose/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年9月30日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2006-Docker%E9%95%9C%E5%83%8F%E4%B8%8EDockerfile/" title="每日技术博客 006 · Docker（一）：镜像分层与 Dockerfile">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 006 · Docker（一）：镜像分层与 Dockerfile</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
