@@ -1,0 +1,1120 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 051 篇 算法系列第二篇。标准库的 sort 到底用了什么算法、稳定性为什么会在多字段排序时咬人、二分查找的边界怎么写才不越界 —— 全是能直接对照的表格和模板。  📚 算法 系列目录   章节 主题 状态    一 复杂度与常用数据结构 已发布   二 排序与二分查找 本篇    开场：排序快不快，取决于数据分布，不是算法名字O(n log">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 051 · 算法（二）：排序与二分查找">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2051-%E7%AE%97%E6%B3%95%E6%8E%92%E5%BA%8F%E4%B8%8E%E4%BA%8C%E5%88%86%E6%9F%A5%E6%89%BE/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 051 篇 算法系列第二篇。标准库的 sort 到底用了什么算法、稳定性为什么会在多字段排序时咬人、二分查找的边界怎么写才不越界 —— 全是能直接对照的表格和模板。  📚 算法 系列目录   章节 主题 状态    一 复杂度与常用数据结构 已发布   二 排序与二分查找 本篇    开场：排序快不快，取决于数据分布，不是算法名字O(n log">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-08T01:20:00.000Z">
+<meta property="article:modified_time" content="2026-10-08T01:21:04.397Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="algorithm">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 051 · 算法（二）：排序与二分查找 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 051 · 算法（二）：排序与二分查找"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-08 09:20" pubdate>
+          2026年10月8日 上午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          3.2k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          28 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 051 · 算法（二）：排序与二分查找</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-08 · 第 051 篇</p>
+<p>算法系列第二篇。标准库的 <code>sort</code> 到底用了什么算法、稳定性为什么会在多字段排序时咬人、二分查找的边界怎么写才不越界 —— 全是能直接对照的表格和模板。</p>
+</blockquote>
+<h2 id="📚-算法-系列目录"><a href="#📚-算法-系列目录" class="headerlink" title="📚 算法 系列目录"></a>📚 算法 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>复杂度与常用数据结构</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>排序与二分查找</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：排序快不快，取决于数据分布，不是算法名字"><a href="#开场：排序快不快，取决于数据分布，不是算法名字" class="headerlink" title="开场：排序快不快，取决于数据分布，不是算法名字"></a>开场：排序快不快，取决于数据分布，不是算法名字</h2><p><code>O(n log n)</code> 只是<strong>比较排序的下界</strong>，不是某个算法的专属标签。实际跑起来：TimSort 在「基本有序」的数据上是 <code>O(n)</code>，pdqsort 在「大量重复元素」上远快于朴素快排，而快排遇到「已排序输入 + 首元素作 pivot」会退化成 <code>O(n²)</code>。<strong>选排序前先看数据长什么样。</strong></p>
+<h2 id="一、O-n-log-n-下界从哪来"><a href="#一、O-n-log-n-下界从哪来" class="headerlink" title="一、O(n log n) 下界从哪来"></a>一、O(n log n) 下界从哪来</h2><p>n 个元素有 <code>n!</code> 种排列，每次比较只能把候选空间一分为二，所以决策树高度至少是 <code>log₂(n!)</code>。</p>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>排列数</td>
+<td><code>n!</code></td>
+</tr>
+<tr>
+<td>决策树最小高度</td>
+<td><code>log₂(n!)</code></td>
+</tr>
+<tr>
+<td>Stirling 近似</td>
+<td><code>≈ n·log₂n − 1.44n</code></td>
+</tr>
+<tr>
+<td>结论</td>
+<td>任何<strong>基于比较</strong>的排序，最坏 ≥ <code>Ω(n log n)</code></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>这个下界只约束「比较排序」。</strong> 只要不靠比较（计数、基数、桶），就能突破 <code>n log n</code> —— 代价是对数据有额外假设（值域有限、可分解成位）。</p>
+</blockquote>
+<h2 id="二、各语言-sort-的真实实现"><a href="#二、各语言-sort-的真实实现" class="headerlink" title="二、各语言 sort 的真实实现"></a>二、各语言 sort 的真实实现</h2><table>
+<thead>
+<tr>
+<th>语言</th>
+<th>排序对象</th>
+<th>算法</th>
+<th>稳定</th>
+<th>最坏</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Java</strong> <code>Arrays.sort(int[])</code></td>
+<td>基本类型</td>
+<td><strong>双轴快排</strong></td>
+<td>❌</td>
+<td><code>O(n²)</code>*</td>
+<td>Dual-Pivot Quicksort</td>
+</tr>
+<tr>
+<td><strong>Java</strong> <code>Arrays.sort(Object[])</code> &#x2F; <code>List.sort</code></td>
+<td>对象</td>
+<td><strong>TimSort</strong></td>
+<td>✅</td>
+<td><code>O(n log n)</code></td>
+<td>归并 + 插入，利用已有 run</td>
+</tr>
+<tr>
+<td><strong>Python</strong> <code>list.sort</code> &#x2F; <code>sorted</code></td>
+<td>序列</td>
+<td><strong>TimSort</strong></td>
+<td>✅</td>
+<td><code>O(n log n)</code></td>
+<td>只能排 list</td>
+</tr>
+<tr>
+<td><strong>Go</strong> <code>sort.Slice</code> &#x2F; <code>slices.Sort</code></td>
+<td>切片</td>
+<td><strong>pdqsort</strong>（1.19 起）</td>
+<td>❌</td>
+<td><code>O(n log n)</code></td>
+<td>原为快排 + 堆排</td>
+</tr>
+<tr>
+<td><strong>C++</strong> <code>std::sort</code></td>
+<td>任意迭代器</td>
+<td><strong>introsort</strong></td>
+<td>❌</td>
+<td><code>O(n log n)</code></td>
+<td>快排 + 堆排 + 插入</td>
+</tr>
+<tr>
+<td><strong>C++</strong> <code>std::stable_sort</code></td>
+<td>任意迭代器</td>
+<td>归并</td>
+<td>✅</td>
+<td><code>O(n log n)</code></td>
+<td>额外空间 <code>O(n)</code></td>
+</tr>
+<tr>
+<td><strong>JS</strong> <code>Array.prototype.sort</code></td>
+<td>数组</td>
+<td><strong>TimSort</strong>（V8）</td>
+<td>✅</td>
+<td><code>O(n log n)</code></td>
+<td>ES2019 起规范要求稳定</td>
+</tr>
+<tr>
+<td><strong>Rust</strong> <code>sort</code> &#x2F; <code>sort_unstable</code></td>
+<td>切片</td>
+<td>归并 &#x2F; pdqsort</td>
+<td>✅ &#x2F; ❌</td>
+<td><code>O(n log n)</code></td>
+<td>稳定版需额外空间</td>
+</tr>
+</tbody></table>
+<p>* 双轴快排在极端输入上仍可能退化，JDK 内部对小块有插入排序兜底。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-comment">// Java：基本类型不稳定，对象稳定 —— 这条差异直接影响多字段排序</span><br><span class="hljs-type">int</span>[] a = &#123;<span class="hljs-number">3</span>, <span class="hljs-number">1</span>, <span class="hljs-number">2</span>&#125;;<br>Arrays.sort(a);                                      <span class="hljs-comment">// 双轴快排，不稳定</span><br><br>List&lt;Order&gt; list = ...;<br>list.sort(Comparator.comparing(Order::getAmount));   <span class="hljs-comment">// TimSort，稳定</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-comment">// Go 1.19+ 标准库排序已换成 pdqsort（自适应、抗退化）</span><br>sort.Slice(s, <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">(i, j <span class="hljs-type">int</span>)</span></span> <span class="hljs-type">bool</span> &#123; <span class="hljs-keyword">return</span> s[i].Score &gt; s[j].Score &#125;)<br><br><span class="hljs-comment">// Go 1.21+ 泛型版本，避免反射开销</span><br>slices.SortFunc(s, <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">(a, b Item)</span></span> <span class="hljs-type">int</span> &#123; <span class="hljs-keyword">return</span> cmp.Compare(b.Score, a.Score) &#125;)<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>Java「基本类型用快排、对象用 TimSort」是有意为之。</strong> 基本类型没有「相同但不同一」的语义（<code>1</code> 和 <code>1</code> 完全等价），稳定性无意义，所以选更快的快排；对象有身份差异（两个金额相同的订单仍是两个订单），必须稳定，所以用 TimSort。**<code>int[]</code> 排序不稳定不是 bug，是特性。**</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>TimSort 的空间是 <code>O(n)</code>，不是 <code>O(1)</code>。</strong> 它是归并类算法，需要临时数组。<strong>内存极度受限</strong>的场景要留意：<code>std::sort</code> 原地、<code>std::stable_sort</code> 要 <code>O(n)</code> 额外空间，差别就在这。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>sort.Slice</code> 走反射，比泛型版 <code>slices.SortFunc</code> 慢一个量级。</strong> 热路径上的排序（每秒几十万次）应换 <code>slices.SortFunc</code>。Go 1.21 起标准库才有泛型排序。</p>
+</blockquote>
+<h2 id="三、稳定性：多字段排序的命门"><a href="#三、稳定性：多字段排序的命门" class="headerlink" title="三、稳定性：多字段排序的命门"></a>三、稳定性：多字段排序的命门</h2><p><strong>稳定 &#x3D; 相等元素的相对顺序在排序后保持不变。</strong></p>
+<table>
+<thead>
+<tr>
+<th>做法</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>稳定排序 + <strong>从次要键到主要键</strong>依次排</td>
+<td>✅ 正确</td>
+</tr>
+<tr>
+<td>稳定排序 + 从主要键到次要键依次排</td>
+<td>❌ 后一次覆盖前一次的次序</td>
+</tr>
+<tr>
+<td>不稳定排序 + 多轮排序</td>
+<td>❌ 完全不可控</td>
+</tr>
+<tr>
+<td>不稳定排序 + <strong>复合比较器 &#x2F; 复合 key</strong></td>
+<td>✅ 正确</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># 需求：先按金额降序，金额相同按创建时间升序</span><br><span class="hljs-comment"># 稳定排序下：先排次要键，再排主要键</span><br>orders.sort(key=<span class="hljs-keyword">lambda</span> o: o.created_at)              <span class="hljs-comment"># 次要键</span><br>orders.sort(key=<span class="hljs-keyword">lambda</span> o: o.amount, reverse=<span class="hljs-literal">True</span>)    <span class="hljs-comment"># 主要键（稳定 → 不打乱上一轮）</span><br><br><span class="hljs-comment"># 更省事：直接写复合 key（不依赖稳定性）</span><br>orders.sort(key=<span class="hljs-keyword">lambda</span> o: (-o.amount, o.created_at))<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>TimSort 的稳定性有前提：比较函数必须满足「严格弱序」。</strong> 违反传递性（<code>a&lt;b</code>、<code>b&lt;c</code> 却 <code>a&gt;=c</code>）会让 TimSort 直接抛 <code>IllegalArgumentException: Comparison method violates its general contract!</code> —— <strong>线上最常见、也最容易被当成「偶发」的排序事故</strong>。常见成因：比较函数里读了会变的字段、浮点 <code>NaN</code>、<code>a - b</code> 在 int 上溢出。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>(a, b) -&gt; a - b</code> 这种比较器在整数上会溢出。</strong> <code>a = -2e9, b = 2e9</code> 时 <code>a - b</code> 溢出成负数，排序结果直接错乱。<strong>Java 用 <code>Integer.compare(a, b)</code>，Go 用 <code>cmp.Compare</code>，Python 的 <code>key</code> 直接返回数值即可（无此问题）。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>JS 的 <code>sort</code> 默认按字符串比较。</strong> <code>[10, 9, 1].sort()</code> → <code>[1, 10, 9]</code>。<strong>数字排序必须传比较器</strong> <code>(a, b) =&gt; a - b</code>。另外比较器<strong>不能返回布尔值</strong> —— <code>(a, b) =&gt; a &gt; b</code> 会被当成 <code>0/1</code>，在 TimSort 下产生错误顺序。</p>
+</blockquote>
+<h2 id="四、非比较排序：什么时候能突破-n-log-n"><a href="#四、非比较排序：什么时候能突破-n-log-n" class="headerlink" title="四、非比较排序：什么时候能突破 n log n"></a>四、非比较排序：什么时候能突破 n log n</h2><table>
+<thead>
+<tr>
+<th>算法</th>
+<th>时间</th>
+<th>空间</th>
+<th>前提</th>
+<th>稳定</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>计数排序</strong></td>
+<td><code>O(n + k)</code></td>
+<td><code>O(k)</code></td>
+<td>值域 <code>k</code> 有限且小</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>基数排序 LSD</strong></td>
+<td><code>O(d·(n + k))</code></td>
+<td><code>O(n + k)</code></td>
+<td>可拆成 d 位、每轮计数排序</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>桶排序</strong></td>
+<td>平均 <code>O(n + n²/k)</code></td>
+<td><code>O(n + k)</code></td>
+<td>数据均匀分布</td>
+<td>取决于桶内排序</td>
+</tr>
+<tr>
+<td><strong>位图排序</strong></td>
+<td><code>O(n)</code></td>
+<td><code>n/8</code> 字节</td>
+<td>值域小、无重复</td>
+<td>——</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># 计数排序：值域小的时候碾压比较排序</span><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">counting_sort</span>(<span class="hljs-params">a, max_val</span>):<br>    cnt = [<span class="hljs-number">0</span>] * (max_val + <span class="hljs-number">1</span>)<br>    <span class="hljs-keyword">for</span> x <span class="hljs-keyword">in</span> a:<br>        cnt[x] += <span class="hljs-number">1</span><br>    out = []<br>    <span class="hljs-keyword">for</span> v, c <span class="hljs-keyword">in</span> <span class="hljs-built_in">enumerate</span>(cnt):<br>        out.extend([v] * c)          <span class="hljs-comment"># 稳定</span><br>    <span class="hljs-keyword">return</span> out<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>计数排序的空间是 <code>O(值域)</code> 而不是 <code>O(n)</code>。</strong> 排 100 万个「取值范围 0~1e9」的数，开 10 亿的计数数组直接 OOM。<strong>值域大的时候只能走基数排序（按位分解）或回到比较排序。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>基数排序的「稳定」是硬要求。</strong> 每一位的排序必须稳定，否则高位排好的顺序会被低位打乱。<strong>这就是为什么基数排序必须用计数排序做子过程，不能换成快排。</strong></p>
+</blockquote>
+<h2 id="五、二分查找：边界比算法难"><a href="#五、二分查找：边界比算法难" class="headerlink" title="五、二分查找：边界比算法难"></a>五、二分查找：边界比算法难</h2><p>二分本身十行就能写完，<strong>翻车几乎全在边界上</strong>。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># 模板一：找「目标是否存在」（闭区间 [lo, hi]）</span><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">bsearch</span>(<span class="hljs-params">a, target</span>):<br>    lo, hi = <span class="hljs-number">0</span>, <span class="hljs-built_in">len</span>(a) - <span class="hljs-number">1</span><br>    <span class="hljs-keyword">while</span> lo &lt;= hi:<br>        mid = lo + (hi - lo) // <span class="hljs-number">2</span>      <span class="hljs-comment"># 不用 (lo+hi)//2，防溢出</span><br>        <span class="hljs-keyword">if</span> a[mid] == target:<br>            <span class="hljs-keyword">return</span> mid<br>        <span class="hljs-keyword">elif</span> a[mid] &lt; target:<br>            lo = mid + <span class="hljs-number">1</span><br>        <span class="hljs-keyword">else</span>:<br>            hi = mid - <span class="hljs-number">1</span><br>    <span class="hljs-keyword">return</span> -<span class="hljs-number">1</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># 模板二：找「第一个满足条件的位置」（左闭右开 [lo, hi)）—— 更通用</span><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">lower_bound</span>(<span class="hljs-params">a, target</span>):            <span class="hljs-comment"># 第一个 &gt;= target</span><br>    lo, hi = <span class="hljs-number">0</span>, <span class="hljs-built_in">len</span>(a)                 <span class="hljs-comment"># hi 是「越界位」，不是最后一个元素</span><br>    <span class="hljs-keyword">while</span> lo &lt; hi:<br>        mid = lo + (hi - lo) // <span class="hljs-number">2</span><br>        <span class="hljs-keyword">if</span> a[mid] &lt; target:<br>            lo = mid + <span class="hljs-number">1</span><br>        <span class="hljs-keyword">else</span>:<br>            hi = mid<br>    <span class="hljs-keyword">return</span> lo                          <span class="hljs-comment"># lo == hi，即插入点</span><br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">upper_bound</span>(<span class="hljs-params">a, target</span>):            <span class="hljs-comment"># 第一个 &gt; target</span><br>    lo, hi = <span class="hljs-number">0</span>, <span class="hljs-built_in">len</span>(a)<br>    <span class="hljs-keyword">while</span> lo &lt; hi:<br>        mid = lo + (hi - lo) // <span class="hljs-number">2</span><br>        <span class="hljs-keyword">if</span> a[mid] &lt;= target:<br>            lo = mid + <span class="hljs-number">1</span><br>        <span class="hljs-keyword">else</span>:<br>            hi = mid<br>    <span class="hljs-keyword">return</span> lo<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>写法</th>
+<th>区间</th>
+<th>循环条件</th>
+<th>收缩</th>
+<th>返回</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>存在性查找</td>
+<td><code>[lo, hi]</code> 闭</td>
+<td><code>lo &lt;= hi</code></td>
+<td><code>lo=mid+1</code> &#x2F; <code>hi=mid-1</code></td>
+<td><code>mid</code> 或 <code>-1</code></td>
+</tr>
+<tr>
+<td>下界 lower_bound</td>
+<td><code>[lo, hi)</code> 左闭右开</td>
+<td><code>lo &lt; hi</code></td>
+<td><code>lo=mid+1</code> &#x2F; <code>hi=mid</code></td>
+<td><code>lo</code>（插入点）</td>
+</tr>
+<tr>
+<td>上界 upper_bound</td>
+<td><code>[lo, hi)</code></td>
+<td><code>lo &lt; hi</code></td>
+<td><code>lo=mid+1</code> &#x2F; <code>hi=mid</code></td>
+<td><code>lo</code></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>mid = (lo + hi) / 2</code> 在 C&#x2F;C++&#x2F;Java 的 int 上会溢出。</strong> <code>lo = hi = 2³¹−1</code> 时 <code>lo + hi</code> 溢出成负数，<code>mid</code> 变负，直接越界。**统一写 <code>lo + (hi - lo) / 2</code>**（Python 无此问题，但仍推荐统一写法）。这个 bug 在 JDK 的 <code>Arrays.binarySearch</code> 里真实存在了 9 年（直到 2006 年才修）。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>lo = mid</code> 会导致死循环。</strong> 当 <code>hi = lo + 1</code> 时 <code>mid == lo</code>，若分支写 <code>lo = mid</code>，区间不缩小，循环卡死。<strong>左闭右开的模板里 <code>lo</code> 必须 <code>mid + 1</code>，只有 <code>hi</code> 可以是 <code>mid</code>。</strong> 记住：<strong>收缩区间时至少有一侧要排除 <code>mid</code>。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>有重复元素时，「找到 target 就返回」返回的下标是不确定的。</strong> 想知道<strong>第一个</strong>或<strong>最后一个</strong>位置，必须用 lower_bound &#x2F; upper_bound，不能靠一次 <code>==</code> 判断。</p>
+</blockquote>
+<h2 id="六、各语言二分-API-对照"><a href="#六、各语言二分-API-对照" class="headerlink" title="六、各语言二分 API 对照"></a>六、各语言二分 API 对照</h2><table>
+<thead>
+<tr>
+<th>语言</th>
+<th>API</th>
+<th>语义</th>
+<th>未找到时</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Python</strong></td>
+<td><code>bisect_left(a, x)</code></td>
+<td>第一个 <code>&gt;= x</code></td>
+<td>返回插入点（<code>0..len</code>）</td>
+</tr>
+<tr>
+<td><strong>Python</strong></td>
+<td><code>bisect_right(a, x)</code> &#x2F; <code>bisect</code></td>
+<td>第一个 <code>&gt; x</code></td>
+<td>返回插入点</td>
+</tr>
+<tr>
+<td><strong>C++</strong></td>
+<td><code>std::lower_bound</code></td>
+<td>第一个 <code>&gt;= x</code></td>
+<td>返回 <code>end()</code></td>
+</tr>
+<tr>
+<td><strong>C++</strong></td>
+<td><code>std::upper_bound</code></td>
+<td>第一个 <code>&gt; x</code></td>
+<td>返回 <code>end()</code></td>
+</tr>
+<tr>
+<td><strong>Java</strong></td>
+<td><code>Arrays.binarySearch</code></td>
+<td>找到即返回（重复时不确定）</td>
+<td><code>-(插入点) - 1</code></td>
+</tr>
+<tr>
+<td><strong>Go</strong></td>
+<td><code>sort.Search(n, f)</code></td>
+<td>最小 <code>i</code> 使 <code>f(i) == true</code></td>
+<td>返回 <code>n</code>（谓词恒假）</td>
+</tr>
+<tr>
+<td><strong>Go 1.21+</strong></td>
+<td><code>slices.BinarySearch</code></td>
+<td>找到返回下标</td>
+<td>返回插入点 + <code>false</code></td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">import</span> bisect<br>a = [<span class="hljs-number">1</span>, <span class="hljs-number">3</span>, <span class="hljs-number">3</span>, <span class="hljs-number">5</span>]<br>bisect.bisect_left(a, <span class="hljs-number">3</span>)    <span class="hljs-comment"># 1 → 第一个 3 的下标</span><br>bisect.bisect_right(a, <span class="hljs-number">3</span>)   <span class="hljs-comment"># 3 → 第一个 &gt; 3 的下标</span><br>bisect.bisect_left(a, <span class="hljs-number">4</span>)    <span class="hljs-comment"># 3 → 插入点</span><br><span class="hljs-comment"># 统计 3 的个数</span><br>bisect.bisect_right(a, <span class="hljs-number">3</span>) - bisect.bisect_left(a, <span class="hljs-number">3</span>)   <span class="hljs-comment"># 2</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-comment">// Java：未找到时返回 -(insertion point) - 1</span><br><span class="hljs-type">int</span>[] a = &#123;<span class="hljs-number">1</span>, <span class="hljs-number">3</span>, <span class="hljs-number">5</span>&#125;;<br>Arrays.binarySearch(a, <span class="hljs-number">3</span>);   <span class="hljs-comment">// 1</span><br>Arrays.binarySearch(a, <span class="hljs-number">4</span>);   <span class="hljs-comment">// -3 → 插入点 = -(-3) - 1 = 2</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-comment">// Go：sort.Search 需要自己给谓词，谓词必须「先假后真」（单调）</span><br>i := sort.Search(<span class="hljs-built_in">len</span>(a), <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">(i <span class="hljs-type">int</span>)</span></span> <span class="hljs-type">bool</span> &#123; <span class="hljs-keyword">return</span> a[i] &gt;= <span class="hljs-number">3</span> &#125;)   <span class="hljs-comment">// 第一个 &gt;= 3 的下标</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>Java 的 <code>binarySearch</code> 返回 <code>-(insertionPoint) - 1</code> 而不是 <code>-insertionPoint</code><strong>，是为了区分「插入点是 0」和「在下标 0 找到了」。</strong>取插入点要写 <code>idx = -idx - 1</code>，写成 <code>-idx</code> 会差一位。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>Go 的 <code>sort.Search</code> 谓词写反了不会报错，只会静默返回错值。</strong> 它假设谓词是「<code>false...false, true...true</code>」的单调形式。<strong>传一个非单调谓词，结果是未定义的</strong>（不 panic，就是答案错）。</p>
+</blockquote>
+<h2 id="七、二分答案：在「答案空间」上二分"><a href="#七、二分答案：在「答案空间」上二分" class="headerlink" title="七、二分答案：在「答案空间」上二分"></a>七、二分答案：在「答案空间」上二分</h2><p>当问题形如「<strong>最小的 x 使得条件成立</strong>」，且条件对 x 单调（x 越大越容易满足），就可以二分答案。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># 例：船的载重能力最少多少，能在 D 天内运完 weights</span><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">ship_within_days</span>(<span class="hljs-params">weights, D</span>):<br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">can</span>(<span class="hljs-params">cap</span>):                        <span class="hljs-comment"># 判定函数：O(n)</span><br>        days, cur = <span class="hljs-number">1</span>, <span class="hljs-number">0</span><br>        <span class="hljs-keyword">for</span> w <span class="hljs-keyword">in</span> weights:<br>            <span class="hljs-keyword">if</span> cur + w &gt; cap:<br>                days += <span class="hljs-number">1</span><br>                cur = <span class="hljs-number">0</span><br>            cur += w<br>        <span class="hljs-keyword">return</span> days &lt;= D<br>    lo, hi = <span class="hljs-built_in">max</span>(weights), <span class="hljs-built_in">sum</span>(weights)  <span class="hljs-comment"># 答案一定落在 [下界, 上界]</span><br>    <span class="hljs-keyword">while</span> lo &lt; hi:<br>        mid = (lo + hi) // <span class="hljs-number">2</span><br>        <span class="hljs-keyword">if</span> can(mid):<br>            hi = mid<br>        <span class="hljs-keyword">else</span>:<br>            lo = mid + <span class="hljs-number">1</span><br>    <span class="hljs-keyword">return</span> lo<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>要点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>判定函数必须<strong>单调</strong></td>
+<td><code>can(x)</code> 为真 ⇒ 所有 <code>&gt; x</code> 也为真</td>
+</tr>
+<tr>
+<td>上下界要<strong>收紧到可行域</strong></td>
+<td>太松不影响正确性，只影响常数</td>
+</tr>
+<tr>
+<td>总复杂度</td>
+<td><code>O(n · log(值域))</code></td>
+</tr>
+<tr>
+<td>与普通二分的区别</td>
+<td>数组不是给定的，是<strong>枚举出来的</strong></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>二分答案的值域可能是浮点数。</strong> 浮点二分不要用 <code>while hi - lo &gt; eps</code>（可能死循环或精度不够），<strong>改成固定迭代次数</strong>（如 100 次，精度约 <code>值域 / 2¹⁰⁰</code>）。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>二分答案前先确认「单调性」成立。</strong> 如果 <code>can(x)</code> 不是单调的（中间为真、两边为假），二分会静默给出错误答案 —— <strong>这类 bug 不报错，只算错。</strong></p>
+</blockquote>
+<h2 id="八、第-K-大：排序-vs-堆-vs-快速选择"><a href="#八、第-K-大：排序-vs-堆-vs-快速选择" class="headerlink" title="八、第 K 大：排序 vs 堆 vs 快速选择"></a>八、第 K 大：排序 vs 堆 vs 快速选择</h2><table>
+<thead>
+<tr>
+<th>方案</th>
+<th>时间</th>
+<th>空间</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>全量排序</td>
+<td><code>O(n log n)</code></td>
+<td><code>O(n)</code> 或 <code>O(1)</code></td>
+<td>需要完整有序结果</td>
+</tr>
+<tr>
+<td>大小为 k 的堆</td>
+<td><code>O(n log k)</code></td>
+<td><code>O(k)</code></td>
+<td><strong>流式数据 &#x2F; k 很小 &#x2F; 只要 Top-K</strong></td>
+</tr>
+<tr>
+<td><strong>快速选择 quickselect</strong></td>
+<td>平均 <code>O(n)</code></td>
+<td><code>O(1)</code></td>
+<td>只要第 k 个，不需要排序</td>
+</tr>
+<tr>
+<td>中位数的中位数</td>
+<td>最坏 <code>O(n)</code></td>
+<td><code>O(1)</code></td>
+<td>要求最坏界（常数大，少用）</td>
+</tr>
+<tr>
+<td>计数 &#x2F; 桶</td>
+<td><code>O(n)</code></td>
+<td><code>O(k)</code></td>
+<td>值域小</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">import</span> heapq<br>heapq.nlargest(<span class="hljs-number">3</span>, data)        <span class="hljs-comment"># O(n log k)，k 小时远优于排序</span><br><span class="hljs-built_in">sorted</span>(data)[-<span class="hljs-number">3</span>:]              <span class="hljs-comment"># O(n log n)</span><br><br><span class="hljs-comment"># 快速选择：partition 后只递归一侧</span><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">quickselect</span>(<span class="hljs-params">a, k</span>):<br>    lo, hi = <span class="hljs-number">0</span>, <span class="hljs-built_in">len</span>(a) - <span class="hljs-number">1</span><br>    <span class="hljs-keyword">while</span> <span class="hljs-literal">True</span>:<br>        p = partition(a, lo, hi)       <span class="hljs-comment"># 返回 pivot 最终位置</span><br>        <span class="hljs-keyword">if</span> p == k:<br>            <span class="hljs-keyword">return</span> a[p]<br>        <span class="hljs-keyword">elif</span> p &lt; k:<br>            lo = p + <span class="hljs-number">1</span><br>        <span class="hljs-keyword">else</span>:<br>            hi = p - <span class="hljs-number">1</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs cpp"><span class="hljs-comment">// C++：nth_element 是平均 O(n) 的快速选择</span><br>std::<span class="hljs-built_in">nth_element</span>(v.<span class="hljs-built_in">begin</span>(), v.<span class="hljs-built_in">begin</span>() + k, v.<span class="hljs-built_in">end</span>());<br><span class="hljs-comment">// 之后 v[k] 就是第 k 小，且左侧都 &lt;= 它</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>快速选择的最坏是 <code>O(n²)</code>。</strong> 面对「已排序输入 + 固定取首元素作 pivot」，每次划分只缩小 1 个元素。<strong>解法是随机选 pivot 或三数取中。</strong> 生产环境要么随机化，要么直接用 <code>nth_element</code> &#x2F; <code>heapq.nlargest</code>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>nth_element</code> 不保证左侧有序</strong>，只保证「左侧都 ≤ 第 k 个 ≤ 右侧」。想拿到有序的前 k 个还要再排左侧 —— <strong>但那是 <code>O(k log k)</code>，比全量排序仍划算。</strong></p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 用 <code>(lo + hi) / 2</code> 求中点（int 会溢出，应写 <code>lo + (hi - lo) / 2</code>）</li>
+<li><input disabled="" type="checkbox"> 二分里写 <code>lo = mid</code> 导致死循环（收缩区间必须排除 mid）</li>
+<li><input disabled="" type="checkbox"> 混淆 <code>while (lo &lt;= hi)</code> 和 <code>while (lo &lt; hi)</code> 两套模板</li>
+<li><input disabled="" type="checkbox"> 有重复元素时用一次 <code>==</code> 判断，返回的下标不确定</li>
+<li><input disabled="" type="checkbox"> Java <code>binarySearch</code> 未找到时写成 <code>-idx</code> 而不是 <code>-idx - 1</code></li>
+<li><input disabled="" type="checkbox"> Go <code>sort.Search</code> 的谓词不单调（静默返回错值）</li>
+<li><input disabled="" type="checkbox"> 二分答案前没验证判定函数的单调性</li>
+<li><input disabled="" type="checkbox"> 浮点二分用 <code>hi - lo &gt; eps</code> 而非固定迭代次数</li>
+<li><input disabled="" type="checkbox"> 比较器写 <code>(a, b) -&gt; a - b</code>，在整数上溢出</li>
+<li><input disabled="" type="checkbox"> 比较器不满足严格弱序，TimSort 抛 <code>Comparison method violates its general contract</code></li>
+<li><input disabled="" type="checkbox"> 用 <code>Arrays.sort(int[])</code> 做多字段排序（基本类型不稳定）</li>
+<li><input disabled="" type="checkbox"> JS <code>sort</code> 不传比较器（按字符串比较，<code>[10,9,1]</code> → <code>[1,10,9]</code>）</li>
+<li><input disabled="" type="checkbox"> JS 比较器返回布尔值（应返回数字）</li>
+<li><input disabled="" type="checkbox"> 稳定排序时按「主要键 → 次要键」顺序多轮排（应从次要键开始）</li>
+<li><input disabled="" type="checkbox"> 计数排序的值域远大于 n（空间爆掉）</li>
+<li><input disabled="" type="checkbox"> 基数排序的子过程用了不稳定排序</li>
+<li><input disabled="" type="checkbox"> 快速选择固定取首元素作 pivot（已排序输入退化成 <code>O(n²)</code>）</li>
+<li><input disabled="" type="checkbox"> 用 <code>nth_element</code> 后以为左侧有序</li>
+<li><input disabled="" type="checkbox"> 热路径上用 <code>sort.Slice</code>（反射开销，应换 <code>slices.SortFunc</code>）</li>
+<li><input disabled="" type="checkbox"> 把 <code>O(n log n)</code> 当成「所有排序一样快」（数据分布决定常数）</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://docs.python.org/3/library/bisect.html">Python · <code>bisect</code></a> · <a target="_blank" rel="noopener" href="https://docs.python.org/3/howto/sorting.html">Python · Sorting HOW TO</a> · <a target="_blank" rel="noopener" href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Arrays.html">Java SE · <code>Arrays.sort</code></a> · <a target="_blank" rel="noopener" href="https://pkg.go.dev/slices">Go · <code>slices</code> 包</a> · <a target="_blank" rel="noopener" href="https://pkg.go.dev/sort#Search">Go · <code>sort.Search</code></a> · <a target="_blank" rel="noopener" href="https://go.dev/doc/go1.19">Go 1.19 Release Notes</a> · <a target="_blank" rel="noopener" href="https://v8.dev/features/stable-sort">V8 · Stable <code>Array.prototype.sort</code></a> · <a target="_blank" rel="noopener" href="https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Array/sort">MDN · <code>Array.prototype.sort</code></a> · <a target="_blank" rel="noopener" href="https://en.cppreference.com/w/cpp/algorithm/sort">cppreference · <code>std::sort</code></a> · <a target="_blank" rel="noopener" href="https://en.cppreference.com/w/cpp/algorithm/nth_element">cppreference · <code>std::nth_element</code></a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/algorithm/" class="category-chain-item">algorithm</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/algorithm/" class="print-no-link">#algorithm</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 051 · 算法（二）：排序与二分查找</div>
+      <div>https://ethan-iopasd.github.io/2026/10/08/每日技术博客051-算法排序与二分查找/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月8日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2050-%E7%AE%97%E6%B3%95%E5%A4%8D%E6%9D%82%E5%BA%A6%E4%B8%8E%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" title="每日技术博客 050 · 算法（一）：复杂度与常用数据结构">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 050 · 算法（一）：复杂度与常用数据结构</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2052-%E7%AE%97%E6%B3%95%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92/" title="每日技术博客 052 · 算法（三）：动态规划">
+                        <span class="hidden-mobile">每日技术博客 052 · 算法（三）：动态规划</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
