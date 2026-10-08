@@ -1,0 +1,1105 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 110 篇 TypeScript 系列第四篇。装饰器有两代：TS 5.0 起的标准装饰器（Stage 3）和 Angular &#x2F; NestJS 仍在用的实验性装饰器 —— 签名不同、语义不同，混用必踩坑。  📚 TypeScript 系列目录   章节 主题 状态    一 类型系统与泛型 已发布   二 类型体操与工程配置 已发布">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 110 · TypeScript（四）：装饰器与元数据">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2110-TypeScript%E8%A3%85%E9%A5%B0%E5%99%A8%E4%B8%8E%E5%85%83%E6%95%B0%E6%8D%AE/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 110 篇 TypeScript 系列第四篇。装饰器有两代：TS 5.0 起的标准装饰器（Stage 3）和 Angular &#x2F; NestJS 仍在用的实验性装饰器 —— 签名不同、语义不同，混用必踩坑。  📚 TypeScript 系列目录   章节 主题 状态    一 类型系统与泛型 已发布   二 类型体操与工程配置 已发布">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-08T08:20:00.000Z">
+<meta property="article:modified_time" content="2026-10-08T03:19:59.008Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="typescript">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 110 · TypeScript（四）：装饰器与元数据 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 110 · TypeScript（四）：装饰器与元数据"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-08 16:20" pubdate>
+          2026年10月8日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.5k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          22 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 110 · TypeScript（四）：装饰器与元数据</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-08 · 第 110 篇</p>
+<p>TypeScript 系列第四篇。装饰器有两代：TS 5.0 起的标准装饰器（Stage 3）和 Angular &#x2F; NestJS 仍在用的实验性装饰器 —— 签名不同、语义不同，混用必踩坑。</p>
+</blockquote>
+<h2 id="📚-TypeScript-系列目录"><a href="#📚-TypeScript-系列目录" class="headerlink" title="📚 TypeScript 系列目录"></a>📚 TypeScript 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>类型系统与泛型</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>类型体操与工程配置</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>泛型进阶与类型守卫</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td>装饰器与元数据</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p>先确定你用哪一代装饰器：<code>experimentalDecorators: true</code> 是旧版（元数据、DI 靠它），TS 5.0 起的<strong>标准装饰器</strong>是 <code>(value, context)</code> 签名 —— 两者<strong>不能混用</strong>。</p>
+<h2 id="一、两代装饰器必须分清"><a href="#一、两代装饰器必须分清" class="headerlink" title="一、两代装饰器必须分清"></a>一、两代装饰器必须分清</h2><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>旧版（实验性）</th>
+<th>新版（标准 &#x2F; Stage 3）</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>开关</td>
+<td><code>experimentalDecorators: true</code></td>
+<td>TS 5.0+ <strong>默认</strong>，需 <code>experimentalDecorators: false</code></td>
+</tr>
+<tr>
+<td>签名</td>
+<td><code>(target, key, descriptor)</code></td>
+<td><code>(value, context)</code></td>
+</tr>
+<tr>
+<td>属性装饰器</td>
+<td>能拿到 <code>target</code> &#x2F; <code>key</code></td>
+<td>拿到 <code>undefined</code> + <code>context</code></td>
+</tr>
+<tr>
+<td>参数装饰器</td>
+<td>✅ 支持</td>
+<td>❌ <strong>不支持</strong></td>
+</tr>
+<tr>
+<td>元数据</td>
+<td><code>emitDecoratorMetadata</code> + <code>reflect-metadata</code></td>
+<td>无内置元数据</td>
+</tr>
+<tr>
+<td>谁在用</td>
+<td>Angular &#x2F; NestJS &#x2F; TypeORM &#x2F; class-validator</td>
+<td>新代码、库</td>
+</tr>
+</tbody></table>
+<figure class="highlight jsonc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs jsonc"><span class="hljs-comment">// 旧版</span><br><span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;compilerOptions&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;experimentalDecorators&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">true</span></span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;emitDecoratorMetadata&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">true</span></span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span><br><span class="hljs-comment">// 新版（TS 5.0+）</span><br><span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;compilerOptions&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;experimentalDecorators&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">false</span></span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>两代签名完全不同</strong>：旧版方法装饰器收 <code>(target, propertyKey, descriptor)</code>，新版收 <code>(value, context)</code>。把旧写法放进新开关下编译，参数会全错位。<br>⚠️ <strong>参数装饰器只有旧版有</strong>。NestJS 的 <code>@Inject()</code> &#x2F; <code>@Body()</code> 依赖它 —— 所以 NestJS 必须开 <code>experimentalDecorators: true</code>。<br>⚠️ <strong><code>emitDecoratorMetadata</code> 只对旧版有效</strong>。想要 <code>design:paramtypes</code> 做 DI，就必须留在旧版。</p>
+</blockquote>
+<h2 id="二、旧版五种装饰器"><a href="#二、旧版五种装饰器" class="headerlink" title="二、旧版五种装饰器"></a>二、旧版五种装饰器</h2><table>
+<thead>
+<tr>
+<th>种类</th>
+<th>签名</th>
+<th>时机</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>类</td>
+<td><code>(constructor: Function) =&gt; Function | void</code></td>
+<td>类定义时</td>
+</tr>
+<tr>
+<td>方法</td>
+<td><code>(target, key, descriptor: PropertyDescriptor) =&gt; PropertyDescriptor | void</code></td>
+<td>类定义时</td>
+</tr>
+<tr>
+<td>访问器</td>
+<td><code>(target, key, descriptor) =&gt; PropertyDescriptor | void</code></td>
+<td>类定义时</td>
+</tr>
+<tr>
+<td>属性</td>
+<td><code>(target, key) =&gt; void</code></td>
+<td>类定义时（<strong>拿不到实例</strong>）</td>
+</tr>
+<tr>
+<td>参数</td>
+<td><code>(target, key, parameterIndex) =&gt; void</code></td>
+<td>类定义时</td>
+</tr>
+</tbody></table>
+<figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-keyword">function</span> <span class="hljs-title function_">Log</span>(<span class="hljs-params"><span class="hljs-attr">target</span>: <span class="hljs-built_in">any</span>, <span class="hljs-attr">key</span>: <span class="hljs-built_in">string</span>, <span class="hljs-attr">desc</span>: <span class="hljs-title class_">PropertyDescriptor</span></span>) &#123;<br>  <span class="hljs-keyword">const</span> original = desc.<span class="hljs-property">value</span>;<br>  desc.<span class="hljs-property">value</span> = <span class="hljs-keyword">function</span> (<span class="hljs-params">...<span class="hljs-attr">args</span>: <span class="hljs-built_in">unknown</span>[]</span>) &#123;<br>    <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">`call <span class="hljs-subst">$&#123;key&#125;</span>`</span>, args);<br>    <span class="hljs-keyword">return</span> original.<span class="hljs-title function_">apply</span>(<span class="hljs-variable language_">this</span>, args);<br>  &#125;;<br>&#125;<br><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">Svc</span> &#123; <span class="hljs-meta">@Log</span> <span class="hljs-title function_">run</span>(<span class="hljs-params"><span class="hljs-attr">x</span>: <span class="hljs-built_in">number</span></span>) &#123; <span class="hljs-keyword">return</span> x * <span class="hljs-number">2</span>; &#125; &#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>属性装饰器拿不到实例，也无法直接改值</strong> —— 类定义时实例还不存在。要改值只能在构造里配合 <code>Object.defineProperty</code>（见第八节）。<br>⚠️ 参数装饰器的 <code>key</code> 在构造函数参数上是 <code>undefined</code>（那是构造器参数，不是方法参数）。</p>
+</blockquote>
+<h2 id="三、新版装饰器-value-context"><a href="#三、新版装饰器-value-context" class="headerlink" title="三、新版装饰器 (value, context)"></a>三、新版装饰器 <code>(value, context)</code></h2><table>
+<thead>
+<tr>
+<th>装饰目标</th>
+<th><code>value</code></th>
+<th><code>context.kind</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>类</td>
+<td>构造函数</td>
+<td><code>&#39;class&#39;</code></td>
+</tr>
+<tr>
+<td>方法</td>
+<td>方法函数</td>
+<td><code>&#39;method&#39;</code></td>
+</tr>
+<tr>
+<td>getter &#x2F; setter</td>
+<td>getter &#x2F; setter 函数</td>
+<td><code>&#39;getter&#39;</code> &#x2F; <code>&#39;setter&#39;</code></td>
+</tr>
+<tr>
+<td>字段</td>
+<td><code>undefined</code></td>
+<td><code>&#39;field&#39;</code></td>
+</tr>
+<tr>
+<td><code>accessor</code></td>
+<td><code>&#123; get, set &#125;</code></td>
+<td><code>&#39;accessor&#39;</code></td>
+</tr>
+</tbody></table>
+<figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-keyword">function</span> <span class="hljs-title function_">log</span>(<span class="hljs-params"><span class="hljs-attr">value</span>: <span class="hljs-title class_">Function</span>, <span class="hljs-attr">context</span>: <span class="hljs-title class_">ClassMethodDecoratorContext</span></span>) &#123;<br>  <span class="hljs-keyword">return</span> <span class="hljs-keyword">function</span> (<span class="hljs-params"><span class="hljs-attr">this</span>: <span class="hljs-built_in">unknown</span>, ...<span class="hljs-attr">args</span>: <span class="hljs-built_in">unknown</span>[]</span>) &#123;<br>    <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">`call <span class="hljs-subst">$&#123;<span class="hljs-built_in">String</span>(context.name)&#125;</span>`</span>);<br>    <span class="hljs-keyword">return</span> value.<span class="hljs-title function_">apply</span>(<span class="hljs-variable language_">this</span>, args);<br>  &#125;;<br>&#125;<br><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">Svc</span> &#123; <span class="hljs-meta">@log</span> <span class="hljs-title function_">run</span>(<span class="hljs-params"><span class="hljs-attr">x</span>: <span class="hljs-built_in">number</span></span>) &#123; <span class="hljs-keyword">return</span> x * <span class="hljs-number">2</span>; &#125; &#125;<br></code></pre></td></tr></table></figure>
+
+<p><strong><code>context</code> 的字段</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>kind</code></td>
+<td>上面那张表</td>
+</tr>
+<tr>
+<td><code>name</code></td>
+<td>成员名（字段为 <code>string | symbol</code>，可能为 <code>undefined</code>）</td>
+</tr>
+<tr>
+<td><code>static</code> &#x2F; <code>private</code></td>
+<td>是否静态 &#x2F; 是否 <code>#private</code></td>
+</tr>
+<tr>
+<td><code>access</code></td>
+<td><code>&#123; get, set, has &#125;</code> 访问器对象</td>
+</tr>
+<tr>
+<td><code>addInitializer(fn)</code></td>
+<td>注册初始化钩子</td>
+</tr>
+<tr>
+<td><code>metadata</code></td>
+<td>装饰器间传值（<strong>需 TS 5.2+，仍是实验性</strong>）</td>
+</tr>
+</tbody></table>
+<figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-keyword">function</span> <span class="hljs-title function_">bound</span>(<span class="hljs-params"><span class="hljs-attr">value</span>: <span class="hljs-title class_">Function</span>, <span class="hljs-attr">ctx</span>: <span class="hljs-title class_">ClassMethodDecoratorContext</span></span>) &#123;<br>  ctx.<span class="hljs-title function_">addInitializer</span>(<span class="hljs-keyword">function</span> (<span class="hljs-params"><span class="hljs-attr">this</span>: <span class="hljs-built_in">any</span></span>) &#123; <span class="hljs-variable language_">this</span>[ctx.<span class="hljs-property">name</span>] = value.<span class="hljs-title function_">bind</span>(<span class="hljs-variable language_">this</span>); &#125;);<br>  <span class="hljs-keyword">return</span> value;<br>&#125;<br><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">Box</span> &#123; accessor value = <span class="hljs-number">0</span>; &#125;   <span class="hljs-comment">// 自动访问器：背后是私有字段 + get/set，可被装饰</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>accessor</code> 是标准装饰器体系里的<strong>新关键字</strong>，旧版装饰器场景下没有它。<br>⚠️ <code>context.name</code> 对字段**可能为 <code>undefined</code>**（比如 <code>#private</code> 或匿名场景），直接拼字符串会踩空。</p>
+</blockquote>
+<h2 id="四、装饰器执行顺序"><a href="#四、装饰器执行顺序" class="headerlink" title="四、装饰器执行顺序"></a>四、装饰器执行顺序</h2><p><strong>总原则：求值（evaluate）自上而下，应用（apply）自下而上。</strong></p>
+<figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-meta">@dec1</span><br><span class="hljs-meta">@dec2</span><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">A</span> &#123;<br>  <span class="hljs-meta">@m1</span><br>  <span class="hljs-meta">@m2</span><br>  <span class="hljs-title function_">method</span>(<span class="hljs-params"></span>) &#123;&#125;<br>&#125;<br><span class="hljs-comment">// 求值：dec1 → dec2 → m1 → m2</span><br><span class="hljs-comment">// 应用：m2 → m1 → dec2 → dec1（即 dec1(dec2(m2(m1(target))))) </span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>旧版顺序（TS 手册）</th>
+<th>新版顺序</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>① 每个<strong>实例</strong>成员的参数 → 方法&#x2F;访问器&#x2F;属性装饰器</td>
+<td>① 类元素装饰器（声明顺序）</td>
+</tr>
+<tr>
+<td>② 每个<strong>静态</strong>成员同上</td>
+<td>② 类装饰器</td>
+</tr>
+<tr>
+<td>③ 构造函数参数的装饰器</td>
+<td>——</td>
+</tr>
+<tr>
+<td>④ <strong>类装饰器</strong></td>
+<td>——</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>旧版里属性&#x2F;参数装饰器先于方法装饰器应用</strong>。依赖顺序做初始化的代码（如把元数据攒起来再读）很容易在这里翻车。<br>⚠️ 多个装饰器套同一目标时，<strong>求值自上而下、应用自下而上</strong> —— 写 <code>@A @B</code> 实际是 <code>A(B(target))</code>。</p>
+</blockquote>
+<h2 id="五、reflect-metadata-与-design-元数据"><a href="#五、reflect-metadata-与-design-元数据" class="headerlink" title="五、reflect-metadata 与 design:* 元数据"></a>五、<code>reflect-metadata</code> 与 <code>design:*</code> 元数据</h2><figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-keyword">import</span> <span class="hljs-string">&#x27;reflect-metadata&#x27;</span>;   <span class="hljs-comment">// 必须 import 一次，且要放在最前</span><br><br><span class="hljs-keyword">function</span> <span class="hljs-title function_">Mark</span>(<span class="hljs-params"><span class="hljs-attr">target</span>: <span class="hljs-built_in">object</span>, <span class="hljs-attr">key</span>: <span class="hljs-built_in">string</span></span>) &#123;<br>  <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-title class_">Reflect</span>.<span class="hljs-title function_">getMetadata</span>(<span class="hljs-string">&#x27;design:type&#x27;</span>, target, key));<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>元数据键</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>design:type</code></td>
+<td>属性&#x2F;参数声明类型</td>
+</tr>
+<tr>
+<td><code>design:paramtypes</code></td>
+<td>方法&#x2F;构造函数参数类型数组</td>
+</tr>
+<tr>
+<td><code>design:returntype</code></td>
+<td>返回值类型</td>
+</tr>
+</tbody></table>
+<figure class="highlight jsonc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs jsonc"><span class="hljs-comment">// 三个开关缺一不可（旧版）</span><br><span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;experimentalDecorators&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">true</span></span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;emitDecoratorMetadata&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">true</span></span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;target&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;ES2021&quot;</span> <span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-comment">// 类型被降级的三种情况</span><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">Svc</span> &#123;<br>  <span class="hljs-title function_">constructor</span>(<span class="hljs-params"></span><br><span class="hljs-params">    <span class="hljs-attr">a</span>: <span class="hljs-title class_">SomeClass</span>,   <span class="hljs-comment">// → design:paramtypes[0] = SomeClass ✓</span></span><br><span class="hljs-params">    <span class="hljs-attr">b</span>: <span class="hljs-title class_">IInterface</span>,  <span class="hljs-comment">// → Object ✗（接口无运行时构造器）</span></span><br><span class="hljs-params">    <span class="hljs-attr">c</span>: <span class="hljs-built_in">string</span>,      <span class="hljs-comment">// → String ✓（包装类型）</span></span><br><span class="hljs-params">    <span class="hljs-attr">d</span>: <span class="hljs-built_in">string</span>[],    <span class="hljs-comment">// → Array ✗（丢失元素类型）</span></span><br><span class="hljs-params">  </span>) &#123;&#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>必须 <code>import &#39;reflect-metadata&#39;</code> 一次</strong>，否则 <code>Reflect.getMetadata</code> 根本不存在 —— 报错是运行时的 <code>Reflect.getMetadata is not a function</code>。<br>⚠️ **必须开 <code>emitDecoratorMetadata</code>**，否则 <code>design:paramtypes</code> 全是 <code>undefined</code>。<br>⚠️ <strong>接口与字面量类型拿不到真实类型</strong>：只能发射运行时存在的构造器，<code>interface Foo</code> &#x2F; <code>&#123;a: 1&#125;</code> 会被降级成 <code>Object</code>。<br>⚠️ <strong>泛型会被擦除</strong>：<code>Array&lt;string&gt;</code>、<code>Repo&lt;User&gt;</code> 在 <code>design:type</code> 里只剩 <code>Array</code> &#x2F; <code>Object</code>，具体类型参数拿不回来。</p>
+</blockquote>
+<h2 id="六、用装饰器做-DI（NestJS-的思路）"><a href="#六、用装饰器做-DI（NestJS-的思路）" class="headerlink" title="六、用装饰器做 DI（NestJS 的思路）"></a>六、用装饰器做 DI（NestJS 的思路）</h2><figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-comment">// 1. 声明可注入   2. 构造函数参数类型元数据 → 容器据此解析</span><br><span class="hljs-meta">@Injectable</span>()<br><span class="hljs-keyword">class</span> <span class="hljs-title class_">UserService</span> &#123; <span class="hljs-title function_">constructor</span>(<span class="hljs-params"><span class="hljs-keyword">private</span> <span class="hljs-attr">repo</span>: <span class="hljs-title class_">UserRepo</span></span>) &#123;&#125; &#125;<br><br><span class="hljs-comment">// 3. 容器：读 design:paramtypes 递归实例化</span><br><span class="hljs-keyword">function</span> resolve&lt;T&gt;(<span class="hljs-attr">target</span>: <span class="hljs-title function_">new</span> (...<span class="hljs-attr">a</span>: <span class="hljs-built_in">any</span>[]) =&gt; T): T &#123;<br>  <span class="hljs-keyword">const</span> <span class="hljs-attr">params</span>: <span class="hljs-built_in">any</span>[] = <span class="hljs-title class_">Reflect</span>.<span class="hljs-title function_">getMetadata</span>(<span class="hljs-string">&#x27;design:paramtypes&#x27;</span>, target) ?? [];<br>  <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-title function_">target</span>(...params.<span class="hljs-title function_">map</span>(<span class="hljs-function"><span class="hljs-params">p</span> =&gt;</span> <span class="hljs-title function_">resolve</span>(p)));<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>环节</th>
+<th>依赖什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>标记</td>
+<td><code>@Injectable()</code>（类装饰器）</td>
+</tr>
+<tr>
+<td>类型信息</td>
+<td><code>design:paramtypes</code>（需 <code>emitDecoratorMetadata</code>）</td>
+</tr>
+<tr>
+<td>解析</td>
+<td>容器递归 <code>resolve</code> + 缓存单例</td>
+</tr>
+<tr>
+<td>手动指定</td>
+<td><code>@Inject(TOKEN)</code>（参数装饰器，旧版）</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ DI 全靠 <code>design:paramtypes</code>，所以<strong>接口注入必须用 <code>@Inject(TOKEN)</code> 手动给 token</strong> —— 接口在元数据里只是 <code>Object</code>。<br>⚠️ 循环依赖会让元数据在某一侧为 <code>undefined</code>（见第九节），需要 <code>forwardRef</code> 之类的手段打断。</p>
+</blockquote>
+<h2 id="七、用装饰器做校验-路由-日志-缓存-重试"><a href="#七、用装饰器做校验-路由-日志-缓存-重试" class="headerlink" title="七、用装饰器做校验 &#x2F; 路由 &#x2F; 日志 &#x2F; 缓存 &#x2F; 重试"></a>七、用装饰器做校验 &#x2F; 路由 &#x2F; 日志 &#x2F; 缓存 &#x2F; 重试</h2><figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-keyword">class</span> <span class="hljs-title class_">CreateUserDto</span> &#123;<br>  <span class="hljs-meta">@IsEmail</span>() email!: <span class="hljs-built_in">string</span>;<br>  <span class="hljs-meta">@MinLength</span>(<span class="hljs-number">8</span>) password!: <span class="hljs-built_in">string</span>;<br>  <span class="hljs-meta">@IsOptional</span>() <span class="hljs-meta">@IsInt</span>() <span class="hljs-attr">age</span>?: <span class="hljs-built_in">number</span>;<br>&#125;<br><br><span class="hljs-comment">// 属性装饰器的实现骨架</span><br><span class="hljs-keyword">function</span> <span class="hljs-title function_">MinLength</span>(<span class="hljs-params"><span class="hljs-attr">len</span>: <span class="hljs-built_in">number</span></span>) &#123;<br>  <span class="hljs-keyword">return</span> <span class="hljs-function">(<span class="hljs-params"><span class="hljs-attr">target</span>: <span class="hljs-built_in">object</span>, <span class="hljs-attr">key</span>: <span class="hljs-built_in">string</span></span>) =&gt;</span> &#123;<br>    <span class="hljs-keyword">const</span> rules = <span class="hljs-title class_">Reflect</span>.<span class="hljs-title function_">getMetadata</span>(<span class="hljs-string">&#x27;rules&#x27;</span>, target) ?? &#123;&#125;;<br>    rules[key] = [...(rules[key] ?? []), &#123; <span class="hljs-attr">type</span>: <span class="hljs-string">&#x27;minLength&#x27;</span>, len &#125;];<br>    <span class="hljs-title class_">Reflect</span>.<span class="hljs-title function_">defineMetadata</span>(<span class="hljs-string">&#x27;rules&#x27;</span>, rules, target);<br>  &#125;;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-comment">// 方法装饰器 = 最实用的 AOP 切点</span><br><span class="hljs-keyword">function</span> <span class="hljs-title function_">Retry</span>(<span class="hljs-params">times = <span class="hljs-number">3</span>, delay = <span class="hljs-number">100</span></span>) &#123;<br>  <span class="hljs-keyword">return</span> <span class="hljs-function">(<span class="hljs-params"><span class="hljs-attr">value</span>: <span class="hljs-title class_">Function</span>, <span class="hljs-attr">ctx</span>: <span class="hljs-title class_">ClassMethodDecoratorContext</span></span>) =&gt;</span><br>    <span class="hljs-keyword">async</span> <span class="hljs-keyword">function</span> (<span class="hljs-params"><span class="hljs-attr">this</span>: <span class="hljs-built_in">unknown</span>, ...<span class="hljs-attr">args</span>: <span class="hljs-built_in">unknown</span>[]</span>) &#123;<br>      <span class="hljs-keyword">let</span> <span class="hljs-attr">last</span>: <span class="hljs-built_in">unknown</span>;<br>      <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> i = <span class="hljs-number">0</span>; i &lt; times; i++) &#123;<br>        <span class="hljs-keyword">try</span> &#123; <span class="hljs-keyword">return</span> <span class="hljs-keyword">await</span> value.<span class="hljs-title function_">apply</span>(<span class="hljs-variable language_">this</span>, args); &#125;<br>        <span class="hljs-keyword">catch</span> (e) &#123; last = e; <span class="hljs-keyword">await</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">Promise</span>(<span class="hljs-function"><span class="hljs-params">r</span> =&gt;</span> <span class="hljs-built_in">setTimeout</span>(r, delay)); &#125;<br>      &#125;<br>      <span class="hljs-keyword">throw</span> last;<br>    &#125;;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>切入点</th>
+<th>关键 API</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>日志 &#x2F; 埋点</td>
+<td>方法装饰器</td>
+<td>包裹原函数</td>
+</tr>
+<tr>
+<td>缓存</td>
+<td>方法装饰器</td>
+<td><code>context.name</code> + 参数序列化做 key</td>
+</tr>
+<tr>
+<td>重试</td>
+<td>方法装饰器</td>
+<td>循环 + 退避</td>
+</tr>
+<tr>
+<td>路由注册</td>
+<td>方法&#x2F;类装饰器</td>
+<td>把 path 存进元数据，框架启动时扫描</td>
+</tr>
+<tr>
+<td>事务</td>
+<td>方法装饰器</td>
+<td>包裹 begin &#x2F; commit &#x2F; rollback</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 校验装饰器<strong>不产生编译期类型</strong>，<code>@IsEmail()</code> 不会把 <code>string</code> 收窄成「邮箱格式」。运行时校验 ≠ 静态类型安全。<br>⚠️ AOP 装饰器会<strong>改变 <code>this</code> 绑定和函数签名</strong>（返回新函数），对 <code>super</code> 调用、<code>Function.length</code>、<code>fn.name</code> 都有影响。<br>⚠️ 缓存装饰器用「参数序列化」做 key 时，<code>JSON.stringify</code> 对 <code>undefined</code> &#x2F; 函数 &#x2F; <code>Symbol</code> &#x2F; 循环引用都不可靠。</p>
+</blockquote>
+<h2 id="八、打包工具与-useDefineForClassFields"><a href="#八、打包工具与-useDefineForClassFields" class="headerlink" title="八、打包工具与 useDefineForClassFields"></a>八、打包工具与 <code>useDefineForClassFields</code></h2><table>
+<thead>
+<tr>
+<th>工具</th>
+<th><code>experimentalDecorators</code></th>
+<th>标准装饰器</th>
+<th><code>emitDecoratorMetadata</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>tsc</code></td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>esbuild</code></td>
+<td>✅（有限）</td>
+<td>✅</td>
+<td>❌ <strong>不支持</strong></td>
+</tr>
+<tr>
+<td><code>swc</code></td>
+<td>✅</td>
+<td>✅</td>
+<td>✅（需显式开启）</td>
+</tr>
+<tr>
+<td><code>babel</code></td>
+<td>✅（legacy 插件）</td>
+<td>✅</td>
+<td>✅（插件）</td>
+</tr>
+</tbody></table>
+<figure class="highlight jsonc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs jsonc"><span class="hljs-punctuation">&#123;</span><br>  <span class="hljs-attr">&quot;target&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;ES2022&quot;</span><span class="hljs-punctuation">,</span>              <span class="hljs-comment">// → useDefineForClassFields 默认 true</span><br>  <span class="hljs-attr">&quot;useDefineForClassFields&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">false</span></span> <span class="hljs-comment">// 旧代码 / 属性装饰器可能需要关掉</span><br><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-comment">// 属性装饰器改值的正确姿势</span><br><span class="hljs-keyword">function</span> <span class="hljs-title function_">Default</span>(<span class="hljs-params"><span class="hljs-attr">val</span>: <span class="hljs-built_in">unknown</span></span>) &#123;<br>  <span class="hljs-keyword">return</span> <span class="hljs-function">(<span class="hljs-params"><span class="hljs-attr">target</span>: <span class="hljs-built_in">object</span>, <span class="hljs-attr">key</span>: <span class="hljs-built_in">string</span></span>) =&gt;</span> &#123;<br>    <span class="hljs-keyword">let</span> value = val;<br>    <span class="hljs-title class_">Object</span>.<span class="hljs-title function_">defineProperty</span>(target, key, &#123;<br>      <span class="hljs-title function_">get</span>(<span class="hljs-params"></span>) &#123; <span class="hljs-keyword">return</span> value; &#125;, <span class="hljs-title function_">set</span>(<span class="hljs-params">v</span>) &#123; value = v; &#125;,<br>      <span class="hljs-attr">enumerable</span>: <span class="hljs-literal">true</span>, <span class="hljs-attr">configurable</span>: <span class="hljs-literal">true</span>,<br>    &#125;);<br>  &#125;;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>useDefineForClassFields: true</code>（ES2022+ 默认）会破坏旧版属性装饰器</strong>：字段用 <code>[[Define]]</code> 语义创建自有属性并<strong>覆盖</strong>原型上的描述符，装饰器写进原型的东西被 <code>undefined</code> 盖掉。<br>⚠️ <strong>esbuild 不支持 <code>emitDecoratorMetadata</code></strong> —— 依赖 <code>design:paramtypes</code> 的 DI 用 esbuild 打包会直接失效。NestJS 生产构建通常保留 <code>tsc</code> 或换 swc。<br>⚠️ <strong>新版装饰器 + <code>emitDecoratorMetadata</code> 无意义</strong>：标准装饰器没有 <code>design:*</code> 元数据这一层。</p>
+</blockquote>
+<h2 id="九、常见坑（汇总）"><a href="#九、常见坑（汇总）" class="headerlink" title="九、常见坑（汇总）"></a>九、常见坑（汇总）</h2><table>
+<thead>
+<tr>
+<th>现象</th>
+<th>原因</th>
+<th>解法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Reflect.getMetadata is not a function</code></td>
+<td>没 import <code>reflect-metadata</code></td>
+<td>入口最顶部 <code>import &#39;reflect-metadata&#39;</code></td>
+</tr>
+<tr>
+<td><code>design:paramtypes</code> 全 <code>undefined</code></td>
+<td>没开 <code>emitDecoratorMetadata</code></td>
+<td>打开该选项</td>
+</tr>
+<tr>
+<td>接口注入拿到 <code>Object</code></td>
+<td>接口无运行时构造器</td>
+<td>用 <code>@Inject(TOKEN)</code></td>
+</tr>
+<tr>
+<td>泛型类型丢失</td>
+<td>类型擦除</td>
+<td>手动传 token &#x2F; 显式标注</td>
+</tr>
+<tr>
+<td>元数据在循环依赖处为 <code>undefined</code></td>
+<td>模块求值顺序</td>
+<td><code>forwardRef</code> &#x2F; 拆分模块</td>
+</tr>
+<tr>
+<td>属性装饰器改的值被覆盖</td>
+<td><code>useDefineForClassFields</code></td>
+<td>关掉，或改 <code>accessor</code></td>
+</tr>
+<tr>
+<td>esbuild 打包后 DI 失效</td>
+<td>不支持 <code>emitDecoratorMetadata</code></td>
+<td>换 swc &#x2F; 保留 tsc</td>
+</tr>
+<tr>
+<td>新旧装饰器混用参数错位</td>
+<td>签名不同</td>
+<td>统一开关，别混用</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>循环依赖导致的元数据 <code>undefined</code></strong> 是最隐蔽的一类：A 装饰器求值时 B 还没定义完，<code>design:paramtypes</code> 里就是 <code>undefined</code>，表现是运行时 DI 报「无法解析依赖」。<br>⚠️ <code>strict</code> 模式下的类型收窄<strong>不会</strong>穿过装饰器：装饰器是运行时函数，静态类型在它眼里已经退化成 <code>Function</code> &#x2F; <code>any</code>。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 开了标准装饰器却照抄旧版 <code>(target, key, descriptor)</code> 签名</li>
+<li><input disabled="" type="checkbox"> 想在标准装饰器里写参数装饰器（不支持）</li>
+<li><input disabled="" type="checkbox"> 依赖 <code>design:paramtypes</code> 却没开 <code>emitDecoratorMetadata</code></li>
+<li><input disabled="" type="checkbox"> 忘了 <code>import &#39;reflect-metadata&#39;</code>，运行时才炸</li>
+<li><input disabled="" type="checkbox"> 用接口做 DI token，元数据里只有 <code>Object</code></li>
+<li><input disabled="" type="checkbox"> 以为泛型类型参数能从元数据拿回来</li>
+<li><input disabled="" type="checkbox"> 属性装饰器里直接 <code>this.xxx = ...</code>（没有实例）</li>
+<li><input disabled="" type="checkbox"> 属性装饰器改的值被 <code>useDefineForClassFields: true</code> 覆盖</li>
+<li><input disabled="" type="checkbox"> 用 esbuild 打包依赖元数据的 DI 代码</li>
+<li><input disabled="" type="checkbox"> 多个装饰器时算错应用顺序（求值自上而下、应用自下而上）</li>
+<li><input disabled="" type="checkbox"> 旧版里忽略「属性&#x2F;参数装饰器先于方法装饰器」</li>
+<li><input disabled="" type="checkbox"> 循环依赖导致元数据 <code>undefined</code>，DI 启动失败</li>
+<li><input disabled="" type="checkbox"> 用装饰器做校验就以为拿到了编译期类型收窄</li>
+<li><input disabled="" type="checkbox"> AOP 装饰器里破坏 <code>this</code> &#x2F; <code>super</code> 语义</li>
+<li><input disabled="" type="checkbox"> 缓存装饰器用 <code>JSON.stringify</code> 做 key，遇到 <code>undefined</code> &#x2F; 循环引用失效</li>
+<li><input disabled="" type="checkbox"> 混用新旧装饰器开关，编译产物行为不一致</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://www.typescriptlang.org/docs/handbook/decorators.html">TypeScript · Decorators（手册）</a> · <a target="_blank" rel="noopener" href="https://www.typescriptlang.org/docs/handbook/release-notes/typescript-5-0.html">TypeScript 5.0 · Decorators 发布说明</a> · <a target="_blank" rel="noopener" href="https://www.typescriptlang.org/tsconfig/emitDecoratorMetadata.html">TypeScript · <code>emitDecoratorMetadata</code></a> · <a target="_blank" rel="noopener" href="https://www.typescriptlang.org/tsconfig/experimentalDecorators.html">TypeScript · <code>experimentalDecorators</code></a> · <a target="_blank" rel="noopener" href="https://www.typescriptlang.org/tsconfig/useDefineForClassFields.html">TypeScript · <code>useDefineForClassFields</code></a> · <a target="_blank" rel="noopener" href="https://github.com/tc39/proposal-decorators">TC39 · proposal-decorators</a> · <a target="_blank" rel="noopener" href="https://www.npmjs.com/package/reflect-metadata">reflect-metadata</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/typescript/" class="category-chain-item">typescript</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/typescript/" class="print-no-link">#typescript</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 110 · TypeScript（四）：装饰器与元数据</div>
+      <div>https://ethan-iopasd.github.io/2026/10/08/每日技术博客110-TypeScript装饰器与元数据/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月8日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2057-TypeScript%E6%B3%9B%E5%9E%8B%E8%BF%9B%E9%98%B6%E4%B8%8E%E7%B1%BB%E5%9E%8B%E5%AE%88%E5%8D%AB/" title="每日技术博客 057 · TypeScript（三）：泛型进阶与类型守卫">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 057 · TypeScript（三）：泛型进阶与类型守卫</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

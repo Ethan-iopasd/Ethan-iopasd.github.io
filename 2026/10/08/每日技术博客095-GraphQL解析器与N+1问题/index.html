@@ -1,0 +1,1133 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 095 篇 GraphQL 系列第二篇。resolver 的执行模型、N+1 与 DataLoader、错误冒泡、字段级鉴权，以及「GraphQL 没有 HTTP 语义」带来的一堆生产问题。  📚 GraphQL 系列目录   章节 主题 状态    一 Schema、类型系统与查询 已发布   二 解析器、N+1 与生产实践 本篇    开场：">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 095 · GraphQL（二）：解析器、N+1 与生产实践">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2095-GraphQL%E8%A7%A3%E6%9E%90%E5%99%A8%E4%B8%8EN+1%E9%97%AE%E9%A2%98/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 095 篇 GraphQL 系列第二篇。resolver 的执行模型、N+1 与 DataLoader、错误冒泡、字段级鉴权，以及「GraphQL 没有 HTTP 语义」带来的一堆生产问题。  📚 GraphQL 系列目录   章节 主题 状态    一 Schema、类型系统与查询 已发布   二 解析器、N+1 与生产实践 本篇    开场：">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-08T07:05:00.000Z">
+<meta property="article:modified_time" content="2026-10-08T03:19:15.002Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="graphql">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 095 · GraphQL（二）：解析器、N+1 与生产实践 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 095 · GraphQL（二）：解析器、N+1 与生产实践"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-08 15:05" pubdate>
+          2026年10月8日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.6k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          22 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 095 · GraphQL（二）：解析器、N+1 与生产实践</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-08 · 第 095 篇</p>
+<p>GraphQL 系列第二篇。resolver 的执行模型、N+1 与 DataLoader、错误冒泡、字段级鉴权，以及「GraphQL 没有 HTTP 语义」带来的一堆生产问题。</p>
+</blockquote>
+<h2 id="📚-GraphQL-系列目录"><a href="#📚-GraphQL-系列目录" class="headerlink" title="📚 GraphQL 系列目录"></a>📚 GraphQL 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>Schema、类型系统与查询</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>解析器、N+1 与生产实践</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p>GraphQL 的性能问题九成来自 N+1，安全问题九成来自「字段级授权比端点级复杂」；这两个坑不解决，别上生产。</p>
+<h2 id="一、N-1：GraphQL-的头号性能杀手"><a href="#一、N-1：GraphQL-的头号性能杀手" class="headerlink" title="一、N+1：GraphQL 的头号性能杀手"></a>一、N+1：GraphQL 的头号性能杀手</h2><p>GraphQL 的执行模型是「<strong>每个字段独立调用自己的 resolver</strong>」。父级返回一个列表，列表里每个元素再去查一次关联数据 —— 就是 N+1。</p>
+<figure class="highlight graphql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs graphql"><span class="hljs-keyword">query</span> <span class="hljs-punctuation">&#123;</span> posts<span class="hljs-punctuation">(</span><span class="hljs-symbol">first</span><span class="hljs-punctuation">:</span> <span class="hljs-number">100</span><span class="hljs-punctuation">)</span> <span class="hljs-punctuation">&#123;</span> title author <span class="hljs-punctuation">&#123;</span> name <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs sql"><span class="hljs-comment">-- resolver 逐字段触发</span><br><span class="hljs-keyword">SELECT</span> <span class="hljs-operator">*</span> <span class="hljs-keyword">FROM</span> posts LIMIT <span class="hljs-number">100</span>;              <span class="hljs-comment">-- 1 次</span><br><span class="hljs-keyword">SELECT</span> <span class="hljs-operator">*</span> <span class="hljs-keyword">FROM</span> users <span class="hljs-keyword">WHERE</span> id <span class="hljs-operator">=</span> <span class="hljs-number">1</span>;           <span class="hljs-comment">-- ↓</span><br><span class="hljs-keyword">SELECT</span> <span class="hljs-operator">*</span> <span class="hljs-keyword">FROM</span> users <span class="hljs-keyword">WHERE</span> id <span class="hljs-operator">=</span> <span class="hljs-number">2</span>;           <span class="hljs-comment">-- ↓  100 次</span><br>...<br><span class="hljs-keyword">SELECT</span> <span class="hljs-operator">*</span> <span class="hljs-keyword">FROM</span> users <span class="hljs-keyword">WHERE</span> id <span class="hljs-operator">=</span> <span class="hljs-number">100</span>;         <span class="hljs-comment">-- ↑</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>层数</th>
+<th>每层 N</th>
+<th>查询数</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1 层关联</td>
+<td>100</td>
+<td>101</td>
+</tr>
+<tr>
+<td>2 层关联</td>
+<td>100 × 50</td>
+<td>5001</td>
+</tr>
+<tr>
+<td>3 层关联</td>
+<td>100 × 50 × 20</td>
+<td>100001</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ N+1 的可怕之处在于<strong>它随查询嵌套深度指数放大</strong>。客户端多写一层嵌套，数据库压力就翻一个数量级 —— 而且客户端完全不知道自己做了什么。</p>
+</blockquote>
+<h2 id="二、DataLoader：批处理-缓存"><a href="#二、DataLoader：批处理-缓存" class="headerlink" title="二、DataLoader：批处理 + 缓存"></a>二、DataLoader：批处理 + 缓存</h2><p>DataLoader 把同一「执行帧」内对同一 loader 的 <code>load()</code> 调用收集起来，合并成一次批量查询。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-keyword">const</span> userLoader = <span class="hljs-keyword">new</span> <span class="hljs-title class_">DataLoader</span>(<span class="hljs-title function_">async</span> (ids) =&gt; &#123;<br>  <span class="hljs-keyword">const</span> rows = <span class="hljs-keyword">await</span> db.<span class="hljs-title function_">query</span>(<span class="hljs-string">&#x27;SELECT * FROM users WHERE id IN (?)&#x27;</span>, [ids]);<br>  <span class="hljs-keyword">const</span> byId = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Map</span>(rows.<span class="hljs-title function_">map</span>(<span class="hljs-function">(<span class="hljs-params">r</span>) =&gt;</span> [r.<span class="hljs-property">id</span>, r]));<br>  <span class="hljs-keyword">return</span> ids.<span class="hljs-title function_">map</span>(<span class="hljs-function">(<span class="hljs-params">id</span>) =&gt;</span> byId.<span class="hljs-title function_">get</span>(id) ?? <span class="hljs-literal">null</span>);  <span class="hljs-comment">// 必须按入参顺序一一对应</span><br>&#125;);<br><br><span class="hljs-comment">// 100 次 load 自动合并成 1 次 IN 查询</span><br><span class="hljs-attr">resolve</span>: <span class="hljs-function">(<span class="hljs-params">post</span>) =&gt;</span> userLoader.<span class="hljs-title function_">load</span>(post.<span class="hljs-property">authorId</span>),<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>选项</th>
+<th>默认值</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>batchLoadFn</code></td>
+<td>—</td>
+<td>入参 key 数组，返回等长 value 数组的 Promise</td>
+</tr>
+<tr>
+<td><code>maxBatchSize</code></td>
+<td><code>Infinity</code></td>
+<td>单批最大条数，防 <code>IN (...)</code> 过长</td>
+</tr>
+<tr>
+<td><code>cache</code></td>
+<td><code>true</code></td>
+<td>是否启用 memoization 缓存</td>
+</tr>
+<tr>
+<td><code>cacheKeyFn</code></td>
+<td><code>key =&gt; key</code></td>
+<td>对象作 key 时的等价判定</td>
+</tr>
+<tr>
+<td><code>cacheMap</code></td>
+<td><code>new Map()</code></td>
+<td>自定义缓存（长生命周期时换 LRU）</td>
+</tr>
+<tr>
+<td><code>batchScheduleFn</code></td>
+<td>微任务调度</td>
+<td>决定「同一帧」的边界</td>
+</tr>
+</tbody></table>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>语义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>load(key)</code></td>
+<td>返回单个值的 Promise</td>
+</tr>
+<tr>
+<td><code>loadMany(keys)</code></td>
+<td><strong>总是 resolve</strong>，失败项以 <code>Error</code> 实例混在结果里</td>
+</tr>
+<tr>
+<td><code>clear(key)</code> &#x2F; <code>clearAll()</code></td>
+<td>清缓存（mutation 后必须）</td>
+</tr>
+<tr>
+<td><code>prime(key, value)</code></td>
+<td>预填缓存</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>必须每个请求新建一个 DataLoader 实例。</strong> 实例自带缓存，跨请求复用会把 A 用户的数据喂给 B 用户 —— 这是越权，不是性能问题。用 <code>context</code> 承载实例即可。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>batchLoadFn</code> 返回的数组<strong>必须与入参 key 数组顺序、长度完全一致</strong>。漏一个或错位，DataLoader 会把结果安到错误的 key 上。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>loadMany</code> 与 <code>Promise.all</code> 语义不同：<code>Promise.all</code> 一个失败全 reject，<code>loadMany</code> 永远 resolve，得自己检查结果里哪些是 <code>Error</code>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 同一请求内发生 mutation 后，缓存里的旧值必须 <code>clear</code>，否则读到的还是变更前的数据。</p>
+</blockquote>
+<h2 id="三、resolver-四参数与-context"><a href="#三、resolver-四参数与-context" class="headerlink" title="三、resolver 四参数与 context"></a>三、resolver 四参数与 context</h2><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-keyword">function</span> <span class="hljs-title function_">resolveUser</span>(<span class="hljs-params">parent, args, context, info</span>) &#123;<br>  <span class="hljs-comment">// parent: 上一层 resolver 的返回值</span><br>  <span class="hljs-comment">// args:   本次调用的字段参数（已按 schema 校验）</span><br>  <span class="hljs-comment">// context: 每个请求共享的对象</span><br>  <span class="hljs-comment">// info:   字段名、路径、返回类型、查询 AST 等元信息</span><br>  <span class="hljs-keyword">return</span> context.<span class="hljs-property">loaders</span>.<span class="hljs-property">user</span>.<span class="hljs-title function_">load</span>(args.<span class="hljs-property">id</span>);<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>典型用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>parent</code></td>
+<td>从父对象取外键，避免重复查主表</td>
+</tr>
+<tr>
+<td><code>args</code></td>
+<td>分页、过滤条件</td>
+</tr>
+<tr>
+<td><code>context</code></td>
+<td>认证信息、DataLoader 实例、数据库连接、request id</td>
+</tr>
+<tr>
+<td><code>info</code></td>
+<td>按需裁剪 SQL 字段（配合 <code>info.fieldNodes</code>）、鉴权钩子、埋点</td>
+</tr>
+</tbody></table>
+<p><code>context</code> 里该放什么：</p>
+<table>
+<thead>
+<tr>
+<th>放</th>
+<th>不放</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>已解析的当前用户 &#x2F; 租户</td>
+<td>全局单例的 DataLoader</td>
+</tr>
+<tr>
+<td>本请求的 DataLoader 集合</td>
+<td>跨请求复用的可变状态</td>
+</tr>
+<tr>
+<td>请求 id &#x2F; trace 上下文</td>
+<td>大对象（每个字段都会读到）</td>
+</tr>
+<tr>
+<td>数据库连接或事务句柄</td>
+<td>业务计算结果</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>info</code> 能拿到客户端<strong>实际选择的字段</strong>，这是 GraphQL 相对 REST 独有的优化点（只 SELECT 需要的列）。但解析 <code>info</code> 很啰嗦，别在每个 resolver 里手写 —— 用 <code>graphql-parse-resolve-info</code> 之类的工具。</p>
+</blockquote>
+<h2 id="四、错误处理与-null-冒泡"><a href="#四、错误处理与-null-冒泡" class="headerlink" title="四、错误处理与 null 冒泡"></a>四、错误处理与 null 冒泡</h2><p>GraphQL 允许<strong>部分成功</strong>：能解析的字段照常返回，失败的进 <code>errors</code> 数组。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs json"><span class="hljs-punctuation">&#123;</span><br>  <span class="hljs-attr">&quot;data&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;user&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;Ethan&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;email&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">null</span></span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span><span class="hljs-punctuation">,</span><br>  <span class="hljs-attr">&quot;errors&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><br>    <span class="hljs-punctuation">&#123;</span><br>      <span class="hljs-attr">&quot;message&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;无权访问 email&quot;</span><span class="hljs-punctuation">,</span><br>      <span class="hljs-attr">&quot;path&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-string">&quot;user&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-string">&quot;email&quot;</span><span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span><br>      <span class="hljs-attr">&quot;extensions&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;code&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;FORBIDDEN&quot;</span> <span class="hljs-punctuation">&#125;</span><br>    <span class="hljs-punctuation">&#125;</span><br>  <span class="hljs-punctuation">]</span><br><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<h3 id="null-冒泡规则"><a href="#null-冒泡规则" class="headerlink" title="null 冒泡规则"></a>null 冒泡规则</h3><p>非空字段出错时，null 会<strong>向上冒泡到最近的可空字段</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>字段声明</th>
+<th>出错后果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>email: String</code></td>
+<td>该字段变 <code>null</code>，兄弟字段不受影响</td>
+</tr>
+<tr>
+<td><code>email: String!</code></td>
+<td>冒泡到父对象，父对象变 <code>null</code></td>
+</tr>
+<tr>
+<td><code>user: User!</code></td>
+<td>继续冒泡到 <code>Query</code>，<code>data</code> 整体变 <code>null</code></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 这就是「一个非空字段出错导致整个响应 <code>data: null</code>」的原因。<strong>非空声明是在给错误传播划定爆炸半径</strong>，不是单纯的类型约束。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>永远不要把内部堆栈写进 <code>message</code>。</strong> 用 <code>extensions.code</code> 给客户端可编程的错误码，细节写日志。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 区分两类错误：<strong>请求错误</strong>（语法 &#x2F; 校验失败，整个查询不执行）与<strong>字段错误</strong>（部分成功）。前者该回 4xx，后者是 200 + <code>errors</code>。</p>
+</blockquote>
+<h2 id="五、鉴权、限流与安全"><a href="#五、鉴权、限流与安全" class="headerlink" title="五、鉴权、限流与安全"></a>五、鉴权、限流与安全</h2><h3 id="字段级授权"><a href="#字段级授权" class="headerlink" title="字段级授权"></a>字段级授权</h3><figure class="highlight graphql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs graphql"><span class="hljs-keyword">type</span> User <span class="hljs-punctuation">&#123;</span><br>  <span class="hljs-symbol">id</span><span class="hljs-punctuation">:</span> ID<span class="hljs-punctuation">!</span><br>  <span class="hljs-symbol">name</span><span class="hljs-punctuation">:</span> String<span class="hljs-punctuation">!</span><br>  <span class="hljs-symbol">email</span><span class="hljs-punctuation">:</span> String<span class="hljs-punctuation">!</span> <span class="hljs-meta">@auth</span><span class="hljs-punctuation">(</span><span class="hljs-symbol">requires</span><span class="hljs-punctuation">:</span> ADMIN<span class="hljs-punctuation">)</span><br>  <span class="hljs-symbol">salary</span><span class="hljs-punctuation">:</span> Int <span class="hljs-meta">@auth</span><span class="hljs-punctuation">(</span><span class="hljs-symbol">requires</span><span class="hljs-punctuation">:</span> SELF_OR_ADMIN<span class="hljs-punctuation">)</span><br><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>层次</th>
+<th>粒度</th>
+<th>复杂度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>端点级（网关 &#x2F; HTTP 中间件）</td>
+<td>整个请求</td>
+<td>低</td>
+</tr>
+<tr>
+<td>操作级（按 operationName）</td>
+<td>一个 query &#x2F; mutation</td>
+<td>中</td>
+</tr>
+<tr>
+<td>字段级</td>
+<td>单个字段</td>
+<td><strong>高</strong></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 字段级授权是 GraphQL 特有的复杂度来源：<strong>每个字段都要独立判定，且要考虑父对象的归属关系</strong>。<code>salary</code> 能不能看取决于「被查的人是不是我」，这个信息在 <code>parent</code> 里，不在 token 里。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 别只在 resolver 里加判断。字段的<strong>存在性</strong>本身也是信息泄漏 —— 用 schema 裁剪（按角色生成不同 schema）比运行时判空更安全。</p>
+</blockquote>
+<h3 id="深度与复杂度限制"><a href="#深度与复杂度限制" class="headerlink" title="深度与复杂度限制"></a>深度与复杂度限制</h3><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-keyword">import</span> depthLimit <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;graphql-depth-limit&#x27;</span>;<br><span class="hljs-keyword">import</span> &#123; createComplexityLimitRule &#125; <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;graphql-query-complexity&#x27;</span>;<br><br><span class="hljs-keyword">const</span> validationRules = [<br>  <span class="hljs-title function_">depthLimit</span>(<span class="hljs-number">7</span>),<br>  <span class="hljs-title function_">createComplexityLimitRule</span>(<span class="hljs-number">1000</span>),<br>];<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 恶意客户端可以构造<strong>极深嵌套查询</strong>（<code>friends &#123; friends &#123; friends ... &#125; &#125;</code>）在单次请求里打垮服务。深度限制与复杂度限制是必须项，不是可选项。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 复杂度限制要能读<strong>参数</strong>。<code>first: 10000</code> 和 <code>first: 10</code> 的成本差三个数量级，只数字段个数会低估。</p>
+</blockquote>
+<h3 id="其他安全项"><a href="#其他安全项" class="headerlink" title="其他安全项"></a>其他安全项</h3><table>
+<thead>
+<tr>
+<th>措施</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>关闭内省（生产）</td>
+<td>不暴露完整数据模型</td>
+</tr>
+<tr>
+<td>查询白名单 &#x2F; 持久化查询</td>
+<td>只允许预先登记过的查询</td>
+</tr>
+<tr>
+<td>按复杂度限流</td>
+<td>而不是按请求数</td>
+</tr>
+<tr>
+<td>禁用 <code>GET</code> 写操作</td>
+<td>避免被预取或缓存</td>
+</tr>
+<tr>
+<td>超时中断</td>
+<td>长查询强制结束，释放资源</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>按请求数限流对 GraphQL 基本无效。</strong> 一个请求可以合法地消耗掉一千个请求的资源，必须按复杂度或字段数计费。</p>
+</blockquote>
+<h2 id="六、GraphQL-没有-HTTP-语义"><a href="#六、GraphQL-没有-HTTP-语义" class="headerlink" title="六、GraphQL 没有 HTTP 语义"></a>六、GraphQL 没有 HTTP 语义</h2><table>
+<thead>
+<tr>
+<th>问题</th>
+<th>后果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>全部 POST 到同一 URL</td>
+<td>CDN &#x2F; 浏览器缓存无法按 URL 复用</td>
+</tr>
+<tr>
+<td>执行错误也返回 200</td>
+<td>监控、告警、客户端重试逻辑全部失灵</td>
+</tr>
+<tr>
+<td>无法按端点限流</td>
+<td>只能按复杂度</td>
+</tr>
+<tr>
+<td>无 <code>GET</code> 语义</td>
+<td>无法用 <code>ETag</code> &#x2F; <code>Last-Modified</code> 做条件请求</td>
+</tr>
+</tbody></table>
+<h3 id="持久化查询与-APQ"><a href="#持久化查询与-APQ" class="headerlink" title="持久化查询与 APQ"></a>持久化查询与 APQ</h3><p>把查询文本换成 hash，请求体从几 KB 降到几十字节：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs json"><span class="hljs-comment">// 第一次：携带完整查询</span><br><span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;query&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;&#123; user(id:\&quot;1\&quot;)&#123; name &#125; &#125;&quot;</span> <span class="hljs-punctuation">&#125;</span><br><br><span class="hljs-comment">// 后续：只发 hash（Apollo 的 APQ 协议）</span><br><span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;extensions&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;persistedQuery&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;sha256Hash&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;...&quot;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>收益</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>请求体变小</td>
+<td>移动端收益明显</td>
+</tr>
+<tr>
+<td>白名单化</td>
+<td>未登记的 hash 直接拒绝，天然防注入</td>
+</tr>
+<tr>
+<td>可缓存</td>
+<td>hash 稳定的查询可走 CDN（配合 GET）</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 用 <code>@cacheControl</code> 之类的指令给字段打缓存提示，是 GraphQL 里唯一能抢救 CDN 缓存的路径。<strong>别指望它能像 REST 那样天然可缓存。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ 统一返回 200 会让 APM 与告警把「服务出错」看成「正常」。必须在服务端按 <code>errors</code> 内容<strong>额外打点</strong>，否则线上故障是静默的。</p>
+</blockquote>
+<h2 id="七、订阅、上传、工具链与可观测性"><a href="#七、订阅、上传、工具链与可观测性" class="headerlink" title="七、订阅、上传、工具链与可观测性"></a>七、订阅、上传、工具链与可观测性</h2><h3 id="subscription"><a href="#subscription" class="headerlink" title="subscription"></a>subscription</h3><table>
+<thead>
+<tr>
+<th>传输</th>
+<th>协议 &#x2F; 库</th>
+<th>特点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>WebSocket</td>
+<td><code>graphql-ws</code></td>
+<td>主流，双向</td>
+</tr>
+<tr>
+<td>WebSocket（旧）</td>
+<td><code>subscriptions-transport-ws</code></td>
+<td>已停止维护，协议与 <code>graphql-ws</code> <strong>不兼容</strong></td>
+</tr>
+<tr>
+<td>SSE</td>
+<td><code>graphql-sse</code></td>
+<td>单向，走普通 HTTP，代理友好</td>
+</tr>
+</tbody></table>
+<figure class="highlight graphql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs graphql"><span class="hljs-keyword">subscription</span> <span class="hljs-punctuation">&#123;</span> userCreated <span class="hljs-punctuation">&#123;</span> id name <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>订阅的扩展性难题是「每个连接都占资源」。</strong> 一万个客户端就是一万条长连接，横向扩容时要处理跨实例的消息分发（通常靠 Redis Pub&#x2F;Sub）。它和普通 HTTP 请求的扩容模型完全不同。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>subscriptions-transport-ws</code> 与 <code>graphql-ws</code> <strong>子协议不同</strong>，客户端和服务端混用会连不上。选一个，别两套并存。</p>
+</blockquote>
+<h3 id="文件上传"><a href="#文件上传" class="headerlink" title="文件上传"></a>文件上传</h3><p>核心规范<strong>不含</strong>上传。社区方案是 <code>graphql-multipart-request-spec</code>：</p>
+<figure class="highlight graphql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs graphql"><span class="hljs-keyword">mutation</span> <span class="hljs-punctuation">(</span><span class="hljs-variable">$file</span>: Upload<span class="hljs-punctuation">!</span><span class="hljs-punctuation">)</span> <span class="hljs-punctuation">&#123;</span> uploadFile<span class="hljs-punctuation">(</span><span class="hljs-symbol">file</span><span class="hljs-punctuation">:</span> <span class="hljs-variable">$file</span>) <span class="hljs-punctuation">&#123;</span> id <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 这个 spec 是社区扩展，各服务端实现有差异，且大文件会撑爆内存。<strong>更稳的做法是把上传拆成独立的 REST 端点</strong>，GraphQL 只传文件 id。</p>
+</blockquote>
+<h3 id="工具链定位"><a href="#工具链定位" class="headerlink" title="工具链定位"></a>工具链定位</h3><table>
+<thead>
+<tr>
+<th>服务端</th>
+<th>语言</th>
+<th>定位</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Apollo Server</td>
+<td>JS &#x2F; TS</td>
+<td>生态最全，功能最重</td>
+</tr>
+<tr>
+<td>GraphQL Yoga</td>
+<td>JS &#x2F; TS</td>
+<td>轻量、贴近规范、支持 SSE</td>
+</tr>
+<tr>
+<td>gqlgen</td>
+<td>Go</td>
+<td>强类型代码生成，性能好</td>
+</tr>
+<tr>
+<td>Hasura</td>
+<td>—</td>
+<td>直连数据库自动生成 GraphQL，无需写 resolver</td>
+</tr>
+</tbody></table>
+<h3 id="可观测性"><a href="#可观测性" class="headerlink" title="可观测性"></a>可观测性</h3><table>
+<thead>
+<tr>
+<th>打点维度</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>operationName</code></td>
+<td><strong>必须</strong>要求客户端提供，否则指标里全是匿名查询</td>
+</tr>
+<tr>
+<td>完整查询文本</td>
+<td>慢查询记录时一起存，否则无法复现</td>
+</tr>
+<tr>
+<td>复杂度得分</td>
+<td>与耗时一起看，找异常查询</td>
+</tr>
+<tr>
+<td>resolver 级耗时</td>
+<td>定位到具体字段</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 客户端不传 <code>operationName</code> 时，线上所有查询在监控里长得一模一样。**在网关层强制要求 <code>operationName</code>**，是 GraphQL 可观测性的第一前提。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 关联字段直接查库，产生 N+1</li>
+<li><input disabled="" type="checkbox"> 把 DataLoader 实例挂在全局，跨请求串数据</li>
+<li><input disabled="" type="checkbox"> <code>batchLoadFn</code> 返回数组与入参 key 顺序不一致</li>
+<li><input disabled="" type="checkbox"> 误以为 <code>loadMany</code> 会像 <code>Promise.all</code> 一样 reject</li>
+<li><input disabled="" type="checkbox"> mutation 后不清 DataLoader 缓存，读到旧值</li>
+<li><input disabled="" type="checkbox"> 用 <code>[T!]!</code> 却不接受「一个坏数据让整个字段失败」</li>
+<li><input disabled="" type="checkbox"> 把内部堆栈写进 <code>errors[].message</code></li>
+<li><input disabled="" type="checkbox"> 请求错误与字段错误混用同一个状态码</li>
+<li><input disabled="" type="checkbox"> 只在 resolver 里做字段级鉴权，忽略字段存在性泄漏</li>
+<li><input disabled="" type="checkbox"> 不做深度限制，被深嵌套查询打垮</li>
+<li><input disabled="" type="checkbox"> 复杂度限制不读参数，<code>first: 10000</code> 被当成普通查询</li>
+<li><input disabled="" type="checkbox"> 按请求数限流，对 GraphQL 基本无效</li>
+<li><input disabled="" type="checkbox"> 生产开着内省，暴露完整数据模型</li>
+<li><input disabled="" type="checkbox"> 依赖 HTTP 状态码告警，忽略 GraphQL 永远返回 200</li>
+<li><input disabled="" type="checkbox"> 指望 CDN 按 URL 缓存 GraphQL 响应</li>
+<li><input disabled="" type="checkbox"> <code>subscriptions-transport-ws</code> 与 <code>graphql-ws</code> 混用，连不上</li>
+<li><input disabled="" type="checkbox"> 用 GraphQL 传大文件，撑爆服务端内存</li>
+<li><input disabled="" type="checkbox"> 不要求 <code>operationName</code>，监控里全是匿名查询</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://spec.graphql.org/draft/#sec-Execution">GraphQL 官方规范 · 执行</a> · <a target="_blank" rel="noopener" href="https://github.com/graphql/dataloader">DataLoader · GitHub</a> · <a target="_blank" rel="noopener" href="https://http-spec.graphql.org/draft/">GraphQL over HTTP · Draft Spec</a> · <a target="_blank" rel="noopener" href="https://github.com/enisdenjo/graphql-ws/blob/master/PROTOCOL.md">graphql-ws 协议</a> · <a target="_blank" rel="noopener" href="https://www.apollographql.com/docs/apollo-server/performance/apq/">Apollo Server · 持久化查询</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/graphql/" class="category-chain-item">graphql</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/graphql/" class="print-no-link">#graphql</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 095 · GraphQL（二）：解析器、N+1 与生产实践</div>
+      <div>https://ethan-iopasd.github.io/2026/10/08/每日技术博客095-GraphQL解析器与N+1问题/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月8日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2094-GraphQL%E7%B1%BB%E5%9E%8B%E7%B3%BB%E7%BB%9F%E4%B8%8E%E6%9F%A5%E8%AF%A2/" title="每日技术博客 094 · GraphQL（一）：Schema、类型系统与查询">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 094 · GraphQL（一）：Schema、类型系统与查询</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

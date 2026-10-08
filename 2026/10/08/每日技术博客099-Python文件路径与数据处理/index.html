@@ -1,0 +1,1087 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 099 篇 Python 系列第八篇。这一篇全是「平时不写，一出事就是生产事故」的细节：编码、时区、CSV 换行、JSON 转义、正则语义 —— 每条都附官方语义。  📚 Python 系列目录   章节 主题 状态    一 依赖管理与虚拟环境 已发布   二 类型注解与静态检查 已发布   三 异步编程 asyncio 已发布   四 GIL">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 099 · Python（八）：文件、路径与数据处理">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2099-Python%E6%96%87%E4%BB%B6%E8%B7%AF%E5%BE%84%E4%B8%8E%E6%95%B0%E6%8D%AE%E5%A4%84%E7%90%86/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 099 篇 Python 系列第八篇。这一篇全是「平时不写，一出事就是生产事故」的细节：编码、时区、CSV 换行、JSON 转义、正则语义 —— 每条都附官方语义。  📚 Python 系列目录   章节 主题 状态    一 依赖管理与虚拟环境 已发布   二 类型注解与静态检查 已发布   三 异步编程 asyncio 已发布   四 GIL">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-08T07:25:00.000Z">
+<meta property="article:modified_time" content="2026-10-08T03:20:08.285Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="python">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 099 · Python（八）：文件、路径与数据处理 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 099 · Python（八）：文件、路径与数据处理"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-08 15:25" pubdate>
+          2026年10月8日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.6k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          22 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 099 · Python（八）：文件、路径与数据处理</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-08 · 第 099 篇</p>
+<p>Python 系列第八篇。这一篇全是「平时不写，一出事就是生产事故」的细节：编码、时区、CSV 换行、JSON 转义、正则语义 —— 每条都附官方语义。</p>
+</blockquote>
+<h2 id="📚-Python-系列目录"><a href="#📚-Python-系列目录" class="headerlink" title="📚 Python 系列目录"></a>📚 Python 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>依赖管理与虚拟环境</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>类型注解与静态检查</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>异步编程 asyncio</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td>GIL、线程与进程</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>五</td>
+<td>性能剖析与优化</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>六</td>
+<td>装饰器、元编程与描述符</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>七</td>
+<td>打包、发布与项目工程化</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>八</td>
+<td>文件、路径与数据处理</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>用 <code>pathlib</code> 代替 <code>os.path</code>，用 <code>encoding=&#39;utf-8&#39;</code> 显式替代默认编码，用 <code>timezone-aware</code> 替代 <code>utcnow()</code>，用 <code>decimal</code> 替代 <code>float</code> 算钱</strong> —— 这四条能挡掉 Python 数据处理里绝大多数线上事故。</p>
+<h2 id="一、pathlib-取代-os-path"><a href="#一、pathlib-取代-os-path" class="headerlink" title="一、pathlib 取代 os.path"></a>一、pathlib 取代 os.path</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">from</span> pathlib <span class="hljs-keyword">import</span> Path<br><br>p = Path(<span class="hljs-string">&quot;data&quot;</span>) / <span class="hljs-string">&quot;raw&quot;</span> / <span class="hljs-string">&quot;2026-10.csv&quot;</span>   <span class="hljs-comment"># / 运算符拼接，自动处理分隔符</span><br>p.name        <span class="hljs-comment"># &#x27;2026-10.csv&#x27;</span><br>p.stem        <span class="hljs-comment"># &#x27;2026-10&#x27;</span><br>p.suffix      <span class="hljs-comment"># &#x27;.csv&#x27;</span><br>p.parent      <span class="hljs-comment"># PosixPath(&#x27;data/raw&#x27;)</span><br>p.with_suffix(<span class="hljs-string">&quot;.json&quot;</span>)   <span class="hljs-comment"># data/raw/2026-10.json</span><br></code></pre></td></tr></table></figure>
+
+<p><code>os.path</code> 用字符串拼接，手动拼 <code>\</code> 或 <code>/</code> 换平台就断；且 <code>os.path.join</code> 返回的是 <code>str</code>，后续还得再套一层。</p>
+<table>
+<thead>
+<tr>
+<th>需求</th>
+<th><code>os.path</code></th>
+<th><code>pathlib</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>拼接</td>
+<td><code>os.path.join(a, b)</code></td>
+<td><code>a / b</code></td>
+</tr>
+<tr>
+<td>文件名 &#x2F; 后缀</td>
+<td><code>os.path.basename</code> &#x2F; <code>splitext</code></td>
+<td><code>.name</code> &#x2F; <code>.suffix</code></td>
+</tr>
+<tr>
+<td>是否存在</td>
+<td><code>os.path.exists(p)</code></td>
+<td><code>p.exists()</code></td>
+</tr>
+<tr>
+<td>读写文本</td>
+<td>手动 <code>open</code> + <code>with</code></td>
+<td><code>p.read_text()</code> &#x2F; <code>p.write_text()</code></td>
+</tr>
+<tr>
+<td>递归匹配</td>
+<td><code>glob.glob(&quot;**/*.csv&quot;)</code></td>
+<td><code>p.rglob(&quot;*.csv&quot;)</code></td>
+</tr>
+<tr>
+<td>绝对路径</td>
+<td><code>os.path.abspath</code></td>
+<td><code>p.resolve()</code></td>
+</tr>
+<tr>
+<td>相对路径</td>
+<td><code>os.path.relpath</code></td>
+<td><code>p.relative_to(base)</code></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>read_text()</code> &#x2F; <code>write_text()</code> 默认用<strong>平台默认编码</strong>。Windows 上是 GBK，Linux 上是 UTF-8 —— 同一份代码换机器就乱码。**必须写 <code>encoding=&#39;utf-8&#39;</code>**。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>Path</code> 与 <code>str</code> 不通用：<code>open()</code> 接受两者，但字符串方法（<code>.split</code>、<code>+</code>）不能用在 <code>Path</code> 上。传给第三方库前确认它要 <code>Path</code> 还是 <code>str</code>，<code>str(p)</code> 显式转换最省事。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>p.relative_to(base)</code> 要求 <code>p</code> <strong>确实是</strong> <code>base</code> 的子路径，否则抛 <code>ValueError</code>。不确定时用 <code>os.path.relpath</code> 或先判断 <code>base in p.parents</code>。</p>
+</blockquote>
+<h2 id="二、文件读写与编码"><a href="#二、文件读写与编码" class="headerlink" title="二、文件读写与编码"></a>二、文件读写与编码</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># 文本读写：encoding 必须显式</span><br><span class="hljs-keyword">with</span> <span class="hljs-built_in">open</span>(<span class="hljs-string">&quot;f.txt&quot;</span>, <span class="hljs-string">&quot;r&quot;</span>, encoding=<span class="hljs-string">&quot;utf-8&quot;</span>) <span class="hljs-keyword">as</span> f:<br>    text = f.read()<br><br><span class="hljs-keyword">with</span> <span class="hljs-built_in">open</span>(<span class="hljs-string">&quot;f.txt&quot;</span>, <span class="hljs-string">&quot;w&quot;</span>, encoding=<span class="hljs-string">&quot;utf-8&quot;</span>, newline=<span class="hljs-string">&quot;&quot;</span>) <span class="hljs-keyword">as</span> f:<br>    f.write(text)<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>作用</th>
+<th>常见坑</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>encoding</code></td>
+<td>文本编码</td>
+<td>不写就用平台默认（Windows&#x3D;GBK）</td>
+</tr>
+<tr>
+<td><code>newline</code></td>
+<td>换行转换</td>
+<td>写 CSV 时<strong>必须 <code>newline=&#39;&#39;</code></strong></td>
+</tr>
+<tr>
+<td><code>errors</code></td>
+<td>解码失败策略</td>
+<td><code>&#39;replace&#39;</code> &#x2F; <code>&#39;ignore&#39;</code> &#x2F; <code>&#39;strict&#39;</code>（默认）</td>
+</tr>
+<tr>
+<td><code>buffering</code></td>
+<td>缓冲大小</td>
+<td>大文件逐行读时影响性能</td>
+</tr>
+</tbody></table>
+<p><strong>大文件必须流式读</strong>：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># ❌ readlines() 把整个文件读进内存，10GB 文件直接 OOM</span><br><span class="hljs-keyword">for</span> line <span class="hljs-keyword">in</span> <span class="hljs-built_in">open</span>(<span class="hljs-string">&quot;big.log&quot;</span>, encoding=<span class="hljs-string">&quot;utf-8&quot;</span>).readlines():<br>    process(line)<br><br><span class="hljs-comment"># ✅ 迭代文件对象，逐行读，内存恒定</span><br><span class="hljs-keyword">with</span> <span class="hljs-built_in">open</span>(<span class="hljs-string">&quot;big.log&quot;</span>, encoding=<span class="hljs-string">&quot;utf-8&quot;</span>) <span class="hljs-keyword">as</span> f:<br>    <span class="hljs-keyword">for</span> line <span class="hljs-keyword">in</span> f:<br>        process(line)<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>for line in f</code> 是<strong>行缓冲</strong>的，不是逐字节读 —— 内存占用与最长行的长度相关，与文件大小无关。这才是处理大文件的正确姿势。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 二进制模式（<code>&#39;rb&#39;</code> &#x2F; <code>&#39;wb&#39;</code>）**不能传 <code>encoding</code>**，会抛 <code>ValueError</code>。二进制与文本模式互斥。</p>
+</blockquote>
+<h3 id="BOM：utf-8-sig"><a href="#BOM：utf-8-sig" class="headerlink" title="BOM：utf-8-sig"></a>BOM：<code>utf-8-sig</code></h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># 读带 BOM 的文件（Windows Excel 导出的 CSV 常带 \ufeff）</span><br><span class="hljs-keyword">with</span> <span class="hljs-built_in">open</span>(<span class="hljs-string">&quot;bom.csv&quot;</span>, encoding=<span class="hljs-string">&quot;utf-8-sig&quot;</span>) <span class="hljs-keyword">as</span> f:   <span class="hljs-comment"># 自动剥掉 BOM</span><br>    ...<br><br><span class="hljs-comment"># 写文件想让 Excel 正确识别 UTF-8，加 BOM</span><br><span class="hljs-keyword">with</span> <span class="hljs-built_in">open</span>(<span class="hljs-string">&quot;out.csv&quot;</span>, <span class="hljs-string">&quot;w&quot;</span>, encoding=<span class="hljs-string">&quot;utf-8-sig&quot;</span>, newline=<span class="hljs-string">&quot;&quot;</span>) <span class="hljs-keyword">as</span> f:<br>    ...<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 用 <code>utf-8</code> 读带 BOM 的文件，首行第一个字段会多出不可见字符 <code>\ufeff</code>，导致 <code>&#39;id&#39; == &#39;\ufeffid&#39;</code> 为 <code>False</code> —— 这种 bug 极难肉眼发现，表现为「列名对不上」。</p>
+</blockquote>
+<h2 id="三、csv-与-json"><a href="#三、csv-与-json" class="headerlink" title="三、csv 与 json"></a>三、csv 与 json</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">import</span> csv<br><br><span class="hljs-keyword">with</span> <span class="hljs-built_in">open</span>(<span class="hljs-string">&quot;in.csv&quot;</span>, encoding=<span class="hljs-string">&quot;utf-8-sig&quot;</span>, newline=<span class="hljs-string">&quot;&quot;</span>) <span class="hljs-keyword">as</span> f:<br>    <span class="hljs-keyword">for</span> row <span class="hljs-keyword">in</span> csv.DictReader(f):           <span class="hljs-comment"># 按表头映射成 dict</span><br>        <span class="hljs-built_in">print</span>(row[<span class="hljs-string">&quot;name&quot;</span>])<br><br><span class="hljs-keyword">with</span> <span class="hljs-built_in">open</span>(<span class="hljs-string">&quot;out.csv&quot;</span>, <span class="hljs-string">&quot;w&quot;</span>, encoding=<span class="hljs-string">&quot;utf-8-sig&quot;</span>, newline=<span class="hljs-string">&quot;&quot;</span>) <span class="hljs-keyword">as</span> f:<br>    w = csv.DictWriter(f, fieldnames=[<span class="hljs-string">&quot;name&quot;</span>, <span class="hljs-string">&quot;age&quot;</span>])<br>    w.writeheader()<br>    w.writerow(&#123;<span class="hljs-string">&quot;name&quot;</span>: <span class="hljs-string">&quot;Ada&quot;</span>, <span class="hljs-string">&quot;age&quot;</span>: <span class="hljs-number">36</span>&#125;)<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>delimiter</code></td>
+<td>分隔符，默认 <code>,</code>，TSV 用 <code>\t</code></td>
+</tr>
+<tr>
+<td><code>quotechar</code></td>
+<td>引号字符，默认 <code>&quot;</code></td>
+</tr>
+<tr>
+<td><code>quoting</code></td>
+<td><code>QUOTE_MINIMAL</code>（默认）&#x2F; <code>QUOTE_ALL</code> &#x2F; <code>QUOTE_NONNUMERIC</code></td>
+</tr>
+<tr>
+<td><code>lineterminator</code></td>
+<td>行结束符，默认 <code>\r\n</code>（<strong>csv 规范如此</strong>）</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 写 CSV 不加 <code>newline=&#39;&#39;</code>，Windows 上 <code>\r\n</code> 会被再转义成 <code>\r\r\n</code>，每行之间多一个空行。这是 CSV 最常见的坑，官方文档专门写了这一条。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 大 CSV 不要 <code>list(csv.reader(f))</code> 一次读进内存，逐行迭代即可；需要批处理就手动按 <code>N</code> 行切块（<code>itertools.islice</code>）。</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">import</span> json<br><br><span class="hljs-comment"># 读</span><br><span class="hljs-keyword">with</span> <span class="hljs-built_in">open</span>(<span class="hljs-string">&quot;d.json&quot;</span>, encoding=<span class="hljs-string">&quot;utf-8&quot;</span>) <span class="hljs-keyword">as</span> f:<br>    data = json.load(f)<br><br><span class="hljs-comment"># 写：ensure_ascii=False 才不会被转义成 \uXXXX</span><br><span class="hljs-keyword">with</span> <span class="hljs-built_in">open</span>(<span class="hljs-string">&quot;d.json&quot;</span>, <span class="hljs-string">&quot;w&quot;</span>, encoding=<span class="hljs-string">&quot;utf-8&quot;</span>) <span class="hljs-keyword">as</span> f:<br>    json.dump(data, f, ensure_ascii=<span class="hljs-literal">False</span>, indent=<span class="hljs-number">2</span>, sort_keys=<span class="hljs-literal">True</span>)<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>ensure_ascii=False</code></td>
+<td>保留中文原字符，否则输出 <code>&quot;\u4e2d\u6587&quot;</code></td>
+</tr>
+<tr>
+<td><code>indent=2</code></td>
+<td>缩进美化</td>
+</tr>
+<tr>
+<td><code>sort_keys=True</code></td>
+<td>键排序，便于 diff</td>
+</tr>
+<tr>
+<td><code>default=fn</code></td>
+<td>处理不可序列化对象（如 <code>datetime</code>）</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs python">json.dumps(&#123;<span class="hljs-string">&quot;t&quot;</span>: datetime.now()&#125;, default=<span class="hljs-keyword">lambda</span> o: o.isoformat())<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>json.load</code> 会<strong>把整个文件解析进内存</strong>。几 GB 的 JSON 会 OOM —— 改用 <code>ijson</code> 流式解析，或换成 <strong>NDJSON</strong>（每行一个 JSON 对象）逐行 <code>json.loads</code>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ NDJSON 不是标准 JSON，别用 <code>json.load</code> 读。逐行 <code>for line in f: json.loads(line)</code> 才是正确用法。</p>
+</blockquote>
+<h2 id="四、datetime-与时区"><a href="#四、datetime-与时区" class="headerlink" title="四、datetime 与时区"></a>四、datetime 与时区</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">from</span> datetime <span class="hljs-keyword">import</span> datetime, timezone<br><span class="hljs-keyword">from</span> zoneinfo <span class="hljs-keyword">import</span> ZoneInfo        <span class="hljs-comment"># Python 3.9+</span><br><br><span class="hljs-comment"># ✅ 带时区的「现在」</span><br>now_utc = datetime.now(timezone.utc)<br>now_cn = datetime.now(ZoneInfo(<span class="hljs-string">&quot;Asia/Shanghai&quot;</span>))<br><br><span class="hljs-comment"># ❌ 已废弃（3.12 起 DeprecationWarning，返回 naive 对象）</span><br><span class="hljs-comment"># datetime.utcnow()</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>写法</th>
+<th>返回</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>datetime.now()</code></td>
+<td><strong>naive</strong>，无时区</td>
+<td>仅用于本地展示</td>
+</tr>
+<tr>
+<td><code>datetime.utcnow()</code></td>
+<td><strong>naive</strong>，声称是 UTC</td>
+<td>⚠️ <strong>3.12 起废弃</strong></td>
+</tr>
+<tr>
+<td><code>datetime.now(timezone.utc)</code></td>
+<td>aware</td>
+<td>✅ 推荐</td>
+</tr>
+<tr>
+<td><code>datetime.now(ZoneInfo(&quot;Asia/Shanghai&quot;))</code></td>
+<td>aware</td>
+<td>✅</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># ISO 8601 解析（3.11 起 fromisoformat 支持更多格式，含 Z 后缀）</span><br>datetime.fromisoformat(<span class="hljs-string">&quot;2026-10-08T15:25:00+08:00&quot;</span>)<br><br><span class="hljs-comment"># 时间戳 ↔ datetime</span><br>dt.timestamp()                              <span class="hljs-comment"># aware → 秒</span><br>datetime.fromtimestamp(ts, tz=timezone.utc)<br><br><span class="hljs-comment"># 格式化 / 解析</span><br>dt.strftime(<span class="hljs-string">&quot;%Y-%m-%d %H:%M:%S&quot;</span>)<br>datetime.strptime(<span class="hljs-string">&quot;2026-10-08&quot;</span>, <span class="hljs-string">&quot;%Y-%m-%d&quot;</span>)<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>utcnow()</code> 返回的是 <strong>naive</strong> 对象，<code>tzinfo is None</code>。拿它和 aware 对象相减会抛 <code>TypeError: can&#39;t subtract offset-naive and offset-aware datetimes</code>。统一用 <code>datetime.now(timezone.utc)</code>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>datetime.now()</code> 不带时区信息，跨服务器（一台 UTC 一台 CST）算出来的「现在」差 8 小时却不报错 —— 时间错乱类 bug 的头号来源。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>strptime</code> 的格式符必须<strong>完全匹配</strong>，<code>%Y-%m-%d</code> 解析 <code>&quot;2026/10/08&quot;</code> 直接抛 <code>ValueError</code>。解析前先统一分隔符。</p>
+</blockquote>
+<h2 id="五、decimal-与-re"><a href="#五、decimal-与-re" class="headerlink" title="五、decimal 与 re"></a>五、decimal 与 re</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">from</span> decimal <span class="hljs-keyword">import</span> Decimal, ROUND_HALF_UP<br><br><span class="hljs-comment"># ❌ 浮点数不精确</span><br><span class="hljs-number">0.1</span> + <span class="hljs-number">0.2</span>                    <span class="hljs-comment"># 0.30000000000000004</span><br><span class="hljs-built_in">round</span>(<span class="hljs-number">2.675</span>, <span class="hljs-number">2</span>)              <span class="hljs-comment"># 2.67（二进制表示导致）</span><br><br><span class="hljs-comment"># ✅ 金额用 Decimal</span><br>price = Decimal(<span class="hljs-string">&quot;19.99&quot;</span>)<br>total = (price * <span class="hljs-number">3</span>).quantize(Decimal(<span class="hljs-string">&quot;0.01&quot;</span>), rounding=ROUND_HALF_UP)<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>Decimal(&quot;19.99&quot;)</code> 必须传<strong>字符串</strong>，传 <code>float</code> 会把浮点误差一起带进来（<code>Decimal(19.99)</code> → <code>19.989999999999998...</code>）。</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">import</span> re<br><br>re.findall(<span class="hljs-string">r&quot;\d+&quot;</span>, <span class="hljs-string">&quot;a1b22&quot;</span>)       <span class="hljs-comment"># [&#x27;1&#x27;, &#x27;22&#x27;]  返回列表</span><br>re.finditer(<span class="hljs-string">r&quot;\d+&quot;</span>, <span class="hljs-string">&quot;a1b22&quot;</span>)      <span class="hljs-comment"># 迭代器，能拿 match.start()/group()</span><br>re.search(<span class="hljs-string">r&quot;\d+&quot;</span>, <span class="hljs-string">&quot;abc123&quot;</span>)       <span class="hljs-comment"># 任意位置 → 找到 &#x27;123&#x27;</span><br>re.<span class="hljs-keyword">match</span>(<span class="hljs-string">r&quot;\d+&quot;</span>, <span class="hljs-string">&quot;abc123&quot;</span>)        <span class="hljs-comment"># ⚠️ 只从开头 → None</span><br>m = re.search(<span class="hljs-string">r&quot;(?P&lt;year&gt;\d&#123;4&#125;)-(?P&lt;mon&gt;\d&#123;2&#125;)&quot;</span>, <span class="hljs-string">&quot;2026-10&quot;</span>); m.group(<span class="hljs-string">&quot;year&quot;</span>)  <span class="hljs-comment"># &#x27;2026&#x27;</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>函数</th>
+<th>匹配位置</th>
+<th>返回</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>match</code></td>
+<td><strong>仅开头</strong></td>
+<td>Match 或 None</td>
+</tr>
+<tr>
+<td><code>search</code></td>
+<td>任意位置</td>
+<td>第一个 Match 或 None</td>
+</tr>
+<tr>
+<td><code>fullmatch</code></td>
+<td>整串</td>
+<td>Match 或 None</td>
+</tr>
+<tr>
+<td><code>findall</code></td>
+<td>全局</td>
+<td>列表（有分组时只返回分组）</td>
+</tr>
+<tr>
+<td><code>finditer</code></td>
+<td>全局</td>
+<td>Match 迭代器</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>re.match</code> 只从字符串开头匹配</strong>，这是最高频的误解。要「任意位置找」用 <code>search</code>。Python 3.4+ 可写 <code>re.fullmatch</code> 做整串匹配。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>re</code> 内部有缓存，但缓存有上限（默认 512 条）。循环里动态拼正则要显式 <code>re.compile</code> 一次，避免反复编译。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 默认贪婪：<code>&lt;.*&gt;</code> 会匹配到最后一个 <code>&gt;</code>。用 <code>&lt;.*?&gt;</code> 非贪婪，或更精确的 <code>&lt;[^&gt;]*&gt;</code>。</p>
+</blockquote>
+<h2 id="六、collections-与-itertools"><a href="#六、collections-与-itertools" class="headerlink" title="六、collections 与 itertools"></a>六、collections 与 itertools</h2><table>
+<thead>
+<tr>
+<th>容器</th>
+<th>用途</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>defaultdict(list)</code></td>
+<td>分组聚合</td>
+<td>缺 key 自动建默认值，免去 <code>setdefault</code></td>
+</tr>
+<tr>
+<td><code>Counter</code></td>
+<td>计数 &#x2F; Top-N</td>
+<td><code>Counter(&quot;abracadabra&quot;).most_common(2)</code></td>
+</tr>
+<tr>
+<td><code>deque(maxlen=n)</code></td>
+<td>双端队列 &#x2F; 滑动窗口</td>
+<td>超出 <code>maxlen</code> 自动从另一端弹出</td>
+</tr>
+<tr>
+<td><code>OrderedDict</code></td>
+<td>有序字典</td>
+<td><strong>3.7+ 普通 dict 已保序</strong>，仅 <code>move_to_end</code> 等仍需要</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">from</span> itertools <span class="hljs-keyword">import</span> chain, groupby, islice, product<br><br><span class="hljs-built_in">list</span>(chain([<span class="hljs-number">1</span>, <span class="hljs-number">2</span>], [<span class="hljs-number">3</span>, <span class="hljs-number">4</span>]))                  <span class="hljs-comment"># [1,2,3,4] 展平</span><br><span class="hljs-built_in">list</span>(islice(<span class="hljs-built_in">range</span>(<span class="hljs-number">1000000</span>), <span class="hljs-number">5</span>))              <span class="hljs-comment"># 惰性取前 5 个，不物化整个序列</span><br><span class="hljs-built_in">list</span>(product(<span class="hljs-string">&quot;ab&quot;</span>, <span class="hljs-string">&quot;12&quot;</span>))                    <span class="hljs-comment"># 笛卡尔积</span><br><br><span class="hljs-comment"># groupby 前必须先按同一 key 排序，否则同组被拆散</span><br>data = <span class="hljs-built_in">sorted</span>(rows, key=<span class="hljs-keyword">lambda</span> r: r[<span class="hljs-string">&quot;city&quot;</span>])<br><span class="hljs-keyword">for</span> city, group <span class="hljs-keyword">in</span> groupby(data, key=<span class="hljs-keyword">lambda</span> r: r[<span class="hljs-string">&quot;city&quot;</span>]):<br>    ...<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>itertools.groupby</code> <strong>只合并相邻的相同 key</strong>。输入未排序时，同一 <code>city</code> 的记录会被拆成多个组，且<strong>不报错</strong> —— 必须先 <code>sorted</code>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>zip(a, b)</code> 默认按<strong>最短</strong>截断，长度不等会静默丢数据。Python 3.10+ 用 <code>zip(a, b, strict=True)</code> 让长度不等直接抛 <code>ValueError</code>。</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># 生成器表达式惰性求值，不占内存</span><br>total = <span class="hljs-built_in">sum</span>(x * x <span class="hljs-keyword">for</span> x <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(<span class="hljs-number">10_000_000</span>))<br></code></pre></td></tr></table></figure>
+
+<h2 id="七、subprocess-与临时文件"><a href="#七、subprocess-与临时文件" class="headerlink" title="七、subprocess 与临时文件"></a>七、subprocess 与临时文件</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">import</span> subprocess<br><br>r = subprocess.run([<span class="hljs-string">&quot;git&quot;</span>, <span class="hljs-string">&quot;status&quot;</span>, <span class="hljs-string">&quot;--short&quot;</span>],<br>                   capture_output=<span class="hljs-literal">True</span>, text=<span class="hljs-literal">True</span>, check=<span class="hljs-literal">True</span>, timeout=<span class="hljs-number">30</span>)<br><span class="hljs-built_in">print</span>(r.stdout)<br><br><span class="hljs-comment"># ❌ 命令注入风险：shell=True + 拼接用户输入</span><br>subprocess.run(<span class="hljs-string">f&quot;grep <span class="hljs-subst">&#123;user_input&#125;</span> file.txt&quot;</span>, shell=<span class="hljs-literal">True</span>)<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>check=True</code></td>
+<td>返回码非 0 抛 <code>CalledProcessError</code>（否则静默失败）</td>
+</tr>
+<tr>
+<td><code>capture_output=True</code></td>
+<td>捕获 stdout &#x2F; stderr 到 <code>r.stdout</code> &#x2F; <code>r.stderr</code></td>
+</tr>
+<tr>
+<td><code>text=True</code></td>
+<td>以文本（而非 bytes）返回，等价 <code>encoding=&#39;utf-8&#39;</code></td>
+</tr>
+<tr>
+<td><code>shell=True</code></td>
+<td>交给 shell 解释，<strong>有注入风险</strong>，尽量避免</td>
+</tr>
+<tr>
+<td><code>timeout</code></td>
+<td>超时抛 <code>TimeoutExpired</code></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>shell=True</code> 且命令里含用户输入 &#x3D; 命令注入。列表形式 <code>[&quot;cmd&quot;, arg]</code> 不经过 shell，参数不会被二次解释。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 不加 <code>check=True</code> 时，子进程失败<strong>不会抛异常</strong>，只会体现在 <code>r.returncode</code>。忘了检查就会拿到空 stdout 却以为成功。</p>
+</blockquote>
+<p><code>tempfile.TemporaryDirectory()</code> 作为上下文管理器，退出时自动递归删除；<code>shutil.copy2</code> 复制且保留元数据（mtime 等），<code>shutil.rmtree</code> 递归删目录。</p>
+<blockquote>
+<p>⚠️ <code>shutil.rmtree</code> 无回收站、无确认。路径变量一旦为空或拼错，可能删掉整个目录树。删前先 <code>assert p.is_dir()</code>。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> <code>open()</code> 不写 <code>encoding</code>，Windows 默认 GBK 导致乱码</li>
+<li><input disabled="" type="checkbox"> 写 CSV 不加 <code>newline=&#39;&#39;</code>，Windows 上每行多一个空行</li>
+<li><input disabled="" type="checkbox"> 用 <code>utf-8</code> 读带 BOM 的文件，首字段多出 <code>\ufeff</code></li>
+<li><input disabled="" type="checkbox"> 用 <code>readlines()</code> 读大文件，内存直接爆掉</li>
+<li><input disabled="" type="checkbox"> 二进制模式传了 <code>encoding</code> 参数</li>
+<li><input disabled="" type="checkbox"> <code>json.dump</code> 不加 <code>ensure_ascii=False</code>，中文被转义成 <code>\uXXXX</code></li>
+<li><input disabled="" type="checkbox"> 用 <code>json.load</code> 读超大 JSON，全量载入内存 OOM</li>
+<li><input disabled="" type="checkbox"> 用 <code>json.load</code> 读 NDJSON（应该逐行 <code>json.loads</code>）</li>
+<li><input disabled="" type="checkbox"> 用 <code>datetime.utcnow()</code>（3.12 起废弃，返回 naive）</li>
+<li><input disabled="" type="checkbox"> naive 与 aware datetime 相减，抛 <code>TypeError</code></li>
+<li><input disabled="" type="checkbox"> 服务器时区不同导致「现在」差 8 小时却无报错</li>
+<li><input disabled="" type="checkbox"> 金额用 <code>float</code>，<code>0.1 + 0.2 != 0.3</code></li>
+<li><input disabled="" type="checkbox"> <code>Decimal</code> 传了 <code>float</code> 而不是字符串</li>
+<li><input disabled="" type="checkbox"> 用 <code>re.match</code> 以为能任意位置匹配（实际只匹配开头）</li>
+<li><input disabled="" type="checkbox"> <code>itertools.groupby</code> 前不排序，同组被拆散且不报错</li>
+<li><input disabled="" type="checkbox"> <code>zip</code> 长度不等静默截断，没用 <code>strict=True</code></li>
+<li><input disabled="" type="checkbox"> <code>subprocess</code> 不加 <code>check=True</code>，失败被静默忽略</li>
+<li><input disabled="" type="checkbox"> <code>shell=True</code> 拼接用户输入，命令注入</li>
+<li><input disabled="" type="checkbox"> <code>shutil.rmtree</code> 路径变量拼错，误删整个目录</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://docs.python.org/3/library/pathlib.html">Python · pathlib</a> · <a target="_blank" rel="noopener" href="https://docs.python.org/3/library/functions.html#open">Python · io 与 open</a> · <a target="_blank" rel="noopener" href="https://docs.python.org/3/library/csv.html">Python · csv</a> · <a target="_blank" rel="noopener" href="https://docs.python.org/3/library/json.html">Python · json</a> · <a target="_blank" rel="noopener" href="https://docs.python.org/3/library/datetime.html">Python · datetime</a> · <a target="_blank" rel="noopener" href="https://docs.python.org/3/library/decimal.html">Python · decimal</a> · <a target="_blank" rel="noopener" href="https://docs.python.org/3/library/re.html">Python · re</a> · <a target="_blank" rel="noopener" href="https://docs.python.org/3/library/collections.html">Python · collections</a> · <a target="_blank" rel="noopener" href="https://docs.python.org/3/library/itertools.html">Python · itertools</a> · <a target="_blank" rel="noopener" href="https://docs.python.org/3/library/subprocess.html">Python · subprocess</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/python/" class="category-chain-item">python</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/python/" class="print-no-link">#python</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 099 · Python（八）：文件、路径与数据处理</div>
+      <div>https://ethan-iopasd.github.io/2026/10/08/每日技术博客099-Python文件路径与数据处理/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月8日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2084-Python%E6%89%93%E5%8C%85%E5%8F%91%E5%B8%83%E4%B8%8E%E5%B7%A5%E7%A8%8B%E5%8C%96/" title="每日技术博客 084 · Python（七）：打包、发布与项目工程化">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 084 · Python（七）：打包、发布与项目工程化</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

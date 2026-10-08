@@ -1,0 +1,1040 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 100 篇 Docker 系列第六篇。容器起不来、连不通、写不进去、时间不对 —— 这篇给一套固定的排查顺序和每条命令该看什么，附退出码与信号对照。  📚 Docker 系列目录   章节 主题 状态    一 镜像分层与 Dockerfile 已发布   二 Compose、网络与数据卷 已发布   三 镜像瘦身与构建优化 已发布   四 网络">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 100 · Docker（六）：容器调试与故障排查">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2100-Docker%E5%AE%B9%E5%99%A8%E8%B0%83%E8%AF%95%E4%B8%8E%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 100 篇 Docker 系列第六篇。容器起不来、连不通、写不进去、时间不对 —— 这篇给一套固定的排查顺序和每条命令该看什么，附退出码与信号对照。  📚 Docker 系列目录   章节 主题 状态    一 镜像分层与 Dockerfile 已发布   二 Compose、网络与数据卷 已发布   三 镜像瘦身与构建优化 已发布   四 网络">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-08T07:30:00.000Z">
+<meta property="article:modified_time" content="2026-10-08T03:20:33.412Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="docker">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 100 · Docker（六）：容器调试与故障排查 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 100 · Docker（六）：容器调试与故障排查"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-08 15:30" pubdate>
+          2026年10月8日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.7k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          23 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 100 · Docker（六）：容器调试与故障排查</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-08 · 第 100 篇</p>
+<p>Docker 系列第六篇。容器起不来、连不通、写不进去、时间不对 —— 这篇给一套固定的排查顺序和每条命令该看什么，附退出码与信号对照。</p>
+</blockquote>
+<h2 id="📚-Docker-系列目录"><a href="#📚-Docker-系列目录" class="headerlink" title="📚 Docker 系列目录"></a>📚 Docker 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>镜像分层与 Dockerfile</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>Compose、网络与数据卷</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>镜像瘦身与构建优化</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td>网络模式与存储驱动</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>五</td>
+<td>容器安全与运行时</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>六</td>
+<td>容器调试与故障排查</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>排查顺序固定为：<code>docker ps -a</code> 看退出码 → <code>docker logs</code> 看输出 → <code>docker inspect</code> 看 <code>State</code> → 进容器动手。</strong> 90% 的问题在前三步就能定位；退出码本身就是线索（137 是 OOM 或被强杀，127 是命令不存在）。</p>
+<h2 id="一、起不来的排查顺序"><a href="#一、起不来的排查顺序" class="headerlink" title="一、起不来的排查顺序"></a>一、起不来的排查顺序</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs bash">docker ps -a                          <span class="hljs-comment"># 1. 看 STATUS：Exited (137) / Up / Restarting</span><br>docker logs &lt;容器&gt;                     <span class="hljs-comment"># 2. 看应用输出（stdout/stderr）</span><br>docker logs --<span class="hljs-built_in">tail</span> 100 --since 10m &lt;容器&gt;   <span class="hljs-comment"># 只看最近</span><br>docker inspect &lt;容器&gt; | grep -A5 <span class="hljs-string">&#x27;&quot;State&quot;&#x27;</span>  <span class="hljs-comment"># 3. 看 ExitCode / OOMKilled / Error</span><br>docker inspect --format <span class="hljs-string">&#x27;&#123;&#123;.State.ExitCode&#125;&#125; &#123;&#123;.State.OOMKilled&#125;&#125; &#123;&#123;.State.Error&#125;&#125;&#x27;</span> &lt;容器&gt;<br></code></pre></td></tr></table></figure>
+
+<p><code>docker inspect</code> 的 <code>State</code> 关键字段：</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Status</code></td>
+<td><code>exited</code> &#x2F; <code>running</code> &#x2F; <code>restarting</code> &#x2F; <code>dead</code></td>
+</tr>
+<tr>
+<td><code>ExitCode</code></td>
+<td>退出码，见下表</td>
+</tr>
+<tr>
+<td><code>OOMKilled</code></td>
+<td><code>true</code> 表示被内存限制杀死</td>
+</tr>
+<tr>
+<td><code>Error</code></td>
+<td>启动期错误信息</td>
+</tr>
+<tr>
+<td><code>RestartCount</code></td>
+<td>重启次数，配合 <code>restart</code> 策略看</td>
+</tr>
+</tbody></table>
+<p><strong>退出码对照</strong>（Linux 里 128+N &#x3D; 收到信号 N）：</p>
+<table>
+<thead>
+<tr>
+<th>退出码</th>
+<th>含义</th>
+<th>常见原因</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>正常退出</td>
+<td>命令跑完就结束，容器自然停止</td>
+</tr>
+<tr>
+<td>1</td>
+<td>应用错误</td>
+<td>未捕获异常、配置缺失</td>
+</tr>
+<tr>
+<td>126</td>
+<td>无执行权限</td>
+<td>入口文件没有 <code>+x</code></td>
+</tr>
+<tr>
+<td>127</td>
+<td>命令不存在</td>
+<td><strong><code>ENTRYPOINT</code> 写错 &#x2F; shebang 路径不对</strong></td>
+</tr>
+<tr>
+<td>137</td>
+<td>128+9 &#x3D; SIGKILL</td>
+<td><strong>OOMKilled 或被 <code>docker stop</code> 超时强杀</strong></td>
+</tr>
+<tr>
+<td>139</td>
+<td>128+11 &#x3D; SIGSEGV</td>
+<td>段错误，原生扩展 &#x2F; 底层库崩溃</td>
+</tr>
+<tr>
+<td>143</td>
+<td>128+15 &#x3D; SIGTERM</td>
+<td>收到 <code>docker stop</code>，正常终止流程</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>137 不等于一定是 OOM</strong>。<code>docker stop</code> 默认发 SIGTERM 等 10 秒，应用没退出就补 SIGKILL，同样是 137。要区分必须看 <code>docker inspect</code> 的 <code>OOMKilled</code> 字段。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 127 最常见的原因是 <code>ENTRYPOINT [&quot;python&quot;]</code> 但镜像里没装 python，或 shebang 写成 <code>#!/usr/bin/env python</code> 而 <code>env</code> 路径不存在。别急着怀疑代码。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 容器里 PID 1 必须能正确处理信号。用 <code>CMD [&quot;python&quot;, &quot;app.py&quot;]</code> 这种 exec 形式，PID 1 就是 python，能收 SIGTERM；用 <code>CMD python app.py</code>（shell 形式）时 PID 1 是 <code>/bin/sh</code>，信号不转发给子进程，<code>docker stop</code> 要等满 10 秒才被强杀 → 表现为「退出慢 + 137」。</p>
+</blockquote>
+<h2 id="二、docker-logs-与日志驱动"><a href="#二、docker-logs-与日志驱动" class="headerlink" title="二、docker logs 与日志驱动"></a>二、docker logs 与日志驱动</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs bash">docker logs -f &lt;容器&gt;              <span class="hljs-comment"># 跟随输出</span><br>docker logs --<span class="hljs-built_in">tail</span> 200 &lt;容器&gt;      <span class="hljs-comment"># 最后 200 行</span><br>docker logs --since 30m --<span class="hljs-keyword">until</span> 5m &lt;容器&gt;<br>docker logs -t &lt;容器&gt;              <span class="hljs-comment"># 带时间戳</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>docker logs</code> <strong>只能拿到 PID 1 的 stdout &#x2F; stderr</strong>。应用把日志写进容器内文件（如 <code>/var/log/app.log</code>）时，<code>docker logs</code> 一片空白 —— 这不是没日志，是没走标准输出。要么改配置输出到 stdout，要么用 <code>docker cp</code> 把文件拷出来。</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>日志驱动</th>
+<th>去向</th>
+<th>特点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>json-file</code></td>
+<td>宿主文件，默认</td>
+<td><code>docker logs</code> 可用</td>
+</tr>
+<tr>
+<td><code>local</code></td>
+<td>宿主文件，二进制</td>
+<td>更省空间，<code>docker logs</code> 可用</td>
+</tr>
+<tr>
+<td><code>syslog</code></td>
+<td>syslog</td>
+<td>集中收集</td>
+</tr>
+<tr>
+<td><code>fluentd</code></td>
+<td>Fluentd</td>
+<td>日志管道</td>
+</tr>
+<tr>
+<td><code>none</code></td>
+<td>丢弃</td>
+<td><code>docker logs</code> 无输出</td>
+</tr>
+</tbody></table>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-comment"># compose 里限制日志体积，防止撑爆磁盘</span><br><span class="hljs-attr">services:</span><br>  <span class="hljs-attr">app:</span><br>    <span class="hljs-attr">logging:</span><br>      <span class="hljs-attr">driver:</span> <span class="hljs-string">json-file</span><br>      <span class="hljs-attr">options:</span><br>        <span class="hljs-attr">max-size:</span> <span class="hljs-string">&quot;10m&quot;</span><br>        <span class="hljs-attr">max-file:</span> <span class="hljs-string">&quot;3&quot;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 默认 <code>json-file</code> <strong>不轮转</strong>。长时间运行的容器会把日志无限写进 <code>/var/lib/docker/containers/</code>，直到磁盘满 —— 生产环境必须设 <code>max-size</code> &#x2F; <code>max-file</code>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 日志驱动设为 <code>none</code> &#x2F; <code>syslog</code> 后 <code>docker logs</code> 会失效或为空，排查时先确认驱动类型。</p>
+</blockquote>
+<h2 id="三、进容器：几种方式与优先级"><a href="#三、进容器：几种方式与优先级" class="headerlink" title="三、进容器：几种方式与优先级"></a>三、进容器：几种方式与优先级</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs bash">docker <span class="hljs-built_in">exec</span> -it &lt;容器&gt; sh          <span class="hljs-comment"># 首选：新起进程，不影响主进程</span><br>docker <span class="hljs-built_in">exec</span> -it &lt;容器&gt; bash<br>docker <span class="hljs-built_in">cp</span> &lt;容器&gt;:/var/log/app.log ./   <span class="hljs-comment"># 拷文件出来看</span><br>docker attach &lt;容器&gt;               <span class="hljs-comment"># 慎用</span><br>docker debug &lt;容器&gt;                <span class="hljs-comment"># Docker Desktop 自带，镜像里没 shell 也能进</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>方式</th>
+<th>适用</th>
+<th>风险</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>docker exec</code></td>
+<td>绝大多数情况</td>
+<td>需要容器内有 shell</td>
+</tr>
+<tr>
+<td><code>docker attach</code></td>
+<td>想接主进程 stdio</td>
+<td><strong>退出会杀掉容器、且共享 stdio</strong></td>
+</tr>
+<tr>
+<td><code>docker cp</code></td>
+<td>只读文件</td>
+<td>只拷不执行</td>
+</tr>
+<tr>
+<td><code>nsenter</code></td>
+<td>直接进 namespace</td>
+<td>需宿主权限，绕过 Docker</td>
+</tr>
+<tr>
+<td><code>docker debug</code></td>
+<td>distroless &#x2F; scratch</td>
+<td>需 Docker Desktop</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>docker attach</code> 按 <code>Ctrl+C</code> 会终止容器</strong>（信号发给 PID 1）。detach 要用 <code>Ctrl+P Ctrl+Q</code>。且多个 attach 会共享同一 stdio，互相干扰。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>distroless &#x2F; scratch 镜像没有 shell</strong>，<code>docker exec -it sh</code> 报 <code>executable file not found</code>。这时用 <code>docker debug</code>（能进入任何容器或镜像的调试 shell，甚至不含 shell 的镜像），或临时挂一个 busybox sidecar。</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 没有 docker debug 时，直接进目标的 namespace</span><br>PID=$(docker inspect -f <span class="hljs-string">&#x27;&#123;&#123;.State.Pid&#125;&#125;&#x27;</span> &lt;容器&gt;)<br>nsenter -t <span class="hljs-variable">$PID</span> -n -p sh<br></code></pre></td></tr></table></figure>
+
+<h2 id="四、docker-inspect-该看什么"><a href="#四、docker-inspect-该看什么" class="headerlink" title="四、docker inspect 该看什么"></a>四、docker inspect 该看什么</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs bash">docker inspect &lt;容器&gt;                                   <span class="hljs-comment"># 全量 JSON</span><br>docker inspect -f <span class="hljs-string">&#x27;&#123;&#123;.State.OOMKilled&#125;&#125;&#x27;</span> &lt;容器&gt;<br>docker inspect -f <span class="hljs-string">&#x27;&#123;&#123;json .NetworkSettings.Ports&#125;&#125;&#x27;</span> &lt;容器&gt;<br>docker inspect -f <span class="hljs-string">&#x27;&#123;&#123;range .Mounts&#125;&#125;&#123;&#123;.Source&#125;&#125; -&gt; &#123;&#123;.Destination&#125;&#125;&#123;&#123;&quot;\n&quot;&#125;&#125;&#123;&#123;end&#125;&#125;&#x27;</span> &lt;容器&gt;<br>docker inspect -f <span class="hljs-string">&#x27;&#123;&#123;json .Config.Env&#125;&#125;&#x27;</span> &lt;容器&gt;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>路径</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>.State</code></td>
+<td><code>ExitCode</code> &#x2F; <code>OOMKilled</code> &#x2F; <code>Error</code> &#x2F; <code>Health</code></td>
+</tr>
+<tr>
+<td><code>.Config.Env</code></td>
+<td>环境变量，确认是否注入成功</td>
+</tr>
+<tr>
+<td><code>.NetworkSettings</code></td>
+<td>IP、端口映射、网关</td>
+</tr>
+<tr>
+<td><code>.Mounts</code></td>
+<td>卷 &#x2F; 绑定挂载的源与目标</td>
+</tr>
+<tr>
+<td><code>.HostConfig.RestartPolicy</code></td>
+<td>重启策略</td>
+</tr>
+<tr>
+<td><code>.RestartCount</code></td>
+<td>重启次数</td>
+</tr>
+</tbody></table>
+<h3 id="健康检查"><a href="#健康检查" class="headerlink" title="健康检查"></a>健康检查</h3><figure class="highlight dockerfile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs dockerfile"><span class="hljs-keyword">HEALTHCHECK</span><span class="language-bash"> --interval=30s --<span class="hljs-built_in">timeout</span>=3s --retries=3 \</span><br><span class="language-bash">  CMD curl -f http://localhost:8080/health || <span class="hljs-built_in">exit</span> 1</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash">docker inspect --format <span class="hljs-string">&#x27;&#123;&#123;json .State.Health&#125;&#125;&#x27;</span> &lt;容器&gt; | jq<br>docker inspect -f <span class="hljs-string">&#x27;&#123;&#123;.State.Health.Status&#125;&#125;&#x27;</span> &lt;容器&gt;   <span class="hljs-comment"># healthy / unhealthy / starting</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ **没有 <code>HEALTHCHECK</code> 的镜像，<code>.State.Health</code> 是 <code>null</code>**，<code>unhealthy</code> 无从谈起。<code>unhealthy</code> 也不等于容器退出 —— 它只是标记，除非编排层（Compose &#x2F; Swarm &#x2F; K8s）依据它做动作。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>HEALTHCHECK</code> 命令在容器内执行，镜像里没有 <code>curl</code> &#x2F; <code>wget</code> 会一直判失败。用 <code>CMD [&quot;sh&quot;,&quot;-c&quot;,&quot;...&quot;]</code> 或换成镜像里确实存在的工具。</p>
+</blockquote>
+<h2 id="五、网络问题排查"><a href="#五、网络问题排查" class="headerlink" title="五、网络问题排查"></a>五、网络问题排查</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs bash">docker <span class="hljs-built_in">exec</span> -it &lt;容器&gt; getent hosts db        <span class="hljs-comment"># 容器内解析域名</span><br>docker <span class="hljs-built_in">exec</span> -it &lt;容器&gt; nslookup db            <span class="hljs-comment"># 若镜像里有 nslookup</span><br>docker network inspect &lt;网络&gt;                 <span class="hljs-comment"># 看谁连了这个网络、各自的 IP</span><br>docker <span class="hljs-built_in">exec</span> -it &lt;容器&gt; ip addr                <span class="hljs-comment"># 容器内网卡</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>现象</th>
+<th>原因</th>
+<th>排查</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>容器内域名解析失败</td>
+<td><strong>默认 bridge 无内置 DNS</strong></td>
+<td>用自定义网络（自带 DNS）</td>
+</tr>
+<tr>
+<td>跨容器不通</td>
+<td>不在同一网络</td>
+<td><code>docker network inspect</code> 比对成员</td>
+</tr>
+<tr>
+<td>端口映射不生效</td>
+<td><code>-p</code> 绑定了 host IP &#x2F; 只 <code>EXPOSE</code></td>
+<td>检查 <code>-p</code> 与 <code>NetworkSettings.Ports</code></td>
+</tr>
+<tr>
+<td>访问宿主服务</td>
+<td>需 <code>host.docker.internal</code></td>
+<td>或用宿主真实 IP</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash">docker network create app-net<br>docker run --network app-net --name db postgres<br>docker run --network app-net --name web myapp      <span class="hljs-comment"># web 里可直接 ping db</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>默认 <code>bridge</code> 网络没有自动 DNS</strong>，容器只能靠 IP 互通；自定义网络（<code>docker network create</code>）才提供按容器名解析。这是「容器间用服务名连不上」的头号原因。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>EXPOSE</code> 不发布端口</strong>，它只是元数据 &#x2F; 文档。真正对外映射必须用 <code>-p 8080:80</code> 或 Compose 的 <code>ports</code>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>-p 8080:80</code> 默认绑 <code>0.0.0.0</code>（全网可达）；<code>-p 127.0.0.1:8080:80</code> 只绑本机回环。安全敏感场景显式指定 host IP。</p>
+</blockquote>
+<h2 id="六、存储、资源与时区"><a href="#六、存储、资源与时区" class="headerlink" title="六、存储、资源与时区"></a>六、存储、资源与时区</h2><h3 id="卷与权限"><a href="#卷与权限" class="headerlink" title="卷与权限"></a>卷与权限</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash">docker volume inspect &lt;卷&gt;                    <span class="hljs-comment"># 看 Mountpoint</span><br>docker inspect -f <span class="hljs-string">&#x27;&#123;&#123;range .Mounts&#125;&#125;&#123;&#123;.Source&#125;&#125; -&gt; &#123;&#123;.Destination&#125;&#125;&#123;&#123;&quot;\n&quot;&#125;&#125;&#123;&#123;end&#125;&#125;&#x27;</span> &lt;容器&gt;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>容器内 UID 与宿主 UID 不匹配是最常见的权限坑</strong>。宿主目录属主是 <code>1000</code>，容器里进程以 <code>root</code>（UID 0）写文件，产物在宿主上就变成 root 属主；反过来容器以非 root 跑、宿主目录只对 root 可写，就报 <code>Permission denied</code>。用 <code>--user $(id -u):$(id -g)</code> 对齐，或预先 <code>chown</code> 目录。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>-v /host/not/exist:/data</code> 会自动把宿主路径创建成一个目录</strong>（而不是报错），于是你往「文件」挂载时得到的却是个目录。用 <code>--mount</code> 形式会明确报错，更安全。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 具名卷（<code>myvol:/data</code>）与绑定挂载（<code>./data:/data</code>）排查方式不同：具名卷在 <code>/var/lib/docker/volumes/</code> 下，看不到不代表不存在；绑定挂载则是宿主真实路径。</p>
+</blockquote>
+<h3 id="资源"><a href="#资源" class="headerlink" title="资源"></a>资源</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs bash">docker stats                       <span class="hljs-comment"># 实时 CPU / 内存 / 网络 / IO</span><br>docker stats --no-stream &lt;容器&gt;     <span class="hljs-comment"># 只取一次快照</span><br>docker system <span class="hljs-built_in">df</span>                   <span class="hljs-comment"># 镜像 / 容器 / 卷 / 构建缓存占用</span><br>docker system <span class="hljs-built_in">df</span> -v                <span class="hljs-comment"># 明细</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>--memory 512m</code> 超限会被 OOMKill，退出码 137 且 <code>OOMKilled=true</code>。<strong>Java &#x2F; Node 这类运行时不会自动感知 cgroup 限制</strong>，堆按宿主内存估算，容易直接撞上限被杀 —— 要显式设 <code>-Xmx</code> &#x2F; <code>--max-old-space-size</code>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>--cpus 1</code> 是限流不是报错：进程被 CFS 调度节流，表现为「慢」而非「崩」。排查慢时先看 <code>docker stats</code> 的 CPU 是否长期贴顶。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>docker system df</code> 里「构建缓存」经常是最大头。磁盘满时先看这里，再决定清什么。</p>
+</blockquote>
+<h3 id="时区"><a href="#时区" class="headerlink" title="时区"></a>时区</h3><blockquote>
+<p>⚠️ <strong>容器默认 UTC</strong>，与宿主（如东八区）差 8 小时。日志时间对不上、定时任务在错误时刻触发，多半是这个。设 <code>TZ=Asia/Shanghai</code> 环境变量，或挂载 <code>/etc/localtime</code>：<code>-v /etc/localtime:/etc/localtime:ro</code>。注意有些精简镜像没有 tzdata，光设 <code>TZ</code> 不生效。</p>
+</blockquote>
+<h2 id="七、Compose-调试、事件与清理"><a href="#七、Compose-调试、事件与清理" class="headerlink" title="七、Compose 调试、事件与清理"></a>七、Compose 调试、事件与清理</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs bash">docker compose config                       <span class="hljs-comment"># 打印合并后的最终配置（含 env、extends 展开）</span><br>docker compose logs -f web                  <span class="hljs-comment"># 跟随某个服务日志</span><br>docker compose up -d --force-recreate web   <span class="hljs-comment"># 只重建某服务</span><br>docker events --filter container=&lt;容器&gt;      <span class="hljs-comment"># 实时事件流</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-attr">services:</span><br>  <span class="hljs-attr">web:</span><br>    <span class="hljs-attr">depends_on:</span><br>      <span class="hljs-attr">db:</span><br>        <span class="hljs-attr">condition:</span> <span class="hljs-string">service_healthy</span>    <span class="hljs-comment"># 等 db 健康，而非「已启动」</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>depends_on</code> 默认只保证容器「已启动」，不保证服务「已就绪」</strong>。<code>db</code> 容器 Up 了但 Postgres 还在初始化时，<code>web</code> 照样会连不上。要等就绪必须配 <code>condition: service_healthy</code>（且被依赖方要有 <code>HEALTHCHECK</code>）。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>docker compose config</code> 是把多个 override 文件、<code>.env</code>、<code>extends</code> 全部合并后的结果 —— 排查「为什么这个变量没生效」时以它为准，而不是看单个 yaml。</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash">docker system prune                    <span class="hljs-comment"># 清理停止的容器、未使用网络、悬空镜像、构建缓存</span><br>docker system prune -a --volumes       <span class="hljs-comment"># ⚠️ 连未使用的镜像和卷一起删</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>docker system prune -a --volumes</code> 会删掉未被任何容器使用的卷</strong> —— 数据卷里可能是数据库。删之前先 <code>docker volume ls</code> 确认，别在带数据的机器上随手执行。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 看到 137 就断定 OOM，其实可能是 <code>docker stop</code> 超时强杀</li>
+<li><input disabled="" type="checkbox"> 127 却去查业务代码，实际是 <code>ENTRYPOINT</code> &#x2F; shebang 写错</li>
+<li><input disabled="" type="checkbox"> <code>CMD</code> 用 shell 形式导致 PID 1 不转发信号，退出慢</li>
+<li><input disabled="" type="checkbox"> 应用把日志写进容器内文件，<code>docker logs</code> 看不到还以为是没日志</li>
+<li><input disabled="" type="checkbox"> 日志驱动没设 <code>max-size</code>，日志撑爆磁盘</li>
+<li><input disabled="" type="checkbox"> 用 <code>docker attach</code> 后 <code>Ctrl+C</code> 把容器杀了</li>
+<li><input disabled="" type="checkbox"> distroless 镜像里 <code>docker exec sh</code> 报找不到可执行文件</li>
+<li><input disabled="" type="checkbox"> 没有 <code>HEALTHCHECK</code> 却期望 <code>.State.Health</code> 有值</li>
+<li><input disabled="" type="checkbox"> 默认 bridge 网络里用容器名互相解析，解析不到</li>
+<li><input disabled="" type="checkbox"> 以为 <code>EXPOSE</code> 就等于对外发布端口</li>
+<li><input disabled="" type="checkbox"> <code>-p</code> 绑了 <code>0.0.0.0</code> 把服务暴露到公网</li>
+<li><input disabled="" type="checkbox"> 容器 UID 与宿主 UID 不匹配，卷里写入 <code>Permission denied</code></li>
+<li><input disabled="" type="checkbox"> <code>-v</code> 挂载了不存在的宿主路径，被静默创建成目录</li>
+<li><input disabled="" type="checkbox"> Java &#x2F; Node 不感知 cgroup 限制，被 OOMKill</li>
+<li><input disabled="" type="checkbox"> 把 <code>--cpus</code> 限流当成崩溃排查</li>
+<li><input disabled="" type="checkbox"> 容器默认 UTC，日志时间与宿主差 8 小时</li>
+<li><input disabled="" type="checkbox"> 以为 <code>depends_on</code> 会等服务就绪，实际只等容器启动</li>
+<li><input disabled="" type="checkbox"> 随手 <code>docker system prune -a --volumes</code>，删掉了数据库卷</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://docs.docker.com/reference/cli/docker/container/logs/">Docker · 容器调试与日志（logs）</a> · <a target="_blank" rel="noopener" href="https://docs.docker.com/reference/cli/docker/debug/">Docker · docker debug</a> · <a target="_blank" rel="noopener" href="https://docs.docker.com/reference/cli/docker/inspect/">Docker · docker inspect</a> · <a target="_blank" rel="noopener" href="https://docs.docker.com/engine/network/">Docker · 网络（DNS 与自定义网络）</a> · <a target="_blank" rel="noopener" href="https://docs.docker.com/engine/storage/">Docker · 存储（卷与绑定挂载）</a> · <a target="_blank" rel="noopener" href="https://docs.docker.com/engine/containers/resource_constraints/">Docker · 运行时资源限制</a> · <a target="_blank" rel="noopener" href="https://docs.docker.com/engine/logging/configure/">Docker · 日志驱动</a> · <a target="_blank" rel="noopener" href="https://docs.docker.com/reference/compose-file/services/#depends_on">Docker Compose · depends_on</a> · <a target="_blank" rel="noopener" href="https://docs.docker.com/reference/cli/docker/system/prune/">Docker · system prune</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/docker/" class="category-chain-item">docker</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/docker/" class="print-no-link">#docker</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 100 · Docker（六）：容器调试与故障排查</div>
+      <div>https://ethan-iopasd.github.io/2026/10/08/每日技术博客100-Docker容器调试与故障排查/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月8日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2087-Docker%E5%AE%B9%E5%99%A8%E5%AE%89%E5%85%A8%E4%B8%8E%E8%BF%90%E8%A1%8C%E6%97%B6/" title="每日技术博客 087 · Docker（五）：容器安全与运行时">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 087 · Docker（五）：容器安全与运行时</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

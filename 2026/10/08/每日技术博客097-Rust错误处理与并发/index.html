@@ -1,0 +1,1084 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 097 篇 Rust 系列第二篇。错误用 Result 显式建模、数据竞争用 Send&#x2F;Sync 静态排除、异步靠 tokio 跑起来 —— 以及 cargo 工程化的那套默认姿势。  📚 Rust 系列目录   章节 主题 状态    一 所有权、借用与生命周期 已发布   二 错误处理、并发与工程实践 本篇    开场：一句话结论R">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 097 · Rust（二）：错误处理、并发与工程实践">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2097-Rust%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86%E4%B8%8E%E5%B9%B6%E5%8F%91/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 097 篇 Rust 系列第二篇。错误用 Result 显式建模、数据竞争用 Send&#x2F;Sync 静态排除、异步靠 tokio 跑起来 —— 以及 cargo 工程化的那套默认姿势。  📚 Rust 系列目录   章节 主题 状态    一 所有权、借用与生命周期 已发布   二 错误处理、并发与工程实践 本篇    开场：一句话结论R">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-08T07:15:00.000Z">
+<meta property="article:modified_time" content="2026-10-08T03:20:25.386Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="rust">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 097 · Rust（二）：错误处理、并发与工程实践 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 097 · Rust（二）：错误处理、并发与工程实践"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-08 15:15" pubdate>
+          2026年10月8日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.7k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          23 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 097 · Rust（二）：错误处理、并发与工程实践</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-08 · 第 097 篇</p>
+<p>Rust 系列第二篇。错误用 <code>Result</code> 显式建模、数据竞争用 <code>Send</code>&#x2F;<code>Sync</code> 静态排除、异步靠 tokio 跑起来 —— 以及 cargo 工程化的那套默认姿势。</p>
+</blockquote>
+<h2 id="📚-Rust-系列目录"><a href="#📚-Rust-系列目录" class="headerlink" title="📚 Rust 系列目录"></a>📚 Rust 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>所有权、借用与生命周期</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>错误处理、并发与工程实践</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p>Rust 里没有异常：**能恢复的错误走 <code>Result</code>，不可恢复的走 <code>panic!</code>**；并发能不能编译过，由 <code>Send</code>&#x2F;<code>Sync</code> 在编译期裁定。</p>
+<h2 id="一、Option-Result-与-运算符"><a href="#一、Option-Result-与-运算符" class="headerlink" title="一、Option &#x2F; Result 与 ? 运算符"></a>一、<code>Option</code> &#x2F; <code>Result</code> 与 <code>?</code> 运算符</h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs rust"><span class="hljs-keyword">enum</span> <span class="hljs-title class_">Option</span>&lt;T&gt; &#123; <span class="hljs-title function_ invoke__">Some</span>(T), <span class="hljs-literal">None</span> &#125;              <span class="hljs-comment">// 可能没有值</span><br><span class="hljs-keyword">enum</span> <span class="hljs-title class_">Result</span>&lt;T, E&gt; &#123; <span class="hljs-title function_ invoke__">Ok</span>(T), <span class="hljs-title function_ invoke__">Err</span>(E) &#125;           <span class="hljs-comment">// 可能失败</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>需求</th>
+<th>用哪个</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>找不到 &#x2F; 空</td>
+<td><code>Option&lt;T&gt;</code></td>
+</tr>
+<tr>
+<td>会失败且<strong>需要知道原因</strong></td>
+<td><code>Result&lt;T, E&gt;</code></td>
+</tr>
+</tbody></table>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs rust"><span class="hljs-keyword">fn</span> <span class="hljs-title function_">read_len</span>(path: &amp;<span class="hljs-type">str</span>) <span class="hljs-punctuation">-&gt;</span> std::io::<span class="hljs-type">Result</span>&lt;<span class="hljs-type">usize</span>&gt; &#123;<br>    <span class="hljs-keyword">let</span> <span class="hljs-variable">s</span> = std::fs::<span class="hljs-title function_ invoke__">read_to_string</span>(path)?;   <span class="hljs-comment">// Err 时 return Err(From::from(e))</span><br>    <span class="hljs-title function_ invoke__">Ok</span>(s.<span class="hljs-title function_ invoke__">len</span>())<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p><code>?</code> 等价于在 <code>Err</code> 分支上做 <code>return Err(From::from(e))</code> —— 所以错误类型<strong>不同也能传播</strong>，只要实现了 <code>From</code>。</p>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th><code>?</code> 的行为</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Result&lt;T, E&gt;</code> → 函数返回 <code>Result&lt;U, E&gt;</code></td>
+<td>直接传播</td>
+</tr>
+<tr>
+<td><code>E</code> 与返回错误类型不同，但 <code>E: Into&lt;F&gt;</code></td>
+<td><strong>自动 <code>From</code> 转换</strong>后传播</td>
+</tr>
+<tr>
+<td><code>Option&lt;T&gt;</code> → 函数返回 <code>Option&lt;U&gt;</code></td>
+<td>同样可用</td>
+</tr>
+<tr>
+<td>函数返回 <code>()</code> &#x2F; 非 <code>Result</code></td>
+<td>✗ 编译错误</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>Option&lt;T&gt;</code> <strong>不是</strong> <code>null</code>：<code>Option&lt;i32&gt;</code> 和 <code>i32</code> 是不同类型，必须显式 <code>match</code> &#x2F; <code>?</code> &#x2F; <code>unwrap</code> 才能拿到内部值。<br>⚠️ <code>?</code> 在返回 <code>Option</code> 的函数里<strong>不能</strong>传播 <code>Result</code>，反之亦然 —— 类型必须对齐。</p>
+</blockquote>
+<h2 id="二、unwrap-expect-unwrap-or-ok-or"><a href="#二、unwrap-expect-unwrap-or-ok-or" class="headerlink" title="二、unwrap &#x2F; expect &#x2F; unwrap_or &#x2F; ok_or"></a>二、<code>unwrap</code> &#x2F; <code>expect</code> &#x2F; <code>unwrap_or</code> &#x2F; <code>ok_or</code></h2><table>
+<thead>
+<tr>
+<th>方法</th>
+<th>失败时</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>.unwrap()</code></td>
+<td><code>panic!</code></td>
+<td>原型 &#x2F; 测试 &#x2F; 逻辑上不可能失败</td>
+</tr>
+<tr>
+<td><code>.expect(&quot;msg&quot;)</code></td>
+<td><code>panic!</code> + 信息</td>
+<td>同上，但要留上下文</td>
+</tr>
+<tr>
+<td><code>.unwrap_or(x)</code> &#x2F; <code>.unwrap_or_else(f)</code></td>
+<td>返回默认值</td>
+<td>有合理默认值（或需要计算）</td>
+</tr>
+<tr>
+<td><code>.unwrap_or_default()</code></td>
+<td>返回 <code>T::default()</code></td>
+<td><code>T: Default</code></td>
+</tr>
+<tr>
+<td><code>.ok_or(e)</code> &#x2F; <code>.ok_or_else(f)</code></td>
+<td><code>Option</code> → <code>Result</code></td>
+<td>需要补上错误值</td>
+</tr>
+<tr>
+<td><code>.map_err(f)</code> &#x2F; <code>.and_then(f)</code></td>
+<td>转换错误 &#x2F; 链式成功路径</td>
+<td>错误映射、连续失败操作</td>
+</tr>
+</tbody></table>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs rust"><span class="hljs-keyword">let</span> <span class="hljs-variable">n</span>: <span class="hljs-type">i32</span> = <span class="hljs-string">&quot;42&quot;</span>.<span class="hljs-title function_ invoke__">parse</span>().<span class="hljs-title function_ invoke__">unwrap_or</span>(<span class="hljs-number">0</span>);<br><span class="hljs-keyword">let</span> <span class="hljs-variable">v</span> = map.<span class="hljs-title function_ invoke__">get</span>(<span class="hljs-string">&quot;k&quot;</span>).<span class="hljs-title function_ invoke__">ok_or</span>(MyError::<span class="hljs-title function_ invoke__">Missing</span>(<span class="hljs-string">&quot;k&quot;</span>))?;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>生产代码里 <code>unwrap</code> 的边界</strong>：只在「失败即 bug」处用（如已 <code>contains_key</code> 后的 <code>get</code>），并优先 <code>.expect(&quot;说明为什么不会失败&quot;)</code>。<br>⚠️ 把 <code>unwrap</code> 当错误处理 &#x3D; 把可恢复错误变成进程崩溃。库代码尤其不能这么干。</p>
+</blockquote>
+<h2 id="三、panic-vs-可恢复错误"><a href="#三、panic-vs-可恢复错误" class="headerlink" title="三、panic! vs 可恢复错误"></a>三、<code>panic!</code> vs 可恢复错误</h2><table>
+<thead>
+<tr>
+<th>情况</th>
+<th>选择</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>输入非法、文件缺失、网络失败</td>
+<td><code>Result</code></td>
+</tr>
+<tr>
+<td>逻辑不变量被破坏、越界、<code>unwrap</code> 空</td>
+<td><code>panic!</code></td>
+</tr>
+<tr>
+<td>库的公开 API</td>
+<td>**一律 <code>Result</code>**，别替调用方决定崩不崩</td>
+</tr>
+<tr>
+<td>测试 &#x2F; 示例 &#x2F; 快速原型</td>
+<td><code>panic!</code> 可接受</td>
+</tr>
+</tbody></table>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs rust"><span class="hljs-built_in">panic!</span>(<span class="hljs-string">&quot;unrecoverable: &#123;&#125;&quot;</span>, reason);<br><span class="hljs-comment">// 也支持 assert! / assert_eq! / unreachable! / todo! / unimplemented!</span><br><span class="hljs-keyword">let</span> <span class="hljs-variable">r</span> = std::panic::<span class="hljs-title function_ invoke__">catch_unwind</span>(|| &#123; <span class="hljs-built_in">panic!</span>(<span class="hljs-string">&quot;boom&quot;</span>); &#125;);   <span class="hljs-comment">// Err(...)</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>配置</th>
+<th>行为</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>panic = &quot;unwind&quot;</code>（默认）</td>
+<td>逐层展开栈，<code>Drop</code> 会执行，可被 <code>catch_unwind</code> 捕获</td>
+</tr>
+<tr>
+<td><code>panic = &quot;abort&quot;</code></td>
+<td>直接终止进程，体积更小、无展开开销，<strong>不可捕获</strong></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>catch_unwind</code> 只捕获 <strong><code>unwind</code> 模式</strong>下的 panic；<code>panic = &quot;abort&quot;</code>（<code>[profile.release]</code>）下根本没得捕。<br>⚠️ 跨 <code>catch_unwind</code> 边界的值需要 <code>UnwindSafe</code>；<code>AssertUnwindSafe</code> 是<strong>你</strong>在担保，别用来掩盖 <code>&amp;mut</code> 的破坏性。<br>⚠️ 不要把 <code>catch_unwind</code> 当异常机制做流程控制 —— 那是反模式。</p>
+</blockquote>
+<h2 id="四、自定义错误与-thiserror-anyhow"><a href="#四、自定义错误与-thiserror-anyhow" class="headerlink" title="四、自定义错误与 thiserror &#x2F; anyhow"></a>四、自定义错误与 <code>thiserror</code> &#x2F; <code>anyhow</code></h2><p><strong>分工</strong>：<strong>库用 <code>thiserror</code>（结构化、可实现 <code>Error</code>）、应用用 <code>anyhow</code>（省事、带上下文）。</strong></p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs rust"><span class="hljs-keyword">use</span> thiserror::Error;<br><span class="hljs-meta">#[derive(Error, Debug)]</span><br><span class="hljs-keyword">pub</span> <span class="hljs-keyword">enum</span> <span class="hljs-title class_">ConfigError</span> &#123;<br>    <span class="hljs-meta">#[error(<span class="hljs-string">&quot;config file missing: &#123;0&#125;&quot;</span>)]</span> <span class="hljs-title function_ invoke__">Missing</span>(<span class="hljs-type">String</span>),<br>    <span class="hljs-meta">#[error(<span class="hljs-string">&quot;parse failed&quot;</span>)]</span> <span class="hljs-title function_ invoke__">Parse</span>(<span class="hljs-meta">#[from]</span> std::io::Error),   <span class="hljs-comment">// ← 自动实现 From</span><br>&#125;<br><br><span class="hljs-keyword">use</span> anyhow::&#123;Context, <span class="hljs-type">Result</span>&#125;;<br><span class="hljs-keyword">fn</span> <span class="hljs-title function_">run</span>() <span class="hljs-punctuation">-&gt;</span> <span class="hljs-type">Result</span>&lt;()&gt; &#123;<br>    <span class="hljs-keyword">let</span> <span class="hljs-variable">text</span> = std::fs::<span class="hljs-title function_ invoke__">read_to_string</span>(<span class="hljs-string">&quot;a.toml&quot;</span>).<span class="hljs-title function_ invoke__">context</span>(<span class="hljs-string">&quot;read a.toml&quot;</span>)?;<br>    <span class="hljs-title function_ invoke__">Ok</span>(())<br>&#125;<br><span class="hljs-keyword">fn</span> <span class="hljs-title function_">main</span>() <span class="hljs-punctuation">-&gt;</span> <span class="hljs-type">Result</span>&lt;()&gt; &#123; <span class="hljs-keyword">let</span> <span class="hljs-variable">n</span>: <span class="hljs-type">i32</span> = <span class="hljs-string">&quot;42&quot;</span>.<span class="hljs-title function_ invoke__">parse</span>()?; <span class="hljs-built_in">println!</span>(<span class="hljs-string">&quot;&#123;n&#125;&quot;</span>); <span class="hljs-title function_ invoke__">Ok</span>(()) &#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th><code>thiserror</code></th>
+<th><code>anyhow</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>错误类型</td>
+<td>具名 <code>enum</code>，可 <code>match</code></td>
+<td><code>anyhow::Error</code>（类型擦除）</td>
+</tr>
+<tr>
+<td>适合</td>
+<td><strong>库</strong>（调用方要按类型处理）</td>
+<td><strong>应用 &#x2F; main &#x2F; 二进制</strong></td>
+</tr>
+<tr>
+<td>上下文</td>
+<td>需手写</td>
+<td><code>.context()</code> &#x2F; <code>.with_context()</code></td>
+</tr>
+<tr>
+<td>下游 <code>match</code></td>
+<td>✅</td>
+<td>❌</td>
+</tr>
+</tbody></table>
+<p>错误链用 <code>Error::source()</code> 逐层取：<code>let mut src = Some(&amp;err as &amp;dyn Error); while let Some(e) = src &#123; println!(&quot;&#123;e&#125;&quot;); src = e.source(); &#125;</code></p>
+<blockquote>
+<p>⚠️ <code>Box&lt;dyn Error&gt;</code> 的局限：<strong>类型被擦除</strong>，调用方无法 <code>match</code> 具体变体，也无法要求 <code>Send + Sync</code>（除非写 <code>Box&lt;dyn Error + Send + Sync&gt;</code>）。<br>⚠️ <code>anyhow::Error</code> 同样<strong>不能</strong>在库的公开 API 里出现 —— 那等于把「不可判别」传染给下游。<br>⚠️ <code>main</code> 返回 <code>Result</code> 时，<code>Err</code> 会以 <code>Debug</code> 格式打印 —— 想更友好要自己 <code>match</code> + <code>eprintln!</code> + <code>std::process::exit(1)</code>。</p>
+</blockquote>
+<h2 id="五、并发：thread-Send-Sync"><a href="#五、并发：thread-Send-Sync" class="headerlink" title="五、并发：thread &#x2F; Send &#x2F; Sync"></a>五、并发：<code>thread</code> &#x2F; <code>Send</code> &#x2F; <code>Sync</code></h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs rust"><span class="hljs-keyword">use</span> std::sync::&#123;Arc, Mutex&#125;;<br><span class="hljs-keyword">use</span> std::thread;<br><br><span class="hljs-keyword">let</span> <span class="hljs-variable">h</span> = thread::<span class="hljs-title function_ invoke__">spawn</span>(<span class="hljs-keyword">move</span> || <span class="hljs-built_in">println!</span>(<span class="hljs-string">&quot;in thread&quot;</span>));   <span class="hljs-comment">// move 闭包：拿走所有权</span><br>h.<span class="hljs-title function_ invoke__">join</span>().<span class="hljs-title function_ invoke__">unwrap</span>();                                       <span class="hljs-comment">// 等待并取返回值</span><br><br><span class="hljs-keyword">let</span> <span class="hljs-variable">data</span> = Arc::<span class="hljs-title function_ invoke__">new</span>(Mutex::<span class="hljs-title function_ invoke__">new</span>(<span class="hljs-built_in">vec!</span>[<span class="hljs-number">1</span>, <span class="hljs-number">2</span>]));<br><span class="hljs-keyword">let</span> <span class="hljs-keyword">mut </span><span class="hljs-variable">handles</span> = <span class="hljs-built_in">vec!</span>[];<br><span class="hljs-keyword">for</span> <span class="hljs-variable">i</span> <span class="hljs-keyword">in</span> <span class="hljs-number">0</span>..<span class="hljs-number">4</span> &#123;<br>    <span class="hljs-keyword">let</span> <span class="hljs-variable">d</span> = Arc::<span class="hljs-title function_ invoke__">clone</span>(&amp;data);<br>    handles.<span class="hljs-title function_ invoke__">push</span>(thread::<span class="hljs-title function_ invoke__">spawn</span>(<span class="hljs-keyword">move</span> || &#123; d.<span class="hljs-title function_ invoke__">lock</span>().<span class="hljs-title function_ invoke__">unwrap</span>().<span class="hljs-title function_ invoke__">push</span>(i); &#125;));<br>&#125;<br><span class="hljs-keyword">for</span> <span class="hljs-variable">h</span> <span class="hljs-keyword">in</span> handles &#123; h.<span class="hljs-title function_ invoke__">join</span>().<span class="hljs-title function_ invoke__">unwrap</span>(); &#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>trait</th>
+<th>含义</th>
+<th>例子</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Send</code></td>
+<td>所有权可<strong>跨线程转移</strong></td>
+<td>大多数类型；<code>Rc&lt;T&gt;</code> <strong>不是</strong></td>
+</tr>
+<tr>
+<td><code>Sync</code></td>
+<td><code>&amp;T</code> 可<strong>跨线程共享</strong></td>
+<td><code>Mutex&lt;T&gt;</code>（当 <code>T: Send</code>）是；<code>RefCell&lt;T&gt;</code> <strong>不是</strong></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>Send</code> &#x2F; <code>Sync</code> 是<strong>自动 trait</strong>：由字段自动推导，编译器据此<strong>在编译期挡住数据竞争</strong> —— 这是 Rust 并发安全的全部底气。<br>⚠️ <code>Rc</code> &#x2F; <code>RefCell</code> 不是 <code>Send</code>，跨线程直接被拒；换 <code>Arc</code> &#x2F; <code>Mutex</code> 即可。<br>⚠️ 锁的作用域越短越好：别把 <code>MutexGuard</code> 跨 <code>await</code> 持有（异步里会死锁）。</p>
+</blockquote>
+<h2 id="六、channel：std-sync-mpsc"><a href="#六、channel：std-sync-mpsc" class="headerlink" title="六、channel：std::sync::mpsc"></a>六、channel：<code>std::sync::mpsc</code></h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs rust"><span class="hljs-keyword">use</span> std::sync::mpsc;<br><span class="hljs-keyword">let</span> (tx, rx) = mpsc::<span class="hljs-title function_ invoke__">channel</span>();           <span class="hljs-comment">// 多生产者单消费者</span><br><span class="hljs-keyword">for</span> <span class="hljs-variable">i</span> <span class="hljs-keyword">in</span> <span class="hljs-number">0</span>..<span class="hljs-number">3</span> &#123;<br>    <span class="hljs-keyword">let</span> <span class="hljs-variable">tx</span> = tx.<span class="hljs-title function_ invoke__">clone</span>();                  <span class="hljs-comment">// 克隆 Sender 得到多生产者</span><br>    std::thread::<span class="hljs-title function_ invoke__">spawn</span>(<span class="hljs-keyword">move</span> || tx.<span class="hljs-title function_ invoke__">send</span>(i).<span class="hljs-title function_ invoke__">unwrap</span>());<br>&#125;<br><span class="hljs-title function_ invoke__">drop</span>(tx);                                  <span class="hljs-comment">// 关键：丢弃原 Sender</span><br><span class="hljs-keyword">for</span> <span class="hljs-variable">v</span> <span class="hljs-keyword">in</span> rx &#123; <span class="hljs-built_in">println!</span>(<span class="hljs-string">&quot;&#123;v&#125;&quot;</span>); &#125;           <span class="hljs-comment">// 所有 Sender 被 drop 后循环结束</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Sender&lt;T&gt;</code></td>
+<td>可 <code>clone</code> → 多生产者</td>
+</tr>
+<tr>
+<td><code>Receiver&lt;T&gt;</code></td>
+<td><strong>不可</strong> <code>clone</code> → 单消费者</td>
+</tr>
+<tr>
+<td><code>send</code> &#x2F; <code>recv</code></td>
+<td>接收端全丢时 <code>send</code> 返 <code>Err</code>；所有 <code>Sender</code> drop 后 <code>recv</code> 结束</td>
+</tr>
+<tr>
+<td><code>sync_channel(n)</code></td>
+<td>有界缓冲，<code>n=0</code> 为会合（rendezvous）</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>忘了 <code>drop(tx)</code> 会导致 <code>for v in rx</code> 永久阻塞</strong> —— 因为还有存活的 <code>Sender</code>。这是 channel 最经典的死锁。</p>
+</blockquote>
+<h2 id="七、异步：async-await-与-tokio"><a href="#七、异步：async-await-与-tokio" class="headerlink" title="七、异步：async &#x2F; await 与 tokio"></a>七、异步：<code>async</code> &#x2F; <code>await</code> 与 tokio</h2><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>线程</th>
+<th><code>async</code> 任务</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>调度</td>
+<td>OS 抢占式</td>
+<td>运行时协作式（<code>.await</code> 处让出）</td>
+</tr>
+<tr>
+<td>栈</td>
+<td>每线程独立栈（MB 级）</td>
+<td>无栈，状态机（KB 级）</td>
+</tr>
+<tr>
+<td>切换成本</td>
+<td>高（内核态）</td>
+<td>低（用户态）</td>
+</tr>
+<tr>
+<td>数量级 &#x2F; 适合</td>
+<td>数千 &#x2F; CPU 密集</td>
+<td>数十万 &#x2F; <strong>I&#x2F;O 密集</strong></td>
+</tr>
+</tbody></table>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><code class="hljs rust"><span class="hljs-meta">#[tokio::main]</span><br><span class="hljs-keyword">async</span> <span class="hljs-keyword">fn</span> <span class="hljs-title function_">main</span>() <span class="hljs-punctuation">-&gt;</span> anyhow::<span class="hljs-type">Result</span>&lt;()&gt; &#123;<br>    <span class="hljs-keyword">let</span> <span class="hljs-variable">h</span> = tokio::<span class="hljs-title function_ invoke__">spawn</span>(<span class="hljs-keyword">async</span> &#123; <span class="hljs-number">1</span> + <span class="hljs-number">1</span> &#125;);   <span class="hljs-comment">// 返回 JoinHandle</span><br>    <span class="hljs-keyword">let</span> <span class="hljs-variable">v</span> = h.<span class="hljs-keyword">await</span>?;                        <span class="hljs-comment">// JoinError（任务 panic / 取消）</span><br>    <span class="hljs-built_in">println!</span>(<span class="hljs-string">&quot;&#123;v&#125;&quot;</span>);<br>    <span class="hljs-title function_ invoke__">Ok</span>(())<br>&#125;<br><br>tokio::<span class="hljs-built_in">select!</span> &#123;<br>    _ = tokio::time::<span class="hljs-title function_ invoke__">sleep</span>(std::time::Duration::<span class="hljs-title function_ invoke__">from_secs</span>(<span class="hljs-number">1</span>)) =&gt; <span class="hljs-built_in">println!</span>(<span class="hljs-string">&quot;timeout&quot;</span>),<br>    v = <span class="hljs-title function_ invoke__">do_work</span>() =&gt; <span class="hljs-built_in">println!</span>(<span class="hljs-string">&quot;done: &#123;v:?&#125;&quot;</span>),<br>&#125;<br><br><span class="hljs-comment">// ✗ 阻塞整个运行时线程：std::thread::sleep(...)</span><br><span class="hljs-comment">// ✓ 丢到阻塞线程池：tokio::task::spawn_blocking(|| &#123; ... &#125;).await?</span><br></code></pre></td></tr></table></figure>
+
+<p><strong><code>Pin</code> 为什么存在（简要）</strong>：<code>async</code> 会被编译成自引用状态机，跨 <code>await</code> 保存的局部变量在内存里的地址不能变。<code>Pin&lt;P&gt;</code> 就是「<strong>保证不再移动</strong>」的类型级承诺 —— 所以你看到 <code>Box::pin</code> &#x2F; <code>Pin&lt;Box&lt;dyn Future&gt;&gt;</code>。用 <code>async</code>&#x2F;<code>await</code> 时编译器替你处理，手写 <code>unsafe</code> 的 <code>poll</code> 才需要操心。</p>
+<blockquote>
+<p>⚠️ <strong><code>async</code> 函数在被 <code>.await</code> &#x2F; <code>spawn</code> 之前不会执行任何代码</strong> —— 它返回的是一个惰性 future。<br>⚠️ <code>tokio::spawn</code> 要求 future 是 <code>Send + &#39;static</code>：跨 <code>await</code> 持有非 <code>Send</code> 值（如 <code>Rc</code>）会让它编译不过。<br>⚠️ 在 <code>async</code> 里调 <code>std::fs</code>、<code>std::net</code>、同步锁、<code>reqwest::blocking</code> 等<strong>会卡住整个运行时线程</strong>，其他任务全部饿死。用 <code>tokio::fs</code> &#x2F; <code>tokio::net</code> 或 <code>spawn_blocking</code>。<br>⚠️ **不要跨 <code>.await</code> 持有 <code>std::sync::Mutex</code> 的 <code>MutexGuard</code>**（它不是 <code>Send</code>，会编译不过）—— 换 <code>tokio::sync::Mutex</code>。</p>
+</blockquote>
+<h2 id="八、工程实践：cargo-工作区、feature-与工具链"><a href="#八、工程实践：cargo-工作区、feature-与工具链" class="headerlink" title="八、工程实践：cargo 工作区、feature 与工具链"></a>八、工程实践：cargo 工作区、feature 与工具链</h2><figure class="highlight toml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs toml"><span class="hljs-comment"># 工作区根 Cargo.toml</span><br><span class="hljs-section">[workspace]</span><br><span class="hljs-attr">members</span> = [<span class="hljs-string">&quot;core&quot;</span>, <span class="hljs-string">&quot;cli&quot;</span>, <span class="hljs-string">&quot;server&quot;</span>]<br><span class="hljs-attr">resolver</span> = <span class="hljs-string">&quot;2&quot;</span><br><br><span class="hljs-section">[dependencies]</span><br><span class="hljs-attr">serde</span> = &#123; version = <span class="hljs-string">&quot;1&quot;</span>, features = [<span class="hljs-string">&quot;derive&quot;</span>], optional = <span class="hljs-literal">true</span> &#125;<br><br><span class="hljs-section">[features]</span><br><span class="hljs-attr">default</span> = [<span class="hljs-string">&quot;json&quot;</span>]<br><span class="hljs-attr">json</span> = [<span class="hljs-string">&quot;dep:serde&quot;</span>]<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>命令</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>cargo build --features json</code> &#x2F; <code>--no-default-features</code></td>
+<td>打开 &#x2F; 关闭 feature</td>
+</tr>
+<tr>
+<td><code>cargo tree -e features</code></td>
+<td>看 feature 从哪来</td>
+</tr>
+<tr>
+<td><code>cargo fmt</code></td>
+<td>统一格式（rustfmt）</td>
+</tr>
+<tr>
+<td><code>cargo clippy -- -D warnings</code></td>
+<td>lint，CI 里当错误跑</td>
+</tr>
+<tr>
+<td><code>cargo test</code> &#x2F; <code>cargo doc --open</code></td>
+<td>测试 &#x2F; 生成 API 文档</td>
+</tr>
+<tr>
+<td><code>cargo audit</code></td>
+<td>扫依赖的已知漏洞（RustSec）</td>
+</tr>
+<tr>
+<td><code>cargo deny</code> &#x2F; <code>cargo udeps</code></td>
+<td>许可与来源约束 &#x2F; 找未使用依赖</td>
+</tr>
+</tbody></table>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs rust"><span class="hljs-comment">// 单元测试：和代码同文件</span><br><span class="hljs-meta">#[cfg(test)]</span><br><span class="hljs-keyword">mod</span> tests &#123; <span class="hljs-keyword">use</span> super::*; <span class="hljs-meta">#[test]</span> <span class="hljs-keyword">fn</span> <span class="hljs-title function_">adds</span>() &#123; <span class="hljs-built_in">assert_eq!</span>(<span class="hljs-title function_ invoke__">add</span>(<span class="hljs-number">1</span>, <span class="hljs-number">2</span>), <span class="hljs-number">3</span>); &#125; &#125;<br><br><span class="hljs-comment">// 集成测试：tests/*.rs，只能访问 crate 的公开 API</span><br><span class="hljs-keyword">use</span> mylib::add;<br><span class="hljs-meta">#[test]</span> <span class="hljs-keyword">fn</span> <span class="hljs-title function_">integration</span>() &#123; <span class="hljs-built_in">assert_eq!</span>(<span class="hljs-title function_ invoke__">add</span>(<span class="hljs-number">1</span>, <span class="hljs-number">1</span>), <span class="hljs-number">2</span>); &#125;<br><br><span class="hljs-comment">/// 文档测试：README 里的例子会真的被编译运行</span><br><span class="hljs-comment">/// ```</span><br><span class="hljs-comment">/// assert_eq!(mylib::add(1, 2), 3);</span><br><span class="hljs-comment">/// ```</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs rust"><span class="hljs-keyword">use</span> tracing::&#123;info, instrument&#125;;<br><span class="hljs-meta">#[instrument(skip(pw))]</span><br><span class="hljs-keyword">fn</span> <span class="hljs-title function_">login</span>(user: &amp;<span class="hljs-type">str</span>, pw: &amp;<span class="hljs-type">str</span>) &#123; info!(user, <span class="hljs-string">&quot;login attempt&quot;</span>); &#125;<br><span class="hljs-comment">// 初始化：tracing_subscriber::fmt().with_max_level(tracing::Level::INFO).init();</span><br><br><span class="hljs-keyword">use</span> serde::&#123;Serialize, Deserialize&#125;;<br><span class="hljs-meta">#[derive(Serialize, Deserialize)]</span><br><span class="hljs-meta">#[serde(rename_all = <span class="hljs-string">&quot;camelCase&quot;</span>)]</span><br><span class="hljs-keyword">struct</span> <span class="hljs-title class_">User</span> &#123;<br>    user_id: <span class="hljs-type">u64</span>,<br>    <span class="hljs-meta">#[serde(skip_serializing_if = <span class="hljs-string">&quot;Option::is_none&quot;</span>)]</span> nickname: <span class="hljs-type">Option</span>&lt;<span class="hljs-type">String</span>&gt;,<br>    <span class="hljs-meta">#[serde(default)]</span> active: <span class="hljs-type">bool</span>,<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>serde 属性</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>rename_all = &quot;camelCase&quot;</code></td>
+<td>字段名批量转换命名风格</td>
+</tr>
+<tr>
+<td><code>skip_serializing_if = &quot;Option::is_none&quot;</code></td>
+<td>为 <code>None</code> 时不输出该字段</td>
+</tr>
+<tr>
+<td><code>default</code></td>
+<td>反序列化缺失时用 <code>Default</code></td>
+</tr>
+<tr>
+<td><code>flatten</code> &#x2F; <code>tag = &quot;type&quot;</code></td>
+<td>内联嵌套结构 &#x2F; 枚举内部标签</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>feature 是可加的（additive）</strong>：Cargo 会把同一依赖被所有使用者打开的 feature 做<strong>并集</strong>，所以 feature <strong>不能</strong>用来做「二选一」的破坏性开关 —— 那会在多 crate 依赖里失效。<br>⚠️ 工作区里每个成员共享一份 <code>Cargo.lock</code>，但 <code>[patch]</code> &#x2F; <code>[profile]</code> 只在<strong>工作区根</strong>生效。<br>⚠️ 文档测试<strong>默认会被 <code>cargo test</code> 编译并执行</strong> —— 文档里的示例一旦过时就构建失败，这是好事。<br>⚠️ <code>tracing</code> 是<strong>结构化</strong>日志：字段以键值对携带，可跨 <code>async</code> 任务传播 span，比 <code>log</code> + <code>env_logger</code> 更适合异步。subscriber 只能 init <strong>一次</strong>，重复 <code>.init()</code> 会 panic；库代码不要自己 init。<br>⚠️ <code>serde</code> 是<strong>零拷贝优先</strong>的：<code>&amp;str</code> &#x2F; <code>&amp;[u8]</code> 字段可借用输入缓冲，但要求输入活得更久；生命周期不够时用 <code>String</code>。</p>
+</blockquote>
+<h2 id="九、与-C-Python-互操作（简介）"><a href="#九、与-C-Python-互操作（简介）" class="headerlink" title="九、与 C &#x2F; Python 互操作（简介）"></a>九、与 C &#x2F; Python 互操作（简介）</h2><table>
+<thead>
+<tr>
+<th>方向</th>
+<th>工具</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Rust → C</td>
+<td><code>extern &quot;C&quot;</code> + <code>#[no_mangle]</code></td>
+<td>注意 ABI、<code>unsafe</code></td>
+</tr>
+<tr>
+<td>C → Rust</td>
+<td><code>bindgen</code> 生成绑定</td>
+<td>头文件转 <code>extern</code></td>
+</tr>
+<tr>
+<td>Rust ↔ Python</td>
+<td><code>PyO3</code> + <code>maturin</code></td>
+<td>最成熟的方案</td>
+</tr>
+<tr>
+<td>Rust ↔ Node</td>
+<td><code>napi-rs</code></td>
+<td>——</td>
+</tr>
+<tr>
+<td>类型自动桥接</td>
+<td><code>cbindgen</code> &#x2F; <code>cxx</code></td>
+<td>减少手写胶水</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ FFI 边界**全是 <code>unsafe</code>**：跨语言传的指针、生命周期、字符串编码（<code>CString</code> vs <code>&amp;str</code>）都要自己保证。边界越窄越好。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 生产代码里到处 <code>unwrap</code>，把可恢复错误变成进程崩溃</li>
+<li><input disabled="" type="checkbox"> 库的公开 API 返回 <code>panic!</code> 而不是 <code>Result</code></li>
+<li><input disabled="" type="checkbox"> 忘了 <code>?</code> 会做 <code>From</code> 转换，手写一堆 <code>map_err</code></li>
+<li><input disabled="" type="checkbox"> <code>Box&lt;dyn Error&gt;</code> 用在库 API，类型被擦除，调用方没法 <code>match</code></li>
+<li><input disabled="" type="checkbox"> <code>thiserror</code> &#x2F; <code>anyhow</code> 用反（库用 anyhow、应用用 thiserror）</li>
+<li><input disabled="" type="checkbox"> <code>catch_unwind</code> 配 <code>panic = &quot;abort&quot;</code>，根本捕不到</li>
+<li><input disabled="" type="checkbox"> <code>panic = &quot;abort&quot;</code> 后才发现需要 <code>Drop</code> 展开清理</li>
+<li><input disabled="" type="checkbox"> <code>mpsc</code> 忘了 <code>drop(tx)</code>，<code>for v in rx</code> 永久阻塞</li>
+<li><input disabled="" type="checkbox"> 跨线程用 <code>Rc</code> &#x2F; <code>RefCell</code>，或该用 <code>Mutex</code> 却只用了 <code>Arc</code></li>
+<li><input disabled="" type="checkbox"> 在 <code>async</code> 里调同步阻塞 API（<code>std::fs</code> &#x2F; <code>reqwest::blocking</code>）</li>
+<li><input disabled="" type="checkbox"> 跨 <code>.await</code> 持有 <code>std::sync::MutexGuard</code>（非 <code>Send</code>，编译不过）</li>
+<li><input disabled="" type="checkbox"> 跨 <code>.await</code> 持有非 <code>Send</code> 类型，导致 <code>spawn</code> 编译失败</li>
+<li><input disabled="" type="checkbox"> 以为 <code>async fn</code> 会立即执行（其实要 <code>.await</code> &#x2F; <code>spawn</code>）</li>
+<li><input disabled="" type="checkbox"> feature 拿来做二选一的破坏性开关（Cargo feature 是可加并集）</li>
+<li><input disabled="" type="checkbox"> <code>tracing_subscriber</code> 多次 <code>.init()</code> panic</li>
+<li><input disabled="" type="checkbox"> 库代码里自己 init 全局 subscriber</li>
+<li><input disabled="" type="checkbox"> 忘了文档测试会被 <code>cargo test</code> 真的跑，示例写死过时 API</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://doc.rust-lang.org/book/ch09-00-error-handling.html">The Rust Book · 错误处理</a> · <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/book/ch16-00-concurrency.html">The Rust Book · 无畏并发</a> · <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/result/enum.Result.html">std · <code>Result</code></a> · <a target="_blank" rel="noopener" href="https://tokio.rs/tokio/tutorial">tokio · 教程</a> · <a target="_blank" rel="noopener" href="https://docs.rs/tokio/latest/tokio/task/fn.spawn_blocking.html">tokio · <code>spawn_blocking</code></a> · <a target="_blank" rel="noopener" href="https://docs.rs/thiserror/">thiserror</a> · <a target="_blank" rel="noopener" href="https://docs.rs/anyhow/">anyhow</a> · <a target="_blank" rel="noopener" href="https://serde.rs/attributes.html">serde · 属性</a> · <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/cargo/reference/features.html">The Cargo Book · Features</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/rust/" class="category-chain-item">rust</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/rust/" class="print-no-link">#rust</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 097 · Rust（二）：错误处理、并发与工程实践</div>
+      <div>https://ethan-iopasd.github.io/2026/10/08/每日技术博客097-Rust错误处理与并发/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月8日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2096-Rust%E6%89%80%E6%9C%89%E6%9D%83%E4%B8%8E%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/" title="每日技术博客 096 · Rust（一）：所有权、借用与生命周期">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 096 · Rust（一）：所有权、借用与生命周期</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

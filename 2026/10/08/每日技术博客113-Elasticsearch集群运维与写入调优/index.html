@@ -1,0 +1,1120 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 113 篇 ES 集群怎么不写挂：角色分离、分片与水位线、bulk 导入调优、_cat 排查清单与 ILM。  📚 Elasticsearch 系列目录   章节 主题 状态    一 倒排索引与查询 DSL 已发布   二 聚合、分页与性能优化 已发布   三 相关性打分与 Mapping 设计 已发布   四 集群运维与写入调优 本篇">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 113 · Elasticsearch（四）：集群运维与写入调优">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2113-Elasticsearch%E9%9B%86%E7%BE%A4%E8%BF%90%E7%BB%B4%E4%B8%8E%E5%86%99%E5%85%A5%E8%B0%83%E4%BC%98/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 113 篇 ES 集群怎么不写挂：角色分离、分片与水位线、bulk 导入调优、_cat 排查清单与 ILM。  📚 Elasticsearch 系列目录   章节 主题 状态    一 倒排索引与查询 DSL 已发布   二 聚合、分页与性能优化 已发布   三 相关性打分与 Mapping 设计 已发布   四 集群运维与写入调优 本篇">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-08T08:35:00.000Z">
+<meta property="article:modified_time" content="2026-10-08T03:20:52.536Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="elasticsearch">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 113 · Elasticsearch（四）：集群运维与写入调优 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 113 · Elasticsearch（四）：集群运维与写入调优"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-08 16:35" pubdate>
+          2026年10月8日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.9k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          25 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 113 · Elasticsearch（四）：集群运维与写入调优</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-08 · 第 113 篇</p>
+<p>ES 集群怎么不写挂：角色分离、分片与水位线、bulk 导入调优、<code>_cat</code> 排查清单与 ILM。</p>
+</blockquote>
+<h2 id="📚-Elasticsearch-系列目录"><a href="#📚-Elasticsearch-系列目录" class="headerlink" title="📚 Elasticsearch 系列目录"></a>📚 Elasticsearch 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>倒排索引与查询 DSL</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>聚合、分页与性能优化</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>相关性打分与 Mapping 设计</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td>集群运维与写入调优</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>ES 写入慢和集群不健康，八成出在两处：分片设计不合理（太多或太大），以及堆内存与磁盘水位没留余量。</strong></p>
+<h2 id="一、节点角色：master-与-data-必须分离"><a href="#一、节点角色：master-与-data-必须分离" class="headerlink" title="一、节点角色：master 与 data 必须分离"></a>一、节点角色：master 与 data 必须分离</h2><table>
+<thead>
+<tr>
+<th>角色</th>
+<th>职责</th>
+<th>是否存数据</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>master</code></td>
+<td>维护集群状态、分片分配、索引元数据</td>
+<td>否（专用 master 不存数据）</td>
+</tr>
+<tr>
+<td><code>data</code></td>
+<td>存分片、执行查询与写入</td>
+<td>是</td>
+</tr>
+<tr>
+<td><code>ingest</code></td>
+<td>写入前预处理（pipeline）</td>
+<td>否</td>
+</tr>
+<tr>
+<td><code>coordinating</code></td>
+<td>只做请求分发与结果合并</td>
+<td>否</td>
+</tr>
+<tr>
+<td><code>ml</code></td>
+<td>机器学习任务</td>
+<td>否</td>
+</tr>
+</tbody></table>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-comment"># 专用 master（3 台，构成 quorum）</span><br><span class="hljs-attr">node.roles:</span> [ <span class="hljs-string">master</span> ]<br><br><span class="hljs-comment"># 数据节点</span><br><span class="hljs-attr">node.roles:</span> [ <span class="hljs-string">data</span>, <span class="hljs-string">ingest</span> ]<br><br><span class="hljs-comment"># 协调节点</span><br><span class="hljs-attr">node.roles:</span> [ ]<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>生产必须分离 master 与 data 角色</strong>。混布时数据节点的 GC 停顿会拖慢 master 选举与集群状态更新，<strong>极端情况下整个集群失去响应</strong>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>master 选举需要「半数以上有投票权节点」存活</strong>。3 个专用 master 只能容忍 1 台故障；2 个 master 是危险配置（无法形成多数）。<strong>要么 3，要么 5，不要 2。</strong></p>
+</blockquote>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-comment"># 首次启动引导（仅全新集群首次启动时设置）</span><br><span class="hljs-attr">cluster.initial_master_nodes:</span> [<span class="hljs-string">&quot;master-1&quot;</span>, <span class="hljs-string">&quot;master-2&quot;</span>, <span class="hljs-string">&quot;master-3&quot;</span>]<br><span class="hljs-attr">discovery.seed_hosts:</span> [<span class="hljs-string">&quot;master-1&quot;</span>, <span class="hljs-string">&quot;master-2&quot;</span>, <span class="hljs-string">&quot;master-3&quot;</span>]<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>cluster.initial_master_nodes</code> 只在「全新集群第一次启动」时用</strong>。集群成形后必须移除，否则重启时可能触发脑裂式的重新选举。<strong>7.x 起 <code>minimum_master_nodes</code> 已被自动仲裁取代，不要再手动配。</strong></p>
+</blockquote>
+<h2 id="二、分片设计：不是越多越好"><a href="#二、分片设计：不是越多越好" class="headerlink" title="二、分片设计：不是越多越好"></a>二、分片设计：不是越多越好</h2><table>
+<thead>
+<tr>
+<th>规则</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>主分片数创建后不可改</strong></td>
+<td>只能 <code>reindex</code> 或 <code>_split</code> &#x2F; <code>_shrink</code></td>
+</tr>
+<tr>
+<td>副本数可动态改</td>
+<td><code>PUT index/_settings</code> 随时调</td>
+</tr>
+<tr>
+<td>单分片大小</td>
+<td>经验 <strong>10~50GB</strong></td>
+</tr>
+<tr>
+<td>每个分片都是独立 Lucene 索引</td>
+<td>有文件句柄 &#x2F; 堆内存 &#x2F; 集群状态开销</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>分片过多是 ES 最常见的架构错误</strong>。每个分片都要占用堆内存、文件句柄，并写进集群状态。<strong>几千个小分片会让 master 更新集群状态变慢，最终拖垮整个集群。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>「20 分片&#x2F;GB 堆」是旧经验，已在 ES 8.3 废弃</strong>。不要再拿它当硬指标。<strong>当前做法是按分片大小（10~50GB）和数据量反推分片数，而不是按堆内存反推。</strong></p>
+</blockquote>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs json"><span class="hljs-comment">// 按总量 500GB、目标分片 40GB 估：主分片数 ≈ 500 / 40 ≈ 12（取整）</span><br>PUT /logs<span class="hljs-number">-000001</span><br><span class="hljs-punctuation">&#123;</span><br>  <span class="hljs-attr">&quot;settings&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span><br>    <span class="hljs-attr">&quot;number_of_shards&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">12</span><span class="hljs-punctuation">,</span><br>    <span class="hljs-attr">&quot;number_of_replicas&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1</span><span class="hljs-punctuation">,</span><br>    <span class="hljs-attr">&quot;index.routing.allocation.total_shards_per_node&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><br>  <span class="hljs-punctuation">&#125;</span><br><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>number_of_shards</code> 写错就没法改</strong>。上线前一定要算准；事后只能 <code>reindex</code>（成本极高）或用 <code>_split</code>（分片翻倍）&#x2F; <code>_shrink</code>（分片减半）。<strong>建索引前先估算数据量与增长。</strong></p>
+</blockquote>
+<h3 id="分片分配与再平衡"><a href="#分片分配与再平衡" class="headerlink" title="分片分配与再平衡"></a>分片分配与再平衡</h3><figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs json"><span class="hljs-comment">// 查询某个分片为什么没分配</span><br>GET /_cluster/allocation/explain<br><span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;index&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;logs-000001&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;shard&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">0</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;primary&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">false</span></span> <span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>分配失败常见原因</th>
+<th>排查</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>磁盘水位超限</td>
+<td>见第三节</td>
+</tr>
+<tr>
+<td>节点属性不匹配</td>
+<td><code>index.routing.allocation.*</code></td>
+</tr>
+<tr>
+<td>版本 &#x2F; 插件不一致</td>
+<td>节点日志</td>
+</tr>
+<tr>
+<td>分片数超过节点上限</td>
+<td><code>total_shards_per_node</code></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>分片卡在 <code>UNASSIGNED</code> 时，先看 <code>_cluster/allocation/explain</code>，别急着 <code>_cluster/reroute</code> 强制分配</strong>。强制分配一个没有副本的分片（<code>allow_primary</code>）可能造成数据丢失。</p>
+</blockquote>
+<h2 id="三、磁盘水位线：写入失败的经典原因"><a href="#三、磁盘水位线：写入失败的经典原因" class="headerlink" title="三、磁盘水位线：写入失败的经典原因"></a>三、磁盘水位线：写入失败的经典原因</h2><table>
+<thead>
+<tr>
+<th>水位</th>
+<th>默认值</th>
+<th>行为</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>low</code></td>
+<td><strong>85%</strong></td>
+<td>停止向该节点分配<strong>副本</strong>分片</td>
+</tr>
+<tr>
+<td><code>high</code></td>
+<td><strong>90%</strong></td>
+<td>开始把分片<strong>迁移</strong>离开该节点</td>
+</tr>
+<tr>
+<td><code>flood_stage</code></td>
+<td><strong>95%</strong></td>
+<td><strong>把该节点上的所有索引设为只读</strong></td>
+</tr>
+</tbody></table>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs json">PUT _cluster/settings<br><span class="hljs-punctuation">&#123;</span><br>  <span class="hljs-attr">&quot;persistent&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span><br>    <span class="hljs-attr">&quot;cluster.routing.allocation.disk.watermark.low&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;85%&quot;</span><span class="hljs-punctuation">,</span><br>    <span class="hljs-attr">&quot;cluster.routing.allocation.disk.watermark.high&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;90%&quot;</span><span class="hljs-punctuation">,</span><br>    <span class="hljs-attr">&quot;cluster.routing.allocation.disk.watermark.flood_stage&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;95%&quot;</span><br>  <span class="hljs-punctuation">&#125;</span><br><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>flood_stage</code> 触发后写入直接报错</strong>，错误形如 <code>disk usage exceeded flood-stage watermark, index has read-only-allow-delete block</code>（HTTP 429）。<strong>这是线上「突然写不进去」的头号原因。</strong></p>
+</blockquote>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs json"><span class="hljs-comment">// 临时解封：先删数据 / 扩盘，再解除只读</span><br>PUT */_settings?expand_wildcards=all<br><span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;index.blocks.read_only_allow_delete&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">null</span></span> <span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>解除只读只是临时止血</strong>。磁盘没腾出来，几分钟后又会触发。<strong>根因是容量不足，必须扩盘或删索引 &#x2F; 缩短 ILM 保留期。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>副本会成倍占用磁盘</strong>。1 副本 &#x3D; 双倍存储。<strong>设副本前先算清磁盘预算，别让副本把水位线顶穿。</strong></p>
+</blockquote>
+<h2 id="四、写入调优"><a href="#四、写入调优" class="headerlink" title="四、写入调优"></a>四、写入调优</h2><table>
+<thead>
+<tr>
+<th>手段</th>
+<th>效果</th>
+<th>注意</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>refresh_interval: 30s</code> 或 <code>-1</code></td>
+<td><strong>批量导入首选</strong>，减少 segment 生成</td>
+<td>导入完改回 <code>1s</code></td>
+</tr>
+<tr>
+<td><code>_bulk</code> 批量 5~15MB</td>
+<td>摊薄网络与开销</td>
+<td>太大反而增加失败重试成本</td>
+</tr>
+<tr>
+<td>多线程并发 bulk</td>
+<td>提升吞吐</td>
+<td>别超过节点处理能力</td>
+</tr>
+<tr>
+<td>副本设为 0，导入后改回</td>
+<td>减少写入放大</td>
+<td>导入期间无冗余</td>
+</tr>
+<tr>
+<td><code>translog.durability: async</code></td>
+<td>减少 fsync</td>
+<td><strong>有丢数据风险</strong></td>
+</tr>
+</tbody></table>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs json">PUT /my-index/_settings<br><span class="hljs-punctuation">&#123;</span><br>  <span class="hljs-attr">&quot;index&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span><br>    <span class="hljs-attr">&quot;refresh_interval&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;-1&quot;</span><span class="hljs-punctuation">,</span><br>    <span class="hljs-attr">&quot;number_of_replicas&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">0</span><span class="hljs-punctuation">,</span><br>    <span class="hljs-attr">&quot;translog.durability&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;async&quot;</span><span class="hljs-punctuation">,</span><br>    <span class="hljs-attr">&quot;translog.sync_interval&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;30s&quot;</span><br>  <span class="hljs-punctuation">&#125;</span><br><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>refresh_interval</code> 默认 1s，每次 refresh 都生成一个新 segment</strong>。批量导入时高频 refresh 会制造大量小 segment，拖慢写入并加重后续合并。<strong>导入期间设 <code>-1</code>（关闭自动 refresh），导入后再 <code>_forcemerge</code> + 改回。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>translog.durability: async</code> 会丢数据</strong>。异步刷 translog 时，节点崩溃可能丢失最近未刷盘的操作。<strong>只在可重建的导入场景用，不要在生产写入路径常开。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>index.translog.flush_threshold_size</code> 控制 translog 何时触发 flush</strong>（默认 512MB）。调大能减少 flush 次数，但<strong>崩溃后恢复要重放的 translog 更多，恢复更慢</strong>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>导入时把副本设为 0 是标准操作，但别忘了改回来</strong>。忘了改，集群就没有冗余，一台节点挂了就可能丢分片。</p>
+</blockquote>
+<h2 id="五、refresh-flush-forcemerge：三者别混"><a href="#五、refresh-flush-forcemerge：三者别混" class="headerlink" title="五、refresh &#x2F; flush &#x2F; forcemerge：三者别混"></a>五、refresh &#x2F; flush &#x2F; forcemerge：三者别混</h2><table>
+<thead>
+<tr>
+<th>操作</th>
+<th>作用</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>_refresh</code></td>
+<td>把内存 buffer 写入新 segment，<strong>使其可被搜索</strong></td>
+<td>频繁 refresh 产生大量小 segment</td>
+</tr>
+<tr>
+<td><code>_flush</code></td>
+<td>把 translog 落盘并清空</td>
+<td>触发 Lucene commit</td>
+</tr>
+<tr>
+<td><code>_forcemerge</code></td>
+<td>把多个 segment 合并成更少、更大的</td>
+<td><strong>消耗大量 IO 和 CPU</strong></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>_forcemerge</code> 只对「只读索引」做</strong>。对仍在写入的索引 forcemerge 会不断重新合并，浪费 IO 且永远合不完。<strong>典型场景：冷数据 &#x2F; 已关闭的历史索引。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>_forcemerge</code> 会打满磁盘 IO</strong>。在大索引上执行可能导致查询变慢、写入受阻。<strong>低峰期执行，且一次只处理一个索引。</strong></p>
+</blockquote>
+<h2 id="六、查询性能"><a href="#六、查询性能" class="headerlink" title="六、查询性能"></a>六、查询性能</h2><table>
+<thead>
+<tr>
+<th>手段</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>filter context</td>
+<td>结果可缓存，比 query context 快</td>
+</tr>
+<tr>
+<td><code>_routing</code> 自定义路由</td>
+<td>减少分片扇出（查询只打相关分片）</td>
+</tr>
+<tr>
+<td><code>preference</code></td>
+<td>指定分片 &#x2F; 节点偏好</td>
+</tr>
+<tr>
+<td><code>track_total_hits</code></td>
+<td>默认不再精确统计总数，<strong>精确统计代价高</strong></td>
+</tr>
+<tr>
+<td><code>batched_reduce_size</code></td>
+<td>协调节点分批归并，降低内存峰值</td>
+</tr>
+</tbody></table>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs json">GET /logs-*/_search<br><span class="hljs-punctuation">&#123;</span><br>  <span class="hljs-attr">&quot;track_total_hits&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">false</span></span><span class="hljs-punctuation">,</span><br>  <span class="hljs-attr">&quot;size&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">20</span><span class="hljs-punctuation">,</span><br>  <span class="hljs-attr">&quot;query&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span><br>    <span class="hljs-attr">&quot;bool&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span><br>      <span class="hljs-attr">&quot;filter&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;term&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;status&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;ok&quot;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">]</span>   <span class="hljs-comment">// filter context，可缓存</span><br>    <span class="hljs-punctuation">&#125;</span><br>  <span class="hljs-punctuation">&#125;</span><br><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>track_total_hits: true</code> 在大结果集上开销显著</strong>。只需要「有没有结果」或近似总数时，别开精确统计。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>自定义 <code>_routing</code> 能减少扇出，但会带来数据倾斜</strong>。路由值分布不均时，某些分片会明显偏大。<strong>用之前先确认路由键的分布。</strong></p>
+</blockquote>
+<h2 id="七、-cat-排查清单与堆内存"><a href="#七、-cat-排查清单与堆内存" class="headerlink" title="七、_cat 排查清单与堆内存"></a>七、<code>_cat</code> 排查清单与堆内存</h2><table>
+<thead>
+<tr>
+<th>API</th>
+<th>看什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>_cat/health?v</code></td>
+<td>集群状态、节点数、分片数、<code>unassigned</code></td>
+</tr>
+<tr>
+<td><code>_cat/indices?v</code></td>
+<td>索引大小、文档数、健康色、分片数</td>
+</tr>
+<tr>
+<td><code>_cat/shards?v</code></td>
+<td>分片分布、<code>UNASSIGNED</code> 原因</td>
+</tr>
+<tr>
+<td><code>_cat/allocation?v</code></td>
+<td>各节点磁盘使用与分片数</td>
+</tr>
+<tr>
+<td><code>_cat/thread_pool?v</code></td>
+<td><code>queue</code> &#x2F; <code>rejected</code>（<strong>过载信号</strong>）</td>
+</tr>
+<tr>
+<td><code>_cat/nodes?v</code></td>
+<td>CPU &#x2F; 堆 &#x2F; 负载</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash">curl -s <span class="hljs-string">&#x27;localhost:9200/_cat/thread_pool?v&amp;h=node_name,name,active,queue,rejected&#x27;</span><br>curl -s <span class="hljs-string">&#x27;localhost:9200/_cat/allocation?v&#x27;</span><br>curl -s <span class="hljs-string">&#x27;localhost:9200/_cat/shards?v&amp;h=index,shard,prirep,state,node,unassigned.reason&#x27;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>rejected</code> 上升就是过载</strong>。线程池队列满了会直接拒绝请求，客户端拿到 <code>es_rejected_execution_exception</code>。<strong>这是写入 &#x2F; 查询过载最直接的证据，比 CPU 指标更早。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>堆不要超过 31GB</strong>。超过后 JVM 关闭<strong>压缩指针（compressed oops）</strong>，对象引用从 4 字节变 8 字节，<strong>实际可用内存反而下降</strong>。<strong>宁可多开节点，不要开 64GB 堆的单节点。</strong></p>
+</blockquote>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-comment"># jvm.options</span><br><span class="hljs-string">-Xms31g</span><br><span class="hljs-string">-Xmx31g</span>            <span class="hljs-comment"># Xms = Xmx，避免运行时扩堆造成停顿</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>Xms</code> 必须等于 <code>Xmx</code><strong>。堆动态扩缩会引起 GC 停顿。</strong>固定堆大小是 ES 的基本要求。</strong></p>
+</blockquote>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-comment"># elasticsearch.yml</span><br><span class="hljs-attr">bootstrap.memory_lock:</span> <span class="hljs-literal">true</span>   <span class="hljs-comment"># 锁定堆内存，防止被换出到 swap</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>必须禁用 swap</strong>。堆被换到磁盘会让 GC 停顿从毫秒级飙到秒级。**<code>bootstrap.memory_lock: true</code> + 系统层面关 swap，两个都要做。**</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>indices.memory.index_buffer_size</code> 默认占堆的 10%<strong>，是所有分片共享的索引缓冲区。</strong>堆太小 → 索引 buffer 太小 → 写入更容易触发 refresh。</strong></p>
+</blockquote>
+<h2 id="八、监控、快照、滚动重启与-ILM"><a href="#八、监控、快照、滚动重启与-ILM" class="headerlink" title="八、监控、快照、滚动重启与 ILM"></a>八、监控、快照、滚动重启与 ILM</h2><table>
+<thead>
+<tr>
+<th>监控项</th>
+<th>预警信号</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>JVM GC 时间</td>
+<td>老年代 GC 频繁 &#x2F; 停顿长</td>
+</tr>
+<tr>
+<td><code>thread_pool.rejected</code></td>
+<td>持续 &gt; 0 &#x3D; 过载</td>
+</tr>
+<tr>
+<td>segment 数量</td>
+<td>持续增长 &#x3D; 合并跟不上</td>
+</tr>
+<tr>
+<td>search &#x2F; indexing 延迟</td>
+<td>突增</td>
+</tr>
+<tr>
+<td>磁盘水位</td>
+<td>接近 <code>high</code></td>
+</tr>
+<tr>
+<td><code>unassigned_shards</code></td>
+<td>持续 &gt; 0</td>
+</tr>
+</tbody></table>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs json"><span class="hljs-comment">// 快照仓库（S3 / HDFS）</span><br>PUT _snapshot/my_backup<br><span class="hljs-punctuation">&#123;</span><br>  <span class="hljs-attr">&quot;type&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;s3&quot;</span><span class="hljs-punctuation">,</span><br>  <span class="hljs-attr">&quot;settings&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;bucket&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;es-backup&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;base_path&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;snapshots&quot;</span> <span class="hljs-punctuation">&#125;</span><br><span class="hljs-punctuation">&#125;</span><br><br><span class="hljs-comment">// 创建快照（增量）</span><br>PUT _snapshot/my_backup/snap<span class="hljs-number">-2026</span><span class="hljs-number">-10</span><span class="hljs-number">-08</span>?wait_for_completion=<span class="hljs-literal"><span class="hljs-keyword">false</span></span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>快照是增量的</strong>。第一次全量，后续只备份新增 segment，所以<strong>便宜且快，别省着不做</strong>。<strong>没有快照 &#x3D; 没有后悔药。</strong></p>
+</blockquote>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs json"><span class="hljs-comment">// SLM 策略：每天 02:00 快照，保留 7 天</span><br>PUT _slm/policy/daily<br><span class="hljs-punctuation">&#123;</span><br>  <span class="hljs-attr">&quot;schedule&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;0 0 2 * * ?&quot;</span><span class="hljs-punctuation">,</span><br>  <span class="hljs-attr">&quot;name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;&lt;daily-&#123;now/d&#125;&gt;&quot;</span><span class="hljs-punctuation">,</span><br>  <span class="hljs-attr">&quot;repository&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;my_backup&quot;</span><span class="hljs-punctuation">,</span><br>  <span class="hljs-attr">&quot;config&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;indices&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-string">&quot;*&quot;</span><span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;include_global_state&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">false</span></span> <span class="hljs-punctuation">&#125;</span><span class="hljs-punctuation">,</span><br>  <span class="hljs-attr">&quot;retention&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;expire_after&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;7d&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;min_count&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">3</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;max_count&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">30</span> <span class="hljs-punctuation">&#125;</span><br><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<p><strong>滚动重启</strong>：禁用分片分配 → 重启一个节点 → 等分片恢复 → 再重启下一个。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs json">PUT _cluster/settings <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;persistent&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;cluster.routing.allocation.enable&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;primaries&quot;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span><br><span class="hljs-comment">// 重启节点 …</span><br>PUT _cluster/settings <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;persistent&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;cluster.routing.allocation.enable&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">null</span></span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>滚动重启前必须禁用分片分配</strong>，否则每次重启都会触发大规模分片迁移，产生巨量 IO。<strong>重启完再恢复分配。</strong></p>
+</blockquote>
+<p><strong>ILM（索引生命周期）</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>动作</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>hot</code></td>
+<td>活跃写入，<code>rollover</code> 滚动新索引</td>
+</tr>
+<tr>
+<td><code>warm</code></td>
+<td>只读，<code>forcemerge</code>、减少副本</td>
+</tr>
+<tr>
+<td><code>cold</code></td>
+<td>极少访问，迁移到廉价节点</td>
+</tr>
+<tr>
+<td><code>delete</code></td>
+<td>到期删除</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>不用 ILM 的日志集群，磁盘一定会爆</strong>。靠人工删索引不可持续。<strong>ILM 是日志类场景的必备配置，不是可选优化。</strong></p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> master 与 data 混布，数据节点 GC 拖垮集群状态更新</li>
+<li><input disabled="" type="checkbox"> 只配 2 个专用 master，无法形成多数派</li>
+<li><input disabled="" type="checkbox"> 集群成形后没移除 <code>cluster.initial_master_nodes</code></li>
+<li><input disabled="" type="checkbox"> 主分片数设错，事后只能 reindex</li>
+<li><input disabled="" type="checkbox"> 分片数量过多（几千个小分片），拖慢 master</li>
+<li><input disabled="" type="checkbox"> 还拿已废弃的「20 分片&#x2F;GB 堆」当硬指标</li>
+<li><input disabled="" type="checkbox"> 磁盘顶到 <code>flood_stage</code>（95%），索引被设为只读写入失败</li>
+<li><input disabled="" type="checkbox"> 解除只读后不腾磁盘，几分钟后再次触发</li>
+<li><input disabled="" type="checkbox"> 批量导入时没把 <code>refresh_interval</code> 设为 <code>-1</code></li>
+<li><input disabled="" type="checkbox"> 导入时把副本设 0 却忘了改回来</li>
+<li><input disabled="" type="checkbox"> 生产写入路径常开 <code>translog.durability: async</code></li>
+<li><input disabled="" type="checkbox"> 对仍在写入的索引执行 <code>_forcemerge</code></li>
+<li><input disabled="" type="checkbox"> 高峰时段对超大索引 <code>_forcemerge</code>，打满 IO</li>
+<li><input disabled="" type="checkbox"> <code>track_total_hits: true</code> 用于大结果集，开销失控</li>
+<li><input disabled="" type="checkbox"> 用 <code>_routing</code> 后路由键分布不均，造成分片倾斜</li>
+<li><input disabled="" type="checkbox"> 忽略 <code>thread_pool.rejected</code>，直到客户端大量报错</li>
+<li><input disabled="" type="checkbox"> 堆开到 31GB 以上，压缩指针失效</li>
+<li><input disabled="" type="checkbox"> <code>Xms</code> 与 <code>Xmx</code> 不等，堆动态扩缩引起停顿</li>
+<li><input disabled="" type="checkbox"> 没禁用 swap，堆被换出导致 GC 停顿暴涨</li>
+<li><input disabled="" type="checkbox"> 不配快照，误删索引后无法恢复</li>
+<li><input disabled="" type="checkbox"> 滚动重启前不禁用分片分配，触发大规模迁移</li>
+<li><input disabled="" type="checkbox"> 日志集群不用 ILM，靠人工删索引直到磁盘爆</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://www.elastic.co/docs/deploy-manage/production-guidance/optimize-performance/size-shards">Elasticsearch · Size your shards</a> · <a target="_blank" rel="noopener" href="https://www.elastic.co/docs/troubleshoot/elasticsearch/fix-watermark-errors">Elasticsearch · Fix watermark errors</a> · <a target="_blank" rel="noopener" href="https://www.elastic.co/docs/reference/elasticsearch/configuration-reference/cluster-level-shard-allocation-routing-settings">Elasticsearch · Cluster-level shard allocation settings</a> · <a target="_blank" rel="noopener" href="https://www.elastic.co/docs/deploy-manage/production-guidance/optimize-performance/indexing-speed">Elasticsearch · Indexing speed</a> · <a target="_blank" rel="noopener" href="https://www.elastic.co/docs/reference/elasticsearch/configuration-reference/indexing-buffer-settings">Elasticsearch · Indexing buffer settings</a> · <a target="_blank" rel="noopener" href="https://www.elastic.co/docs/manage-data/lifecycle/index-lifecycle-management">Elasticsearch · Index lifecycle management</a> · <a target="_blank" rel="noopener" href="https://www.elastic.co/docs/deploy-manage/tools/snapshot-and-restore">Elasticsearch · Snapshot and restore</a> · <a target="_blank" rel="noopener" href="https://www.elastic.co/docs/api/doc/elasticsearch/operation/operation-cat">Elasticsearch · CAT APIs</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/elasticsearch/" class="category-chain-item">elasticsearch</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/elasticsearch/" class="print-no-link">#elasticsearch</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 113 · Elasticsearch（四）：集群运维与写入调优</div>
+      <div>https://ethan-iopasd.github.io/2026/10/08/每日技术博客113-Elasticsearch集群运维与写入调优/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月8日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2062-Elasticsearch%E7%9B%B8%E5%85%B3%E6%80%A7%E6%89%93%E5%88%86%E4%B8%8EMapping/" title="每日技术博客 062 · Elasticsearch（三）：相关性打分与 Mapping 设计">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 062 · Elasticsearch（三）：相关性打分与 Mapping 设计</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

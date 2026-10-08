@@ -1,0 +1,1169 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 094 篇 GraphQL 系列第一篇。单端点、强类型 schema、查询文档与分页规范，以及 schema 演进必须守的向后兼容规则。  📚 GraphQL 系列目录   章节 主题 状态    一 Schema、类型系统与查询 本篇    开场：一句话结论GraphQL 把「返回哪些字段」的决定权从服务端交给客户端，代价是 HTTP 缓存、错">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 094 · GraphQL（一）：Schema、类型系统与查询">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2094-GraphQL%E7%B1%BB%E5%9E%8B%E7%B3%BB%E7%BB%9F%E4%B8%8E%E6%9F%A5%E8%AF%A2/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 094 篇 GraphQL 系列第一篇。单端点、强类型 schema、查询文档与分页规范，以及 schema 演进必须守的向后兼容规则。  📚 GraphQL 系列目录   章节 主题 状态    一 Schema、类型系统与查询 本篇    开场：一句话结论GraphQL 把「返回哪些字段」的决定权从服务端交给客户端，代价是 HTTP 缓存、错">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-08T07:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-08T03:18:48.865Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="graphql">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 094 · GraphQL（一）：Schema、类型系统与查询 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 094 · GraphQL（一）：Schema、类型系统与查询"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-08 15:00" pubdate>
+          2026年10月8日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.5k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          21 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 094 · GraphQL（一）：Schema、类型系统与查询</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-08 · 第 094 篇</p>
+<p>GraphQL 系列第一篇。单端点、强类型 schema、查询文档与分页规范，以及 schema 演进必须守的向后兼容规则。</p>
+</blockquote>
+<h2 id="📚-GraphQL-系列目录"><a href="#📚-GraphQL-系列目录" class="headerlink" title="📚 GraphQL 系列目录"></a>📚 GraphQL 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>Schema、类型系统与查询</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p>GraphQL 把「返回哪些字段」的决定权从服务端交给客户端，代价是 HTTP 缓存、错误语义、限流这些 REST 里免费的东西，全部要自己补回来。</p>
+<h2 id="一、GraphQL-与-REST-的本质差异"><a href="#一、GraphQL-与-REST-的本质差异" class="headerlink" title="一、GraphQL 与 REST 的本质差异"></a>一、GraphQL 与 REST 的本质差异</h2><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>REST</th>
+<th>GraphQL</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>端点</td>
+<td>每个资源一个 URL</td>
+<td>通常单一端点 <code>POST /graphql</code></td>
+</tr>
+<tr>
+<td>返回形状</td>
+<td>服务端决定</td>
+<td>客户端在查询里声明字段</td>
+</tr>
+<tr>
+<td>类型</td>
+<td>OpenAPI 可选、易漂移</td>
+<td>schema 是运行时可校验的契约</td>
+</tr>
+<tr>
+<td>取多个资源</td>
+<td>多次请求或专门写聚合接口</td>
+<td>一次请求，一张图遍历</td>
+</tr>
+<tr>
+<td>过取 &#x2F; 欠取</td>
+<td>常见</td>
+<td>由客户端字段集决定</td>
+</tr>
+<tr>
+<td>HTTP 缓存</td>
+<td>天然可用（GET + URL）</td>
+<td>难，全是 POST 到同一 URL</td>
+</tr>
+<tr>
+<td>错误表达</td>
+<td>HTTP 状态码</td>
+<td>200 + <code>errors</code> 数组（允许部分成功）</td>
+</tr>
+<tr>
+<td>文件上传</td>
+<td><code>multipart/form-data</code></td>
+<td>核心规范不含，靠社区扩展</td>
+</tr>
+<tr>
+<td>限流</td>
+<td>按端点 &#x2F; 请求数</td>
+<td>要按查询复杂度</td>
+</tr>
+<tr>
+<td>版本管理</td>
+<td>URL 版本 <code>/v2</code></td>
+<td>无版本，靠字段演进</td>
+</tr>
+</tbody></table>
+<figure class="highlight graphql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs graphql"><span class="hljs-comment"># REST：三次往返</span><br>GET /users/<span class="hljs-number">1</span><br>GET /users/<span class="hljs-number">1</span>/orders<br>GET /orders/<span class="hljs-number">9</span>/items<br><br><span class="hljs-comment"># GraphQL：一次往返</span><br><span class="hljs-keyword">query</span> <span class="hljs-punctuation">&#123;</span> user<span class="hljs-punctuation">(</span><span class="hljs-symbol">id</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1&quot;</span><span class="hljs-punctuation">)</span> <span class="hljs-punctuation">&#123;</span> name orders <span class="hljs-punctuation">&#123;</span> id items <span class="hljs-punctuation">&#123;</span> sku qty <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 「一次请求拿多资源」是把网络往返换成了服务端的一次图遍历。<strong>解析成本上升是必然的</strong>，别把它当免费优化。</p>
+</blockquote>
+<h3 id="什么时候不该用-GraphQL"><a href="#什么时候不该用-GraphQL" class="headerlink" title="什么时候不该用 GraphQL"></a>什么时候不该用 GraphQL</h3><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>为什么不合适</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>简单 CRUD 后端</td>
+<td>schema &#x2F; resolver &#x2F; 工具链的引入成本换不回收益</td>
+</tr>
+<tr>
+<td>文件上传下载</td>
+<td>核心规范不含 multipart，扩展生态不统一</td>
+</tr>
+<tr>
+<td>强依赖 CDN 缓存</td>
+<td>单 URL + POST，CDN 无法按 URL 缓存</td>
+</tr>
+<tr>
+<td>固定报表接口</td>
+<td>客户端不控制字段集，灵活性用不上</td>
+</tr>
+<tr>
+<td>纯内部服务间调用</td>
+<td>gRPC 的契约与性能更合适</td>
+</tr>
+</tbody></table>
+<p>GraphQL 的价值只在三件事同时成立时出现：<strong>多客户端、字段需求差异大、数据是图状的</strong>。</p>
+<blockquote>
+<p>⚠️ 反过来说，只有一个前端、接口形状固定，上 GraphQL 是纯负债。</p>
+</blockquote>
+<h2 id="二、类型系统：六种定义方式"><a href="#二、类型系统：六种定义方式" class="headerlink" title="二、类型系统：六种定义方式"></a>二、类型系统：六种定义方式</h2><table>
+<thead>
+<tr>
+<th>关键字</th>
+<th>用途</th>
+<th>能否作为参数 &#x2F; 输入</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>scalar</code></td>
+<td>叶子值</td>
+<td>可以（内置 5 个 + 自定义）</td>
+</tr>
+<tr>
+<td><code>enum</code></td>
+<td>枚举值</td>
+<td>可以</td>
+</tr>
+<tr>
+<td><code>type</code></td>
+<td>对象，字段可有 resolver</td>
+<td><strong>不可以</strong></td>
+</tr>
+<tr>
+<td><code>interface</code></td>
+<td>抽象，一组共享字段</td>
+<td>不可以</td>
+</tr>
+<tr>
+<td><code>union</code></td>
+<td>抽象，一组对象类型的并集</td>
+<td>不可以</td>
+</tr>
+<tr>
+<td><code>input</code></td>
+<td>输入对象</td>
+<td>只能作输入</td>
+</tr>
+</tbody></table>
+<p>内置标量只有五个：<code>Int</code>、<code>Float</code>、<code>String</code>、<code>Boolean</code>、<code>ID</code>。</p>
+<figure class="highlight graphql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs graphql"><span class="hljs-keyword">scalar</span> DateTime <span class="hljs-meta">@specifiedBy</span><span class="hljs-punctuation">(</span><span class="hljs-symbol">url</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;https://scalars.graphql.org/andimarek/date-time&quot;</span><span class="hljs-punctuation">)</span><br><span class="hljs-keyword">enum</span> Role <span class="hljs-punctuation">&#123;</span> ADMIN EDITOR VIEWER <span class="hljs-punctuation">&#125;</span><br><span class="hljs-keyword">interface</span> Node <span class="hljs-punctuation">&#123;</span> <span class="hljs-symbol">id</span><span class="hljs-punctuation">:</span> ID<span class="hljs-punctuation">!</span> <span class="hljs-punctuation">&#125;</span><br><span class="hljs-keyword">type</span> User implements Node <span class="hljs-punctuation">&#123;</span><br>  <span class="hljs-symbol">id</span><span class="hljs-punctuation">:</span> ID<span class="hljs-punctuation">!</span>  <span class="hljs-symbol">name</span><span class="hljs-punctuation">:</span> String<span class="hljs-punctuation">!</span>  <span class="hljs-symbol">role</span><span class="hljs-punctuation">:</span> Role<span class="hljs-punctuation">!</span>  <span class="hljs-symbol">createdAt</span><span class="hljs-punctuation">:</span> DateTime<span class="hljs-punctuation">!</span>  <span class="hljs-symbol">friends</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span>User<span class="hljs-punctuation">!</span><span class="hljs-punctuation">]</span><span class="hljs-punctuation">!</span><br><span class="hljs-punctuation">&#125;</span><br><span class="hljs-keyword">type</span> Post implements Node <span class="hljs-punctuation">&#123;</span> <span class="hljs-symbol">id</span><span class="hljs-punctuation">:</span> ID<span class="hljs-punctuation">!</span>  <span class="hljs-symbol">title</span><span class="hljs-punctuation">:</span> String<span class="hljs-punctuation">!</span> <span class="hljs-punctuation">&#125;</span><br><span class="hljs-keyword">union</span> SearchResult <span class="hljs-punctuation">=</span> User <span class="hljs-punctuation">|</span> Post<br><span class="hljs-keyword">input</span> CreateUserInput <span class="hljs-punctuation">&#123;</span> <span class="hljs-symbol">name</span><span class="hljs-punctuation">:</span> String<span class="hljs-punctuation">!</span>  <span class="hljs-symbol">role</span><span class="hljs-punctuation">:</span> Role <span class="hljs-punctuation">=</span> VIEWER <span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<h3 id="为什么-type-与-input-必须分开"><a href="#为什么-type-与-input-必须分开" class="headerlink" title="为什么 type 与 input 必须分开"></a>为什么 <code>type</code> 与 <code>input</code> 必须分开</h3><table>
+<thead>
+<tr>
+<th>原因</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>语义不同</td>
+<td>输出可带 resolver、可循环引用；输入必须是可序列化的纯数据</td>
+</tr>
+<tr>
+<td>能力不同</td>
+<td>输出字段可以有参数、可以返回 <code>interface</code> &#x2F; <code>union</code>；输入不行</td>
+</tr>
+<tr>
+<td>命名空间独立</td>
+<td>允许 <code>User</code>（输出）与 <code>UserInput</code>（输入）同名共存</td>
+</tr>
+<tr>
+<td>校验方向不同</td>
+<td>输入需要「必填 &#x2F; 默认值 &#x2F; 未知字段拒绝」，输出不需要</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 试图复用同一个类型既当输出又当输入，遇到「输出字段带参数」时会立刻崩掉 —— 规范层面就不允许。</p>
+</blockquote>
+<h3 id="与列表的组合语义"><a href="#与列表的组合语义" class="headerlink" title="! 与列表的组合语义"></a><code>!</code> 与列表的组合语义</h3><table>
+<thead>
+<tr>
+<th>写法</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>String</code></td>
+<td>可为 null</td>
+</tr>
+<tr>
+<td><code>String!</code></td>
+<td>不可为 null，返回 null 即触发错误</td>
+</tr>
+<tr>
+<td><code>[String]</code></td>
+<td>列表本身可为 null，元素可为 null</td>
+</tr>
+<tr>
+<td><code>[String!]</code></td>
+<td>列表可为 null，元素不可为 null</td>
+</tr>
+<tr>
+<td><code>[String]!</code></td>
+<td>列表不可为 null，元素可为 null</td>
+</tr>
+<tr>
+<td><code>[String!]!</code></td>
+<td>列表与元素都不可为 null</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>[T!]!</code> 最常用也最危险：<strong>任何一个元素为 null 都会让整个字段报错</strong>。分页接口里一个坏数据就能让整页失败。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 自定义标量只声明「形状」，<strong>不会自动序列化</strong>。必须在代码里实现 <code>serialize</code> &#x2F; <code>parseValue</code> &#x2F; <code>parseLiteral</code>，否则它等价于 <code>JSON</code> —— 客户端拿不到任何类型保证。</p>
+</blockquote>
+<h2 id="三、三种操作与-SDL"><a href="#三、三种操作与-SDL" class="headerlink" title="三、三种操作与 SDL"></a>三、三种操作与 SDL</h2><figure class="highlight graphql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs graphql"><span class="hljs-keyword">schema</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-symbol">query</span><span class="hljs-punctuation">:</span> <span class="hljs-keyword">Query</span>  <span class="hljs-symbol">mutation</span><span class="hljs-punctuation">:</span> <span class="hljs-keyword">Mutation</span>  <span class="hljs-symbol">subscription</span><span class="hljs-punctuation">:</span> <span class="hljs-keyword">Subscription</span> <span class="hljs-punctuation">&#125;</span><br><br><span class="hljs-keyword">type</span> <span class="hljs-keyword">Query</span> <span class="hljs-punctuation">&#123;</span><br>  user<span class="hljs-punctuation">(</span><span class="hljs-symbol">id</span><span class="hljs-punctuation">:</span> ID<span class="hljs-punctuation">!</span><span class="hljs-punctuation">)</span><span class="hljs-punctuation">:</span> User<br>  search<span class="hljs-punctuation">(</span><span class="hljs-symbol">kw</span><span class="hljs-punctuation">:</span> String<span class="hljs-punctuation">!</span><span class="hljs-punctuation">)</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span>SearchResult<span class="hljs-punctuation">!</span><span class="hljs-punctuation">]</span><span class="hljs-punctuation">!</span><br><span class="hljs-punctuation">&#125;</span><br><span class="hljs-keyword">type</span> <span class="hljs-keyword">Mutation</span> <span class="hljs-punctuation">&#123;</span> createUser<span class="hljs-punctuation">(</span><span class="hljs-symbol">input</span><span class="hljs-punctuation">:</span> CreateUserInput<span class="hljs-punctuation">!</span><span class="hljs-punctuation">)</span><span class="hljs-punctuation">:</span> User<span class="hljs-punctuation">!</span> <span class="hljs-punctuation">&#125;</span><br><span class="hljs-keyword">type</span> <span class="hljs-keyword">Subscription</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-symbol">userCreated</span><span class="hljs-punctuation">:</span> User<span class="hljs-punctuation">!</span> <span class="hljs-punctuation">&#125;</span><br><br>extend <span class="hljs-keyword">type</span> User <span class="hljs-punctuation">&#123;</span> <span class="hljs-symbol">posts</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span>Post<span class="hljs-punctuation">!</span><span class="hljs-punctuation">]</span><span class="hljs-punctuation">!</span> <span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>操作</th>
+<th>语义</th>
+<th>字段执行顺序</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>query</code></td>
+<td>读</td>
+<td>可并行</td>
+</tr>
+<tr>
+<td><code>mutation</code></td>
+<td>写</td>
+<td><strong>串行</strong>（同层字段按出现顺序执行）</td>
+</tr>
+<tr>
+<td><code>subscription</code></td>
+<td>长连接推送</td>
+<td>每次事件触发一次执行</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>mutation</code> 的串行保证<strong>只作用于顶层字段</strong>。嵌套层级仍可并行 —— 别以为整个 mutation 是事务。</p>
+</blockquote>
+<p>SDL 与 code-first 是两种流派：</p>
+<table>
+<thead>
+<tr>
+<th>流派</th>
+<th>写法</th>
+<th>优点</th>
+<th>缺点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>SDL first</td>
+<td>先写 <code>.graphql</code>，再挂 resolver</td>
+<td>schema 是纯文本，可 review、可生成客户端</td>
+<td>与代码双份定义，易漂移</td>
+</tr>
+<tr>
+<td>Code first</td>
+<td>用语言构造 schema</td>
+<td>单一来源，复用类型系统</td>
+<td>schema 需生成才能看</td>
+</tr>
+</tbody></table>
+<h2 id="四、字段参数、变量与别名"><a href="#四、字段参数、变量与别名" class="headerlink" title="四、字段参数、变量与别名"></a>四、字段参数、变量与别名</h2><figure class="highlight graphql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs graphql"><span class="hljs-keyword">type</span> <span class="hljs-keyword">Query</span> <span class="hljs-punctuation">&#123;</span><br>  posts<span class="hljs-punctuation">(</span><span class="hljs-symbol">first</span><span class="hljs-punctuation">:</span> Int <span class="hljs-punctuation">=</span> <span class="hljs-number">10</span>, <span class="hljs-symbol">after</span><span class="hljs-punctuation">:</span> String,<br>        <span class="hljs-symbol">tag</span><span class="hljs-punctuation">:</span> String <span class="hljs-meta">@deprecated</span><span class="hljs-punctuation">(</span><span class="hljs-symbol">reason</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;改用 filter 参数&quot;</span><span class="hljs-punctuation">)</span><span class="hljs-punctuation">)</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span>Post<span class="hljs-punctuation">!</span><span class="hljs-punctuation">]</span><span class="hljs-punctuation">!</span><br><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<h3 id="变量：生产环境唯一正确的传参方式"><a href="#变量：生产环境唯一正确的传参方式" class="headerlink" title="变量：生产环境唯一正确的传参方式"></a>变量：生产环境唯一正确的传参方式</h3><figure class="highlight graphql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs graphql"><span class="hljs-comment"># 查询文档（静态，可缓存、可白名单）</span><br><span class="hljs-keyword">query</span> GetUser<span class="hljs-punctuation">(</span><span class="hljs-variable">$id</span>: ID<span class="hljs-punctuation">!</span>, <span class="hljs-variable">$withPosts</span>: Boolean<span class="hljs-punctuation">!</span><span class="hljs-punctuation">)</span> <span class="hljs-punctuation">&#123;</span><br>  user<span class="hljs-punctuation">(</span><span class="hljs-symbol">id</span><span class="hljs-punctuation">:</span> <span class="hljs-variable">$id</span>) <span class="hljs-punctuation">&#123;</span><br>    name<br>    posts <span class="hljs-meta">@include</span><span class="hljs-punctuation">(</span><span class="hljs-symbol">if</span><span class="hljs-punctuation">:</span> <span class="hljs-variable">$withPosts</span>) <span class="hljs-punctuation">&#123;</span> title <span class="hljs-punctuation">&#125;</span><br>  <span class="hljs-punctuation">&#125;</span><br><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs json"><span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;withPosts&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">true</span></span> <span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>方式</th>
+<th>注入风险</th>
+<th>能否复用查询缓存</th>
+<th>能否用 APQ</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>字符串拼接</td>
+<td>高（同 SQL 注入）</td>
+<td>否，每次文本都不同</td>
+<td>否</td>
+</tr>
+<tr>
+<td>变量</td>
+<td>低，值不参与解析</td>
+<td>是</td>
+<td>是</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 变量声明类型必须与用法<strong>精确匹配</strong>。<code>$id: ID!</code> 传 <code>null</code> 是请求错误；<code>$id: ID</code> 传给 <code>ID!</code> 参数是校验错误 —— 两者报错位置不同，排查时别混。</p>
+</blockquote>
+<h3 id="别名：同一字段取多次"><a href="#别名：同一字段取多次" class="headerlink" title="别名：同一字段取多次"></a>别名：同一字段取多次</h3><figure class="highlight graphql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs graphql"><span class="hljs-keyword">query</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-symbol">me</span><span class="hljs-punctuation">:</span> user<span class="hljs-punctuation">(</span><span class="hljs-symbol">id</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1&quot;</span><span class="hljs-punctuation">)</span> <span class="hljs-punctuation">&#123;</span> name <span class="hljs-punctuation">&#125;</span>  <span class="hljs-symbol">boss</span><span class="hljs-punctuation">:</span> user<span class="hljs-punctuation">(</span><span class="hljs-symbol">id</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;2&quot;</span><span class="hljs-punctuation">)</span> <span class="hljs-punctuation">&#123;</span> name <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 没有别名时，同一字段用不同参数取多次会在响应里<strong>互相覆盖</strong>，只保留最后一个。需要多份就必须起别名。</p>
+</blockquote>
+<h2 id="五、片段与指令"><a href="#五、片段与指令" class="headerlink" title="五、片段与指令"></a>五、片段与指令</h2><figure class="highlight graphql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs graphql"><span class="hljs-keyword">fragment</span> UserFields <span class="hljs-keyword">on</span> User <span class="hljs-punctuation">&#123;</span> id name <span class="hljs-punctuation">&#125;</span><br><br><span class="hljs-keyword">query</span> <span class="hljs-punctuation">&#123;</span><br>  user<span class="hljs-punctuation">(</span><span class="hljs-symbol">id</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1&quot;</span><span class="hljs-punctuation">)</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-punctuation">...</span>UserFields <span class="hljs-punctuation">&#125;</span><br>  friends <span class="hljs-punctuation">&#123;</span> <span class="hljs-punctuation">...</span>UserFields <span class="hljs-punctuation">&#125;</span><br><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<p>内联片段用在 <code>interface</code> &#x2F; <code>union</code> 上，靠 <code>__typename</code> 区分具体类型：</p>
+<figure class="highlight graphql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs graphql"><span class="hljs-keyword">query</span> <span class="hljs-punctuation">&#123;</span><br>  search<span class="hljs-punctuation">(</span><span class="hljs-symbol">kw</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;gql&quot;</span><span class="hljs-punctuation">)</span> <span class="hljs-punctuation">&#123;</span><br>    __typename<br>    <span class="hljs-punctuation">...</span> <span class="hljs-keyword">on</span> User <span class="hljs-punctuation">&#123;</span> name <span class="hljs-punctuation">&#125;</span><br>    <span class="hljs-punctuation">...</span> <span class="hljs-keyword">on</span> Post <span class="hljs-punctuation">&#123;</span> title <span class="hljs-punctuation">&#125;</span><br>  <span class="hljs-punctuation">&#125;</span><br><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>指令</th>
+<th>作用</th>
+<th>位置</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>@include(if: Boolean!)</code></td>
+<td><code>false</code> 时<strong>不</strong>包含该字段</td>
+<td>字段 &#x2F; 片段展开</td>
+</tr>
+<tr>
+<td><code>@skip(if: Boolean!)</code></td>
+<td><code>true</code> 时<strong>跳过</strong>该字段</td>
+<td>字段 &#x2F; 片段展开</td>
+</tr>
+<tr>
+<td><code>@deprecated(reason:)</code></td>
+<td>标记废弃，自省可见</td>
+<td>字段定义 &#x2F; 枚举值</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>@include</code> &#x2F; <code>@skip</code> 的 <code>if</code> 必须是变量或字面量，<strong>不能依赖其他字段的结果</strong> —— 条件在查询执行前就已求值。</p>
+</blockquote>
+<h2 id="六、分页：offset-与-cursor"><a href="#六、分页：offset-与-cursor" class="headerlink" title="六、分页：offset 与 cursor"></a>六、分页：offset 与 cursor</h2><table>
+<thead>
+<tr>
+<th>方案</th>
+<th>参数</th>
+<th>优点</th>
+<th>缺点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>offset &#x2F; limit</td>
+<td><code>skip</code> &#x2F; <code>take</code></td>
+<td>实现简单，可跳页</td>
+<td>数据变动时错位、深翻页慢</td>
+</tr>
+<tr>
+<td>cursor</td>
+<td><code>after</code> &#x2F; <code>first</code></td>
+<td>稳定、可无限滚动</td>
+<td>不能跳页、需要有序唯一键</td>
+</tr>
+</tbody></table>
+<p>Relay 的 Cursor Connections 规范把分页固化成固定形状：</p>
+<figure class="highlight graphql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs graphql"><span class="hljs-keyword">type</span> PageInfo <span class="hljs-punctuation">&#123;</span><br>  <span class="hljs-symbol">hasNextPage</span><span class="hljs-punctuation">:</span> Boolean<span class="hljs-punctuation">!</span>  <span class="hljs-symbol">hasPreviousPage</span><span class="hljs-punctuation">:</span> Boolean<span class="hljs-punctuation">!</span><br>  <span class="hljs-symbol">startCursor</span><span class="hljs-punctuation">:</span> String  <span class="hljs-symbol">endCursor</span><span class="hljs-punctuation">:</span> String<br><span class="hljs-punctuation">&#125;</span><br><span class="hljs-keyword">type</span> UserEdge <span class="hljs-punctuation">&#123;</span> <span class="hljs-symbol">node</span><span class="hljs-punctuation">:</span> User<span class="hljs-punctuation">!</span>  <span class="hljs-symbol">cursor</span><span class="hljs-punctuation">:</span> String<span class="hljs-punctuation">!</span> <span class="hljs-punctuation">&#125;</span><br><span class="hljs-keyword">type</span> UserConnection <span class="hljs-punctuation">&#123;</span><br>  <span class="hljs-symbol">edges</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span>UserEdge<span class="hljs-punctuation">!</span><span class="hljs-punctuation">]</span><span class="hljs-punctuation">!</span>  <span class="hljs-symbol">pageInfo</span><span class="hljs-punctuation">:</span> PageInfo<span class="hljs-punctuation">!</span>  <span class="hljs-symbol">totalCount</span><span class="hljs-punctuation">:</span> Int<span class="hljs-punctuation">!</span><br><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight graphql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs graphql"><span class="hljs-keyword">query</span> <span class="hljs-punctuation">&#123;</span><br>  users<span class="hljs-punctuation">(</span><span class="hljs-symbol">first</span><span class="hljs-punctuation">:</span> <span class="hljs-number">10</span>, <span class="hljs-symbol">after</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;Y3Vyc29yOjEw&quot;</span><span class="hljs-punctuation">)</span> <span class="hljs-punctuation">&#123;</span><br>    edges <span class="hljs-punctuation">&#123;</span> node <span class="hljs-punctuation">&#123;</span> id name <span class="hljs-punctuation">&#125;</span> cursor <span class="hljs-punctuation">&#125;</span><br>    pageInfo <span class="hljs-punctuation">&#123;</span> hasNextPage endCursor <span class="hljs-punctuation">&#125;</span><br>  <span class="hljs-punctuation">&#125;</span><br><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 规范明确不建议<strong>同时</strong>使用 <code>first</code> 与 <code>last</code>，也不建议 <code>after</code> 与 <code>before</code> 混用 —— 语义冲突时行为未定义，各实现可能不同。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>cursor</code> 必须编码「稳定排序键」，通常是 <code>(created_at, id)</code> 这类组合。只用 <code>id</code> 排序会在时间相近的数据上出现跳过或重复。</p>
+</blockquote>
+<h2 id="七、自省、调试与-schema-演进"><a href="#七、自省、调试与-schema-演进" class="headerlink" title="七、自省、调试与 schema 演进"></a>七、自省、调试与 schema 演进</h2><figure class="highlight graphql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs graphql"><span class="hljs-punctuation">&#123;</span> __schema <span class="hljs-punctuation">&#123;</span> types <span class="hljs-punctuation">&#123;</span> name kind <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span><br><span class="hljs-punctuation">&#123;</span> __type<span class="hljs-punctuation">(</span><span class="hljs-symbol">name</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;User&quot;</span><span class="hljs-punctuation">)</span> <span class="hljs-punctuation">&#123;</span> fields <span class="hljs-punctuation">&#123;</span> name <span class="hljs-keyword">type</span> <span class="hljs-punctuation">&#123;</span> kind name <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>工具</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>GraphiQL</td>
+<td>内置文档浏览器，随 schema 实时更新</td>
+</tr>
+<tr>
+<td>Apollo Sandbox</td>
+<td>在线 IDE，支持变量、header、历史</td>
+</tr>
+<tr>
+<td><code>schema.graphql</code></td>
+<td>从代码导出，作为契约进版本库</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 生产环境<strong>通常关闭内省</strong>（<code>introspection: false</code>），否则等于把完整数据模型送给攻击者。但注意：关掉内省也会让部分客户端代码生成器失效，需要走 CI 导出 schema 的流程。</p>
+</blockquote>
+<h3 id="向后兼容规则"><a href="#向后兼容规则" class="headerlink" title="向后兼容规则"></a>向后兼容规则</h3><table>
+<thead>
+<tr>
+<th>变更</th>
+<th>安全性</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>新增字段</td>
+<td>✅ 安全（对旧客户端不可见）</td>
+</tr>
+<tr>
+<td>新增可空参数</td>
+<td>✅ 安全</td>
+</tr>
+<tr>
+<td>新增必填参数</td>
+<td>❌ 破坏旧客户端</td>
+</tr>
+<tr>
+<td>把字段改成非空</td>
+<td>❌ 破坏（可能返回 null）</td>
+</tr>
+<tr>
+<td>把字段改成可空</td>
+<td>⚠️ 对客户端类型生成有破坏</td>
+</tr>
+<tr>
+<td>改字段类型</td>
+<td>❌ 破坏</td>
+</tr>
+<tr>
+<td>删字段 &#x2F; 删枚举值</td>
+<td>❌ 破坏，必须先进 <code>@deprecated</code></td>
+</tr>
+<tr>
+<td>改枚举值拼写</td>
+<td>❌ 破坏</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 演进顺序固定：<strong>先加 <code>@deprecated</code> → 观察调用量归零 → 再删</strong>。直接删字段在 GraphQL 里没有版本号兜底，客户端会当场报校验错误。</p>
+</blockquote>
+<h3 id="与-OpenAPI-对照"><a href="#与-OpenAPI-对照" class="headerlink" title="与 OpenAPI 对照"></a>与 OpenAPI 对照</h3><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>OpenAPI</th>
+<th>GraphQL SDL</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>描述对象</td>
+<td>端点 + 方法</td>
+<td>类型 + 字段</td>
+</tr>
+<tr>
+<td>强制程度</td>
+<td>文档，运行时通常不校验</td>
+<td>运行时强制</td>
+</tr>
+<tr>
+<td>客户端生成</td>
+<td>生成 SDK</td>
+<td>生成类型 &#x2F; hook</td>
+</tr>
+<tr>
+<td>演进</td>
+<td>URL 版本</td>
+<td>字段级 deprecated</td>
+</tr>
+<tr>
+<td>内省</td>
+<td>无标准机制</td>
+<td><code>__schema</code> 内建</td>
+</tr>
+</tbody></table>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 把 GraphQL 用在单一客户端、固定接口形状的项目上</li>
+<li><input disabled="" type="checkbox"> 以为「一次请求多资源」没有成本，忽略服务端解析开销</li>
+<li><input disabled="" type="checkbox"> 用字符串拼接生成查询文本，埋下注入风险</li>
+<li><input disabled="" type="checkbox"> 复用 <code>type</code> 当输入类型，遇到带参数字段直接崩</li>
+<li><input disabled="" type="checkbox"> 到处用 <code>[T!]!</code>，一个 null 元素让整个字段报错</li>
+<li><input disabled="" type="checkbox"> 自定义 scalar 只声明不实现 <code>serialize</code> &#x2F; <code>parseValue</code> &#x2F; <code>parseLiteral</code></li>
+<li><input disabled="" type="checkbox"> 以为 mutation 整体是事务，其实只有顶层字段串行</li>
+<li><input disabled="" type="checkbox"> 变量声明类型与用法不匹配（<code>ID</code> 传给 <code>ID!</code>）</li>
+<li><input disabled="" type="checkbox"> 同一字段取多份却不起别名，响应互相覆盖</li>
+<li><input disabled="" type="checkbox"> 把 <code>@include</code> &#x2F; <code>@skip</code> 的条件写成依赖字段结果</li>
+<li><input disabled="" type="checkbox"> 分页同时用 <code>first</code> 与 <code>last</code>，行为未定义</li>
+<li><input disabled="" type="checkbox"> cursor 只编码 <code>id</code>，时间相近的数据出现跳过或重复</li>
+<li><input disabled="" type="checkbox"> 生产环境开着内省，把完整数据模型暴露出去</li>
+<li><input disabled="" type="checkbox"> 直接删字段或枚举值，旧客户端立刻校验失败</li>
+<li><input disabled="" type="checkbox"> 把字段改成非空却不检查历史数据里的 null</li>
+<li><input disabled="" type="checkbox"> 以为 GraphQL 自带 HTTP 缓存，忽略全是 POST 的事实</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://graphql.org/learn/">GraphQL 官方规范 · 学习篇</a> · <a target="_blank" rel="noopener" href="https://graphql.org/learn/pagination/">GraphQL 官方规范 · 分页</a> · <a target="_blank" rel="noopener" href="https://relay.dev/graphql/connections.htm">Relay · Cursor Connections Specification</a> · <a target="_blank" rel="noopener" href="https://http-spec.graphql.org/draft/">GraphQL over HTTP · Draft Spec</a> · <a target="_blank" rel="noopener" href="https://spec.graphql.org/draft/#sec-Type-System.Directives">GraphQL 规范 · 类型系统与指令</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/graphql/" class="category-chain-item">graphql</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/graphql/" class="print-no-link">#graphql</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 094 · GraphQL（一）：Schema、类型系统与查询</div>
+      <div>https://ethan-iopasd.github.io/2026/10/08/每日技术博客094-GraphQL类型系统与查询/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月8日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2095-GraphQL%E8%A7%A3%E6%9E%90%E5%99%A8%E4%B8%8EN+1%E9%97%AE%E9%A2%98/" title="每日技术博客 095 · GraphQL（二）：解析器、N+1 与生产实践">
+                        <span class="hidden-mobile">每日技术博客 095 · GraphQL（二）：解析器、N+1 与生产实践</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

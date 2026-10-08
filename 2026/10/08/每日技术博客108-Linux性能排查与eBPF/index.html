@@ -1,0 +1,1011 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 108 篇 USE 方法 + 逐层下钻的命令清单，以及 eBPF &#x2F; bpftrace 这套「内核态可编程」的观测手段。  📚 Linux 系列目录   章节 主题 状态    一 权限、进程与磁盘排查 已发布   二 systemd、日志与定时任务 已发布   三 grep &#x2F; sed &#x2F; awk 三剑客 已发布">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 108 · Linux（四）：性能排查与 eBPF 工具">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2108-Linux%E6%80%A7%E8%83%BD%E6%8E%92%E6%9F%A5%E4%B8%8EeBPF/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 108 篇 USE 方法 + 逐层下钻的命令清单，以及 eBPF &#x2F; bpftrace 这套「内核态可编程」的观测手段。  📚 Linux 系列目录   章节 主题 状态    一 权限、进程与磁盘排查 已发布   二 systemd、日志与定时任务 已发布   三 grep &#x2F; sed &#x2F; awk 三剑客 已发布">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-08T08:10:00.000Z">
+<meta property="article:modified_time" content="2026-10-08T03:19:05.714Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="linux">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 108 · Linux（四）：性能排查与 eBPF 工具 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 108 · Linux（四）：性能排查与 eBPF 工具"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-08 16:10" pubdate>
+          2026年10月8日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.4k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          20 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 108 · Linux（四）：性能排查与 eBPF 工具</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-08 · 第 108 篇</p>
+<p>USE 方法 + 逐层下钻的命令清单，以及 eBPF &#x2F; bpftrace 这套「内核态可编程」的观测手段。</p>
+</blockquote>
+<h2 id="📚-Linux-系列目录"><a href="#📚-Linux-系列目录" class="headerlink" title="📚 Linux 系列目录"></a>📚 Linux 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>权限、进程与磁盘排查</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>systemd、日志与定时任务</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>grep &#x2F; sed &#x2F; awk 三剑客</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td>性能排查与 eBPF 工具</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p>排查顺序永远是 <strong>先量化再猜测</strong>：先用 <code>uptime</code> &#x2F; <code>vmstat</code> 定瓶颈类型，再按 CPU → 内存 → 磁盘 → 网络 → 应用逐层下钻，<strong>别一上来就重启</strong>。</p>
+<h2 id="一、USE-方法与黄金顺序"><a href="#一、USE-方法与黄金顺序" class="headerlink" title="一、USE 方法与黄金顺序"></a>一、USE 方法与黄金顺序</h2><p>USE 方法：对<strong>每一种资源</strong>检查三个指标。</p>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>含义</th>
+<th>典型命令</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Utilization</td>
+<td>使用率（多忙）</td>
+<td><code>mpstat</code> &#x2F; <code>iostat -x</code> &#x2F; <code>sar -n DEV</code></td>
+</tr>
+<tr>
+<td>Saturation</td>
+<td>饱和度（排队多长）</td>
+<td><code>vmstat</code> 的 <code>r</code> &#x2F; <code>b</code>、<code>iostat</code> 的 <code>aqu-sz</code></td>
+</tr>
+<tr>
+<td>Errors</td>
+<td>错误计数</td>
+<td><code>ip -s link</code>、<code>dmesg</code>、<code>/proc/net/*</code></td>
+</tr>
+</tbody></table>
+<p>逐层下钻顺序：<strong>CPU → 内存 → 磁盘 IO → 网络 → 应用</strong>，每一层先看全局再看单进程。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-built_in">uptime</span>                 <span class="hljs-comment"># load average 三值（1/5/15 分钟）</span><br>vmstat 1               <span class="hljs-comment"># 一眼看 CPU、内存、IO、上下文切换</span><br>mpstat -P ALL 1        <span class="hljs-comment"># 单核是否不均</span><br>pidstat -u -d 1        <span class="hljs-comment"># 单进程 CPU 与磁盘</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>load average</code> 高不等于 CPU 忙</strong> —— 它统计的是「运行中 + 不可中断睡眠（D 状态）」的进程数，<strong>等 IO 的进程也算进去</strong>。CPU 空闲但 load 高，通常是磁盘或网络卡住。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>单看 <code>top</code> 的第一屏会骗人</strong>。<code>top</code> 是采样平均，瞬时抖动看不到；要动态观察必须 <code>top -d 1</code> 或换 <code>vmstat 1</code> 看趋势。</p>
+</blockquote>
+<h2 id="二、CPU"><a href="#二、CPU" class="headerlink" title="二、CPU"></a>二、CPU</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs bash">top -d 1               <span class="hljs-comment"># 关键：us sy wa si hi st</span><br>mpstat -P ALL 1        <span class="hljs-comment"># 每个核的使用率</span><br>pidstat -u 1           <span class="hljs-comment"># 单进程 CPU 占用</span><br>vmstat 1               <span class="hljs-comment"># r 队列长度、cs 上下文切换、in 中断</span><br></code></pre></td></tr></table></figure>
+
+<p><code>top</code> 的 CPU 行含义：</p>
+<table>
+<thead>
+<tr>
+<th>列</th>
+<th>含义</th>
+<th>异常信号</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>us</code></td>
+<td>用户态</td>
+<td>高 &#x3D; 应用计算重</td>
+</tr>
+<tr>
+<td><code>sy</code></td>
+<td>内核态</td>
+<td>高 &#x3D; 系统调用 &#x2F; 锁 &#x2F; 网络重</td>
+</tr>
+<tr>
+<td><code>wa</code></td>
+<td>IO 等待</td>
+<td><strong>高 &#x3D; 磁盘瓶颈</strong></td>
+</tr>
+<tr>
+<td><code>si</code> &#x2F; <code>hi</code></td>
+<td>软 &#x2F; 硬中断</td>
+<td>高 &#x3D; 网卡中断、中断亲和问题</td>
+</tr>
+<tr>
+<td><code>st</code></td>
+<td>被虚拟化抢占</td>
+<td><strong>高 &#x3D; 宿主机超卖</strong></td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 看单进程上下文切换（自愿 / 非自愿）</span><br>grep ctxt /proc/&lt;pid&gt;/status        <span class="hljs-comment"># voluntary / nonvoluntary</span><br>pidstat -w 1                        <span class="hljs-comment"># cswch/s、nvcswch/s</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>成因</th>
+<th>触发场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>自愿切换</td>
+<td>进程主动阻塞等锁 &#x2F; IO &#x2F; <code>sleep</code></td>
+</tr>
+<tr>
+<td>非自愿切换</td>
+<td>时间片用尽被抢占（CPU 争抢）</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>st</code>（steal）高是宿主机问题，不是你应用的锅</strong> —— 虚拟机被其他租户抢了 CPU，调优应用没用，只能换规格或投诉。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>wa</code> 高说明 CPU 在等 IO</strong>，此时把 CPU 加满没用；要去看磁盘（下一节）。**<code>si</code> 高**常见于高 PPS 网络或单队列网卡，检查中断亲和 <code>irqbalance</code>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>上下文切换 <code>cs</code> 过高</strong>（<code>vmstat</code> 的 <code>cs</code> 列）常见两类：锁竞争（自愿）与核数不足（非自愿）。用 <code>pidstat -w</code> 区分，别盲目扩核。</p>
+</blockquote>
+<h2 id="三、内存"><a href="#三、内存" class="headerlink" title="三、内存"></a>三、内存</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs bash">free -h                <span class="hljs-comment"># 看 available，不是 free</span><br>vmstat 1               <span class="hljs-comment"># si / so 非零即在换页</span><br>smem -t -k             <span class="hljs-comment"># 按进程看 PSS/USS</span><br>pmap -x &lt;pid&gt;          <span class="hljs-comment"># 单进程内存段</span><br>dmesg | grep -i oom    <span class="hljs-comment"># OOM Killer 记录</span><br><span class="hljs-built_in">cat</span> /proc/&lt;pid&gt;/oom_score<br></code></pre></td></tr></table></figure>
+
+<p><code>free -h</code> 关键列：</p>
+<table>
+<thead>
+<tr>
+<th>列</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>free</code></td>
+<td>完全空闲（<strong>低不代表不够</strong>）</td>
+</tr>
+<tr>
+<td><code>buff/cache</code></td>
+<td>页缓存，可回收</td>
+</tr>
+<tr>
+<td><code>available</code></td>
+<td><strong>真正可用的估算值，看这个</strong></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>free</code> 很低不等于内存不足</strong>。Linux 会把空闲内存拿去做页缓存（<code>buff/cache</code>），要回收时立刻释放；判断依据是 <code>available</code>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>vmstat</code> 的 <code>si</code> &#x2F; <code>so</code> 非零就是换页，是性能灾难</strong> —— 内存不足时内核把页换到 swap，磁盘延迟比内存高几个数量级。此时 <code>available</code> 通常也偏低。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>别在生产随手 <code>echo 3 &gt; /proc/sys/vm/drop_caches</code></strong> —— 它会清空页缓存，之后所有读都回源磁盘，<strong>短期性能骤降</strong>；它只适合压测前制造一致环境。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>OOM Killer 杀进程的顺序由 <code>oom_score</code> 决定</strong>，<code>oom_score_adj</code> 可调（<code>-1000</code> 到 <code>1000</code>）。容器里被杀往往是 <code>limits</code> 太低，先看 cgroup 限制。</p>
+</blockquote>
+<h2 id="四、磁盘-IO"><a href="#四、磁盘-IO" class="headerlink" title="四、磁盘 IO"></a>四、磁盘 IO</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs bash">iostat -xz 1           <span class="hljs-comment"># 重点：%util await r/s w/s aqu-sz</span><br>iotop -o               <span class="hljs-comment"># 按进程看实时 IO</span><br>pidstat -d 1           <span class="hljs-comment"># 单进程读写速率</span><br><span class="hljs-built_in">df</span> -h ; <span class="hljs-built_in">df</span> -i          <span class="hljs-comment"># 空间 与 inode</span><br><span class="hljs-built_in">du</span> -sh * | <span class="hljs-built_in">sort</span> -h     <span class="hljs-comment"># 找大目录；ncdu 交互式更好用</span><br>lsof | grep deleted    <span class="hljs-comment"># 被删除但仍占空间的文件</span><br></code></pre></td></tr></table></figure>
+
+<p><code>iostat -xz</code> 关键列：</p>
+<table>
+<thead>
+<tr>
+<th>列</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>r/s</code> &#x2F; <code>w/s</code></td>
+<td>每秒读 &#x2F; 写次数（IOPS）</td>
+</tr>
+<tr>
+<td><code>await</code></td>
+<td>平均 IO 延迟（ms），含排队</td>
+</tr>
+<tr>
+<td><code>aqu-sz</code></td>
+<td>平均队列长度（<strong>饱和度的直接指标</strong>）</td>
+</tr>
+<tr>
+<td><code>%util</code></td>
+<td>设备有 IO 在飞的时间占比</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>%util</code> 接近 100% 不等于磁盘饱和</strong>。现代 SSD &#x2F; NVMe 多队列并发，<code>%util</code> 只是「有过 IO 的时间比例」；**判断饱和要看 <code>aqu-sz</code> 和 <code>await</code>**。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>df</code> 与 <code>du</code> 结果不一致</strong>：典型原因是<strong>文件被删了但进程还持有 fd</strong>（<code>lsof | grep deleted</code> 能找到）。空间要等进程关闭 fd 或重启才释放。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>df -h</code> 显示有空间却写不进</strong> —— 大概率是 <strong>inode 用满</strong>（<code>df -i</code> 看 <code>IUse%</code>）。海量小文件（如 session、缓存）是常见元凶。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>await</code> 高但 <code>%util</code> 不高</strong>，通常是队列里的 IO 大小不均或设备限速（云盘有 IOPS&#x2F;带宽上限），看云厂商的盘规格。</p>
+</blockquote>
+<h2 id="五、网络"><a href="#五、网络" class="headerlink" title="五、网络"></a>五、网络</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs bash">ss -s                  <span class="hljs-comment"># 汇总（socket 统计）</span><br>ss -lntp               <span class="hljs-comment"># 监听端口 + 进程</span><br>ss -tnp                <span class="hljs-comment"># 已建立连接 + 进程</span><br>ip -s <span class="hljs-built_in">link</span>             <span class="hljs-comment"># 网卡收发包、错误、丢包</span><br>sar -n DEV 1           <span class="hljs-comment"># 网卡吞吐</span><br>tcpdump -i eth0 -nn port 80<br>ping / mtr / traceroute<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>工具</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>ss</code></td>
+<td><strong><code>netstat</code> 已被 <code>ss</code> 取代</strong>（更快、信息更全）</td>
+</tr>
+<tr>
+<td><code>ip -s link</code></td>
+<td>看 <code>errors</code> &#x2F; <code>dropped</code>，非零即链路问题</td>
+</tr>
+<tr>
+<td><code>mtr</code></td>
+<td>结合 ping + traceroute，逐跳看丢包</td>
+</tr>
+<tr>
+<td><code>tcpdump</code></td>
+<td>抓包定位重传 &#x2F; RST &#x2F; 握手失败</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash">ss -tan state time-wait | <span class="hljs-built_in">wc</span> -l         <span class="hljs-comment"># TIME_WAIT 数量</span><br>netstat -s | grep -i -E <span class="hljs-string">&quot;listen|overflow|retrans&quot;</span><br>sysctl net.ipv4.tcp_tw_reuse net.core.somaxconn net.ipv4.tcp_max_syn_backlog<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>TIME_WAIT 多不一定是坏事</strong> —— 它是主动关闭方的正常状态（2MSL）。只有<strong>端口耗尽</strong>才是问题，可开 <code>tcp_tw_reuse</code>（<strong>仅对出向连接生效</strong>），别用已废弃的 <code>tcp_tw_recycle</code>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>SYN</code> 队列溢出</strong>：<code>netstat -s</code> 里 <code>SYNs to LISTEN sockets dropped</code> 非零说明握手被打满，检查 <code>somaxconn</code> 与 <code>tcp_max_syn_backlog</code>，也可能是被 SYN Flood 打了。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>ip -s link</code> 的 <code>dropped</code> 非零</strong>常见于网卡缓冲区满或 <code>txqueuelen</code> 太小，不一定是丢包到对端；先确认计数增长的速率。</p>
+</blockquote>
+<h2 id="六、strace-与-perf"><a href="#六、strace-与-perf" class="headerlink" title="六、strace 与 perf"></a>六、strace 与 perf</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs bash">strace -c -p &lt;pid&gt;              <span class="hljs-comment"># 系统调用耗时统计</span><br>strace -T -tt -p &lt;pid&gt;          <span class="hljs-comment"># 每个调用的耗时与时间戳</span><br>strace -f -e trace=network ./app<br>perf top                        <span class="hljs-comment"># 实时热点函数</span><br>perf record -F 99 -g -p &lt;pid&gt; -- <span class="hljs-built_in">sleep</span> 30<br>perf report<br></code></pre></td></tr></table></figure>
+
+<p>火焰图（Brendan Gregg 的 FlameGraph）：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">perf script | stackcollapse-perf.pl | flamegraph.pl &gt; out.svg<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>strace</code> 会显著拖慢进程</strong>（每次系统调用都要停下通知 tracer），生产环境<strong>只做短时定位</strong>，别长期挂着。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>perf record</code> 采样频率过高会引入可观开销</strong>（<code>-F 99</code> 已是常用折中）。容器里跑 perf 常因 <code>perf_event_paranoid</code> 受限，需要提权。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>strace -f</code> 会跟随所有子线程</strong>，输出量巨大；不加 <code>-e trace=</code> 过滤时容易刷爆终端和磁盘。</p>
+</blockquote>
+<h2 id="七、eBPF-与-bpftrace"><a href="#七、eBPF-与-bpftrace" class="headerlink" title="七、eBPF 与 bpftrace"></a>七、eBPF 与 bpftrace</h2><p>eBPF 让<strong>内核态可编程</strong>：挂在内核 hook 上，<strong>低开销、无需改应用、无需重启</strong>。</p>
+<p>bcc 工具集（开箱即用）：</p>
+<table>
+<thead>
+<tr>
+<th>工具</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>execsnoop</code></td>
+<td>跟踪新进程 exec</td>
+</tr>
+<tr>
+<td><code>opensnoop</code></td>
+<td>跟踪 open 的文件</td>
+</tr>
+<tr>
+<td><code>biolatency</code></td>
+<td>块设备 IO 延迟直方图</td>
+</tr>
+<tr>
+<td><code>tcplife</code></td>
+<td>TCP 连接生命周期</td>
+</tr>
+<tr>
+<td><code>runqlat</code></td>
+<td>调度延迟（队列等待）</td>
+</tr>
+</tbody></table>
+<p>bpftrace 单行脚本：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash">bpftrace -e <span class="hljs-string">&#x27;tracepoint:syscalls:sys_enter_openat &#123; printf(&quot;%s %s\n&quot;, comm, str(args-&gt;filename)); &#125;&#x27;</span><br>bpftrace -e <span class="hljs-string">&#x27;kprobe:do_sys_open &#123; @[comm] = count(); &#125;&#x27;</span><br>bpftrace -e <span class="hljs-string">&#x27;profile:hz:99 &#123; @[kstack] = count(); &#125;&#x27;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>eBPF 有内核版本门槛</strong>：基础功能需 **4.x+**，<code>bpftrace</code> 建议 **4.9+**，CO-RE &#x2F; BTF 便携编译需 <strong>5.x+</strong> 且内核带 <code>CONFIG_DEBUG_INFO_BTF</code>。老内核（如 CentOS 7 的 3.10）用不了或要另装 BCC 的兼容包。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>eBPF 也要评估开销</strong>：高频 hook（如每次网络包）会累积可观 CPU；生产先在低峰试跑，观察 <code>perf top</code> 里 <code>bpf</code> 的占比。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ **<code>bcc</code> 与 <code>bpftrace</code> 需要 root 或 <code>CAP_BPF</code>**；容器内跑要挂载 <code>/sys/kernel/debug</code> 或 <code>debugfs</code>，权限不足会静默失败。</p>
+</blockquote>
+<h2 id="八、启动性能与日志"><a href="#八、启动性能与日志" class="headerlink" title="八、启动性能与日志"></a>八、启动性能与日志</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs bash">systemd-analyze                 <span class="hljs-comment"># 总启动耗时</span><br>systemd-analyze blame           <span class="hljs-comment"># 各服务耗时排序</span><br>systemd-analyze critical-chain  <span class="hljs-comment"># 关键路径</span><br>journalctl -p err -b            <span class="hljs-comment"># 本次启动的错误日志</span><br>journalctl --since <span class="hljs-string">&quot;10 min ago&quot;</span> -u nginx<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>systemd-analyze blame</code> 里耗时长不等于在关键路径上</strong> —— 真正拖慢启动的是 <code>critical-chain</code> 上的串行依赖。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>journalctl</code> 默认只保留有限历史</strong>（受 <code>SystemMaxUse</code> 限制），排查前先确认日志没被轮转掉。</p>
+</blockquote>
+<h2 id="九、排查套路总结"><a href="#九、排查套路总结" class="headerlink" title="九、排查套路总结"></a>九、排查套路总结</h2><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs text">1. uptime / vmstat 1          → 瓶颈类型（CPU / IO / 内存）<br>2. mpstat -P ALL 1            → 单核还是全局<br>3. pidstat -u -d 1            → 定位到进程<br>4. 该进程：strace / perf / bpftrace → 定位到系统调用 / 函数<br>5. 验证假设，再决定是否重启<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>重启会销毁现场</strong>。除非已确认是「进程僵死」且要先恢复服务，否则<strong>先留证据</strong>（<code>perf record</code>、<code>ss</code>、<code>iostat</code> 快照）再动手。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>不要同时改多个参数再观察</strong> —— 无法归因。一次只动一个变量。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 把 <code>load average</code> 高直接等同于 CPU 忙（D 状态等 IO 也计入）</li>
+<li><input disabled="" type="checkbox"> 只看 <code>top</code> 瞬时值，不用 <code>vmstat 1</code> 看趋势</li>
+<li><input disabled="" type="checkbox"> 看到 <code>wa</code> 高却去加 CPU</li>
+<li><input disabled="" type="checkbox"> 忽略 <code>st</code>（steal），把宿主机超卖当应用问题</li>
+<li><input disabled="" type="checkbox"> 上下文切换高就盲目扩核，不区分自愿 &#x2F; 非自愿</li>
+<li><input disabled="" type="checkbox"> 用 <code>free</code> 而非 <code>available</code> 判断内存是否够</li>
+<li><input disabled="" type="checkbox"> 忽略 <code>vmstat</code> 的 <code>si</code> &#x2F; <code>so</code>，没发现正在换页</li>
+<li><input disabled="" type="checkbox"> 生产随手 <code>drop_caches</code>，造成短期性能骤降</li>
+<li><input disabled="" type="checkbox"> 只看 <code>%util</code> 判断磁盘饱和，忽略 <code>aqu-sz</code> &#x2F; <code>await</code></li>
+<li><input disabled="" type="checkbox"> <code>df</code> 和 <code>du</code> 不一致时不查 <code>lsof | grep deleted</code></li>
+<li><input disabled="" type="checkbox"> 写不进数据只查 <code>df -h</code>，忘了 <code>df -i</code> 的 inode</li>
+<li><input disabled="" type="checkbox"> 还在用 <code>netstat</code>（应用 <code>ss</code>）</li>
+<li><input disabled="" type="checkbox"> 看到 TIME_WAIT 多就上 <code>tcp_tw_recycle</code>（已废弃且有害）</li>
+<li><input disabled="" type="checkbox"> <code>strace</code> 长期挂生产，拖慢目标进程</li>
+<li><input disabled="" type="checkbox"> 老内核上硬跑 eBPF 工具，不确认版本与 BTF</li>
+<li><input disabled="" type="checkbox"> 容器里跑 bcc &#x2F; bpftrace 未处理权限与 debugfs</li>
+<li><input disabled="" type="checkbox"> 依赖 <code>systemd-analyze blame</code> 而不看 <code>critical-chain</code></li>
+<li><input disabled="" type="checkbox"> 排查时直接重启，销毁现场</li>
+<li><input disabled="" type="checkbox"> 一次改多个参数，无法归因</li>
+<li><input disabled="" type="checkbox"> 不先量化瓶颈类型就猜测原因</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://man7.org/linux/man-pages/">Linux man pages · vmstat &#x2F; iostat &#x2F; mpstat &#x2F; pidstat &#x2F; ss</a> · <a target="_blank" rel="noopener" href="https://www.brendangregg.com/usemethod.html">Brendan Gregg · USE 方法</a> · <a target="_blank" rel="noopener" href="https://www.brendangregg.com/linuxperf.html">Brendan Gregg · Linux 性能工具</a> · <a target="_blank" rel="noopener" href="https://www.brendangregg.com/flamegraphs.html">Brendan Gregg · FlameGraph</a> · <a target="_blank" rel="noopener" href="https://bpftrace.org/">bpftrace 官方文档</a> · <a target="_blank" rel="noopener" href="https://github.com/iovisor/bcc">bcc 工具集</a> · <a target="_blank" rel="noopener" href="https://perf.wiki.kernel.org/">perf wiki</a> · <a target="_blank" rel="noopener" href="https://www.freedesktop.org/software/systemd/man/systemd-analyze.html">systemd-analyze man</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/linux/" class="category-chain-item">linux</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/linux/" class="print-no-link">#linux</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 108 · Linux（四）：性能排查与 eBPF 工具</div>
+      <div>https://ethan-iopasd.github.io/2026/10/08/每日技术博客108-Linux性能排查与eBPF/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月8日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2053-Linux%E6%96%87%E6%9C%AC%E4%B8%89%E5%89%91%E5%AE%A2/" title="每日技术博客 053 · Linux（三）：grep / sed / awk 三剑客">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 053 · Linux（三）：grep / sed / awk 三剑客</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

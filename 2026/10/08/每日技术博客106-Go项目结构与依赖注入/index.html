@@ -1,0 +1,1024 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 106 篇 Go 没有强制项目布局；DI 用显式构造而不是框架；以及 go:generate、wire、sqlc 这一整套代码生成实践。  📚 Go 系列目录   章节 主题 状态    一 并发模型与 channel 已发布   二 错误处理与工程实践 已发布   三 内存管理、GC 与性能剖析 已发布   四 标准库实战与测试 已发布   五">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 106 · Go（五）：项目结构、依赖注入与代码生成">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2106-Go%E9%A1%B9%E7%9B%AE%E7%BB%93%E6%9E%84%E4%B8%8E%E4%BE%9D%E8%B5%96%E6%B3%A8%E5%85%A5/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 106 篇 Go 没有强制项目布局；DI 用显式构造而不是框架；以及 go:generate、wire、sqlc 这一整套代码生成实践。  📚 Go 系列目录   章节 主题 状态    一 并发模型与 channel 已发布   二 错误处理与工程实践 已发布   三 内存管理、GC 与性能剖析 已发布   四 标准库实战与测试 已发布   五">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-08T08:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-08T03:20:45.511Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="go">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 106 · Go（五）：项目结构、依赖注入与代码生成 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 106 · Go（五）：项目结构、依赖注入与代码生成"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-08 16:00" pubdate>
+          2026年10月8日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.6k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          22 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 106 · Go（五）：项目结构、依赖注入与代码生成</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-08 · 第 106 篇</p>
+<p>Go 没有强制项目布局；DI 用显式构造而不是框架；以及 <code>go:generate</code>、wire、sqlc 这一整套代码生成实践。</p>
+</blockquote>
+<h2 id="📚-Go-系列目录"><a href="#📚-Go-系列目录" class="headerlink" title="📚 Go 系列目录"></a>📚 Go 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>并发模型与 channel</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>错误处理与工程实践</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>内存管理、GC 与性能剖析</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td>标准库实战与测试</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>五</td>
+<td>项目结构、依赖注入与代码生成</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p>Go 的工程化就三句话：<strong>布局没有官方标准、依赖在 <code>main</code> 里显式组装、能生成的代码就别手写</strong>。</p>
+<h2 id="一、项目布局"><a href="#一、项目布局" class="headerlink" title="一、项目布局"></a>一、项目布局</h2><p>官方<strong>没有强制的项目布局</strong>（只有 <code>Organizing a Go module</code> 的建议）。</p>
+<table>
+<thead>
+<tr>
+<th>目录</th>
+<th>用途</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>cmd/&lt;app&gt;/main.go</code></td>
+<td>可执行入口</td>
+<td>每个二进制一个子目录</td>
+</tr>
+<tr>
+<td><code>internal/</code></td>
+<td>私有代码</td>
+<td><strong>编译期可见性保护</strong></td>
+</tr>
+<tr>
+<td><code>pkg/</code></td>
+<td>可被外部导入的库</td>
+<td><strong>有争议，慎用</strong></td>
+</tr>
+<tr>
+<td><code>api/</code></td>
+<td>API 定义（proto &#x2F; OpenAPI）</td>
+<td>契约</td>
+</tr>
+<tr>
+<td><code>configs/</code> &#x2F; <code>test/</code></td>
+<td>配置模板 &#x2F; 集成测试</td>
+<td></td>
+</tr>
+</tbody></table>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs text">myapp/<br>├── cmd/server/main.go        # 只做组装，逻辑极薄<br>├── internal/<br>│   ├── user/                 # 领域包：service.go / repo.go<br>│   └── platform/db/<br>├── api/<br>└── go.mod<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>internal/</code> 的可见性是编译期强制的</strong>：<code>myapp/internal/x</code> 只能被 <code>myapp/...</code> 子树导入，外部模块一律编译失败。<br>⚠️ <strong><code>pkg/</code> 不是官方约定</strong>，没带来任何编译器保证；**没有外部使用者时不要建 <code>pkg/</code>**。<br>⚠️ <strong>不要过早分层</strong>。初期就铺 <code>controller/service/repository/dto/entity</code> 六层，改一个字段要动五个文件 —— 先按领域分，需要时再拆。<br>⚠️ <strong><code>main</code> 包要尽量薄</strong>：只做「读配置 → 建依赖 → 启动 → 等信号关闭」，业务逻辑一律不进 <code>main</code>，否则无法测试。</p>
+</blockquote>
+<h2 id="二、包设计"><a href="#二、包设计" class="headerlink" title="二、包设计"></a>二、包设计</h2><table>
+<thead>
+<tr>
+<th>原则</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>包名是 API 的一部分</td>
+<td>调用处写 <code>user.New()</code> 而不是 <code>user.NewUserService()</code></td>
+</tr>
+<tr>
+<td>小接口优先</td>
+<td><code>io.Reader</code> 只有 <code>Read</code> 一个方法</td>
+</tr>
+<tr>
+<td>接口在<strong>使用方</strong>定义</td>
+<td>Go 的隐式接口让这条成立</td>
+</tr>
+<tr>
+<td>接受接口、返回结构体</td>
+<td>入参用接口更灵活，返回值用具体类型更好用</td>
+</tr>
+<tr>
+<td>避免循环 import</td>
+<td><strong>Go 不允许循环依赖</strong>，编译直接报错</td>
+</tr>
+</tbody></table>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-comment">// 使用方定义自己需要的最小接口（与 Java 最大的差异）</span><br><span class="hljs-keyword">package</span> user<br><br><span class="hljs-keyword">type</span> Store <span class="hljs-keyword">interface</span> &#123;          <span class="hljs-comment">// 定义在 user 包，因为 user 包要用它</span><br>    Get(id <span class="hljs-type">string</span>) (*User, <span class="hljs-type">error</span>)<br>&#125;<br><br><span class="hljs-keyword">type</span> Service <span class="hljs-keyword">struct</span>&#123; store Store &#125;<br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">NewService</span><span class="hljs-params">(s Store)</span></span> *Service &#123; <span class="hljs-keyword">return</span> &amp;Service&#123;store: s&#125; &#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>Go 的接口是隐式的</strong>：实现方不需要（也不应该）声明 <code>implements</code>，因此接口应由<strong>使用方</strong>定义 —— 与 Java 显式接口最大的差异。<br>⚠️ <strong><code>util</code> &#x2F; <code>common</code> 是包设计的坏味道</strong>：它们会吸引所有无关代码，最终变成循环依赖的温床；按用途拆成 <code>strutil</code> &#x2F; <code>retry</code> &#x2F; <code>httpx</code>。<br>⚠️ <strong>循环 import 无法用任何技巧绕过</strong>（Go 没有前向声明），只能抽公共依赖到第三个包，或把接口下沉。用 <code>go list -deps ./...</code> 看依赖图。</p>
+</blockquote>
+<h2 id="三、依赖注入与选项模式"><a href="#三、依赖注入与选项模式" class="headerlink" title="三、依赖注入与选项模式"></a>三、依赖注入与选项模式</h2><p>Go 推崇「显式优于隐式」，所以<strong>推荐手工构造</strong>：所有依赖在 <code>main</code> 里组装。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">main</span><span class="hljs-params">()</span></span> &#123;<br>    cfg := config.MustLoad()<br>    db, err := sql.Open(<span class="hljs-string">&quot;pgx&quot;</span>, cfg.DSN)<br>    <span class="hljs-keyword">if</span> err != <span class="hljs-literal">nil</span> &#123; log.Fatal(err) &#125;<br><br>    store := postgres.NewUserStore(db)<br>    svc := user.NewService(store)<br>    h := httpapi.NewHandler(svc)<br><br>    srv := &amp;http.Server&#123;Addr: cfg.Addr, Handler: h.Routes()&#125;<br>    <span class="hljs-comment">// ... 启动与优雅关闭</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>时机</th>
+<th>开销</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>手工构造</td>
+<td>编译期</td>
+<td>零</td>
+</tr>
+<tr>
+<td><code>google/wire</code></td>
+<td><strong>编译期代码生成</strong></td>
+<td>零运行时开销</td>
+</tr>
+<tr>
+<td><code>uber/dig</code> &#x2F; <code>fx</code></td>
+<td>运行时反射</td>
+<td>有反射与调试成本</td>
+</tr>
+</tbody></table>
+<p>参数膨胀时用 <strong>functional options</strong>：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-keyword">type</span> Option <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">(*Server)</span></span><br><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">WithTimeout</span><span class="hljs-params">(d time.Duration)</span></span> Option &#123; <span class="hljs-keyword">return</span> <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">(s *Server)</span></span> &#123; s.timeout = d &#125; &#125;<br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">WithLogger</span><span class="hljs-params">(l *slog.Logger)</span></span> Option   &#123; <span class="hljs-keyword">return</span> <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">(s *Server)</span></span> &#123; s.logger = l &#125; &#125;<br><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">NewServer</span><span class="hljs-params">(addr <span class="hljs-type">string</span>, opts ...Option)</span></span> *Server &#123;<br>    s := &amp;Server&#123;addr: addr, timeout: <span class="hljs-number">5</span> * time.Second, logger: slog.Default()&#125;<br>    <span class="hljs-keyword">for</span> _, opt := <span class="hljs-keyword">range</span> opts &#123; opt(s) &#125;<br>    <span class="hljs-keyword">return</span> s<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>优先手工构造</strong>。依赖数量超过几十个再考虑 wire；一上来就上 fx 属于过度设计，排查「这个依赖哪来的」会非常痛苦。<br>⚠️ <strong>不要用全局变量 &#x2F; 包级单例做「隐式 DI」</strong>，它让测试无法替换依赖，也让初始化顺序变成玄学。<br>⚠️ <strong>选项模式解决的是「可选参数爆炸」</strong>，参数固定且少时直接传参更清晰；Option 里也别做建连接这类副作用。</p>
+</blockquote>
+<h2 id="四、wire-dig-fx"><a href="#四、wire-dig-fx" class="headerlink" title="四、wire &#x2F; dig &#x2F; fx"></a>四、wire &#x2F; dig &#x2F; fx</h2><p><code>google/wire</code>：编译期生成 DI 代码，<strong>无反射、无运行时开销</strong>。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-comment">//go:build wireinject</span><br><span class="hljs-keyword">package</span> main<br><br><span class="hljs-keyword">import</span> <span class="hljs-string">&quot;github.com/google/wire&quot;</span><br><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">InitApp</span><span class="hljs-params">(cfg *Config)</span></span> (*App, <span class="hljs-type">error</span>) &#123;<br>    wire.Build(postgres.NewUserStore, user.NewService, httpapi.NewHandler, NewApp)<br>    <span class="hljs-keyword">return</span> <span class="hljs-literal">nil</span>, <span class="hljs-literal">nil</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash">go install github.com/google/wire/cmd/wire@latest<br>wire ./...        <span class="hljs-comment"># 生成 wire_gen.go，内容是普通的 Go 构造代码</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>wire</th>
+<th>dig &#x2F; fx</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>注入时机</td>
+<td>编译期</td>
+<td>运行时反射</td>
+</tr>
+<tr>
+<td>运行时开销</td>
+<td>无</td>
+<td>有</td>
+</tr>
+<tr>
+<td>调试</td>
+<td>生成代码可读</td>
+<td>需理解容器</td>
+</tr>
+<tr>
+<td>生命周期钩子</td>
+<td>需手写</td>
+<td><code>fx</code> 内建</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>wire_gen.go</code> 是生成产物，不要手改</strong> —— 下次 <code>wire</code> 会覆盖，要改就改 provider 或 injector。<br>⚠️ <strong>wire 的报错依赖 provider 链</strong>，provider 多时拆成多个 <code>wire.NewSet(...)</code> 组合，否则一处缺失满屏报错。<br>⚠️ <strong><code>fx</code> 的生命周期钩子（<code>OnStart</code> &#x2F; <code>OnStop</code>）有隐式顺序</strong>，出问题先看 <code>fx</code> 的日志事件，别盲猜启动顺序。</p>
+</blockquote>
+<h2 id="五、代码生成"><a href="#五、代码生成" class="headerlink" title="五、代码生成"></a>五、代码生成</h2><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-comment">//go:generate stringer -type=Status</span><br><span class="hljs-keyword">type</span> Status <span class="hljs-type">int</span><br><span class="hljs-keyword">const</span> ( Pending Status = <span class="hljs-literal">iota</span>; Running; Done )<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>工具</th>
+<th>生成什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>stringer</code></td>
+<td>枚举 → 字符串</td>
+</tr>
+<tr>
+<td><code>mockgen</code> &#x2F; <code>moq</code></td>
+<td>接口 → mock 实现</td>
+</tr>
+<tr>
+<td><code>sqlc</code></td>
+<td>SQL → 类型安全的查询函数</td>
+</tr>
+<tr>
+<td><code>protoc-gen-go</code></td>
+<td>proto → Go 结构体 &#x2F; gRPC</td>
+</tr>
+<tr>
+<td><code>ent</code></td>
+<td>schema → ORM 代码</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash">go generate ./...                      <span class="hljs-comment"># 执行所有 //go:generate</span><br>sqlc generate                          <span class="hljs-comment"># 读 sqlc.yaml + query.sql</span><br>mockgen -<span class="hljs-built_in">source</span>=store.go -destination=mock_store.go<br></code></pre></td></tr></table></figure>
+
+<p>生成代码提交进仓库还是 CI 生成？</p>
+<table>
+<thead>
+<tr>
+<th>做法</th>
+<th>优点</th>
+<th>缺点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>提交进仓库</td>
+<td>clone 即可编译、diff 可见</td>
+<td>仓库变大、易忘更新</td>
+</tr>
+<tr>
+<td>CI 生成</td>
+<td>仓库干净、保证最新</td>
+<td>本地需装工具、IDE 跳转差</td>
+</tr>
+</tbody></table>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-keyword">import</span> _ <span class="hljs-string">&quot;embed&quot;</span><br><br><span class="hljs-comment">//go:embed configs/default.yaml</span><br><span class="hljs-keyword">var</span> defaultCfg <span class="hljs-type">string</span><br><br><span class="hljs-comment">//go:embed web/dist/*</span><br><span class="hljs-keyword">var</span> webFS embed.FS<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>生成代码必须与源同步</strong>：CI 里跑 <code>go generate ./... &amp;&amp; git diff --exit-code</code>，能拦住「改了接口忘了重生成」。<br>⚠️ <strong><code>sqlc</code> 与 <code>gorm</code> 取舍</strong>：<code>sqlc</code> 写 SQL、生成类型安全代码（可控、无隐式查询）；<code>gorm</code> 是运行时 ORM（开发快、易出 N+1）。<br>⚠️ <strong><code>//go:embed</code> 的注释与变量声明之间不能有空行</strong>，也不能写在函数内；路径不能用 <code>..</code> 越出包目录。</p>
+</blockquote>
+<h2 id="六、构建与发布"><a href="#六、构建与发布" class="headerlink" title="六、构建与发布"></a>六、构建与发布</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash">go build -ldflags <span class="hljs-string">&quot;-X main.version=<span class="hljs-subst">$(git describe --tags)</span> -s -w&quot;</span> -o bin/app ./cmd/server<br>CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o bin/app-linux ./cmd/server<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>-X main.version=v1.2.3</code></td>
+<td>编译期注入变量</td>
+</tr>
+<tr>
+<td><code>-s -w</code></td>
+<td>去掉符号表与调试信息（体积更小）</td>
+</tr>
+<tr>
+<td><code>CGO_ENABLED=0</code></td>
+<td>静态链接，便于放进 <code>scratch</code> 镜像</td>
+</tr>
+<tr>
+<td><code>-trimpath</code></td>
+<td>去掉构建机绝对路径（可复现构建）</td>
+</tr>
+<tr>
+<td><code>GOOS</code> &#x2F; <code>GOARCH</code></td>
+<td>交叉编译目标平台</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>-X</code> 的变量必须是 <code>string</code> 类型</strong>，且写完整路径（如 <code>main.version</code>）；写成未导出包里的变量会<strong>静默不生效</strong>。<br>⚠️ <strong><code>-s -w</code> 会让 <code>panic</code> 栈丢失部分信息</strong>，排查线上崩溃时可能不便；生产可只在最终镜像里加。<br>⚠️ <strong><code>CGO_ENABLED=0</code> 时依赖 cgo 的库（如某些 sqlite 驱动）会编译失败</strong>，需换纯 Go 实现或保留 cgo。</p>
+</blockquote>
+<h2 id="七、配置、日志与优雅关闭"><a href="#七、配置、日志与优雅关闭" class="headerlink" title="七、配置、日志与优雅关闭"></a>七、配置、日志与优雅关闭</h2><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-comment">// 12-factor：配置来自环境变量，标准库 + 一个解析库即可</span><br><span class="hljs-keyword">type</span> Config <span class="hljs-keyword">struct</span> &#123;<br>    Addr    <span class="hljs-type">string</span>        <span class="hljs-string">`env:&quot;ADDR&quot; envDefault:&quot;:8080&quot;`</span><br>    Timeout time.Duration <span class="hljs-string">`env:&quot;TIMEOUT&quot; envDefault:&quot;5s&quot;`</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>viper</code></td>
+<td>多来源、多格式，但<strong>依赖重、全局状态</strong></td>
+</tr>
+<tr>
+<td>标准库 + 环境变量</td>
+<td>12-factor，简单可控</td>
+</tr>
+<tr>
+<td><code>envconfig</code> &#x2F; <code>caarlos0/env</code></td>
+<td>结构体标签解析</td>
+</tr>
+</tbody></table>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-comment">// 优雅关闭：signal.NotifyContext + Shutdown</span><br>ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)<br><span class="hljs-keyword">defer</span> stop()<br><br>srv := &amp;http.Server&#123;Addr: <span class="hljs-string">&quot;:8080&quot;</span>, Handler: mux&#125;<br><span class="hljs-keyword">go</span> <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">()</span></span> &#123;<br>    <span class="hljs-keyword">if</span> err := srv.ListenAndServe(); err != <span class="hljs-literal">nil</span> &amp;&amp; err != http.ErrServerClosed &#123;<br>        log.Fatal(err)<br>    &#125;<br>&#125;()<br><br>&lt;-ctx.Done()                       <span class="hljs-comment">// 收到信号</span><br>shutCtx, cancel := context.WithTimeout(context.Background(), <span class="hljs-number">10</span>*time.Second)<br><span class="hljs-keyword">defer</span> cancel()<br>_ = srv.Shutdown(shutCtx)          <span class="hljs-comment">// 停止接收新请求，等在途请求结束</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>配置结构体要校验</strong>（<code>Validate()</code> 或加载后检查必填项），否则 <code>Addr</code> 为空会在启动时以奇怪的方式失败。<br>⚠️ <strong><code>srv.Shutdown</code> 不会等后台 goroutine</strong>，它只等在途 HTTP 请求；业务后台任务要自己用 <code>WaitGroup</code> 或 <code>errgroup</code> 收尾。<br>⚠️ **日志用 <code>log/slog</code> 并带上 <code>trace_id</code>**，跨服务串联才有依据；纯文本日志在分布式下无法关联。</p>
+</blockquote>
+<h2 id="八、API-层与并发编排"><a href="#八、API-层与并发编排" class="headerlink" title="八、API 层与并发编排"></a>八、API 层与并发编排</h2><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-comment">// Go 1.22+ 的 ServeMux 支持方法与路径参数</span><br>mux := http.NewServeMux()<br>mux.HandleFunc(<span class="hljs-string">&quot;GET /users/&#123;id&#125;&quot;</span>, getUser)      <span class="hljs-comment">// &#123;id&#125; 用 r.PathValue(&quot;id&quot;) 取</span><br>mux.HandleFunc(<span class="hljs-string">&quot;POST /users&quot;</span>, createUser)<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>框架</th>
+<th>定位</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>net/http</code>（1.22+）</td>
+<td>标准库已够用，无依赖</td>
+</tr>
+<tr>
+<td><code>chi</code></td>
+<td>轻量，兼容 <code>http.Handler</code>，中间件生态好</td>
+</tr>
+<tr>
+<td><code>gin</code> &#x2F; <code>echo</code></td>
+<td>功能全、上手快，自带绑定与校验</td>
+</tr>
+</tbody></table>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-keyword">import</span> <span class="hljs-string">&quot;golang.org/x/sync/errgroup&quot;</span><br><br>g, ctx := errgroup.WithContext(ctx)<br>g.Go(<span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">()</span></span> <span class="hljs-type">error</span> &#123; <span class="hljs-keyword">return</span> fetchA(ctx) &#125;)<br>g.Go(<span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">()</span></span> <span class="hljs-type">error</span> &#123; <span class="hljs-keyword">return</span> fetchB(ctx) &#125;)<br><span class="hljs-keyword">if</span> err := g.Wait(); err != <span class="hljs-literal">nil</span> &#123; <span class="hljs-keyword">return</span> err &#125;   <span class="hljs-comment">// 任一失败即取消其余</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-keyword">import</span> <span class="hljs-string">&quot;golang.org/x/sync/singleflight&quot;</span><br><br><span class="hljs-keyword">var</span> g singleflight.Group<br>v, err, _ := g.Do(key, <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">()</span></span> (any, <span class="hljs-type">error</span>) &#123; <span class="hljs-keyword">return</span> loadFromDB(key) &#125;)<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>Go 1.22 的 <code>ServeMux</code> 改变了路径匹配语义</strong>（方法前缀 + 通配符），升级后旧的注册写法可能冲突，注意 <code>/path</code> 与 <code>/path/</code> 的区别。<br>⚠️ <strong><code>errgroup</code> 默认只保留第一个返回的错误</strong>，其余 goroutine 被 <code>ctx</code> 取消；要收集所有错误需自行聚合。<br>⚠️ <strong><code>singleflight</code> 只合并</strong>并发<strong>调用</strong>、不缓存结果，且返回的 <code>v</code> 是共享的，<strong>不要就地修改它</strong>。</p>
+</blockquote>
+<h2 id="九、lint-与-CI"><a href="#九、lint-与-CI" class="headerlink" title="九、lint 与 CI"></a>九、lint 与 CI</h2><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-comment"># .golangci.yml</span><br><span class="hljs-attr">linters:</span><br>  <span class="hljs-attr">enable:</span><br>    <span class="hljs-bullet">-</span> <span class="hljs-string">errcheck</span>       <span class="hljs-comment"># 未处理的 error</span><br>    <span class="hljs-bullet">-</span> <span class="hljs-string">staticcheck</span>    <span class="hljs-comment"># 静态分析，抓真 bug</span><br>    <span class="hljs-bullet">-</span> <span class="hljs-string">govet</span>          <span class="hljs-comment"># 官方 vet</span><br>    <span class="hljs-bullet">-</span> <span class="hljs-string">revive</span>         <span class="hljs-comment"># golint 的继任者</span><br>    <span class="hljs-bullet">-</span> <span class="hljs-string">ineffassign</span>    <span class="hljs-comment"># 无效赋值</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>CI 里的 lint 版本 &#x2F; 配置必须与本地一致</strong>（用同一镜像或固定版本），否则「本地过、CI 挂」。<br>⚠️ <strong><code>errcheck</code> 会报大量历史问题</strong>，接入时先排除测试文件与生成代码，别一次性全量阻塞 CI。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 项目初期就铺六层分层，改一个字段动五个文件</li>
+<li><input disabled="" type="checkbox"> 建 <code>pkg/</code> 但根本没有外部使用者</li>
+<li><input disabled="" type="checkbox"> <code>main</code> 包里塞业务逻辑，无法测试</li>
+<li><input disabled="" type="checkbox"> 用 <code>util</code> &#x2F; <code>common</code> 当垃圾桶包名</li>
+<li><input disabled="" type="checkbox"> 在实现方定义接口，而不是使用方</li>
+<li><input disabled="" type="checkbox"> 想用技巧绕过循环 import（Go 不允许）</li>
+<li><input disabled="" type="checkbox"> 用全局变量 &#x2F; 包级单例做隐式依赖注入</li>
+<li><input disabled="" type="checkbox"> 手改 <code>wire_gen.go</code>，被下次生成覆盖</li>
+<li><input disabled="" type="checkbox"> 改了接口忘记重新 <code>go generate</code>，CI 不校验</li>
+<li><input disabled="" type="checkbox"> <code>//go:embed</code> 注释与变量之间加了空行，嵌入失效</li>
+<li><input disabled="" type="checkbox"> <code>-X</code> 注入的变量不是 <code>string</code> 或路径写错，静默不生效</li>
+<li><input disabled="" type="checkbox"> 依赖 cgo 的库却设 <code>CGO_ENABLED=0</code>，编译失败</li>
+<li><input disabled="" type="checkbox"> 配置结构体不校验，空值在启动时才暴露</li>
+<li><input disabled="" type="checkbox"> 只调 <code>srv.Shutdown</code>，忘了等后台 goroutine</li>
+<li><input disabled="" type="checkbox"> 升级到 Go 1.22 后没检查旧的路由注册写法</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://go.dev/doc/modules/layout">Go · Organizing a Go module</a> · <a target="_blank" rel="noopener" href="https://go.dev/doc/go1.4#internalpackages">Go · internal 包</a> · <a target="_blank" rel="noopener" href="https://go.dev/blog/routing-enhancements">Go Blog · Routing Enhancements for Go 1.22</a> · <a target="_blank" rel="noopener" href="https://github.com/google/wire">google&#x2F;wire</a> · <a target="_blank" rel="noopener" href="https://github.com/uber-go/fx">uber-go&#x2F;fx</a> · <a target="_blank" rel="noopener" href="https://github.com/sqlc-dev/sqlc">sqlc</a> · <a target="_blank" rel="noopener" href="https://golangci-lint.run/">golangci-lint</a> · <a target="_blank" rel="noopener" href="https://pkg.go.dev/log/slog">Go · log&#x2F;slog</a> · <a target="_blank" rel="noopener" href="https://pkg.go.dev/embed">Go · embed</a> · <a target="_blank" rel="noopener" href="https://pkg.go.dev/golang.org/x/sync">golang.org&#x2F;x&#x2F;sync</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/go/" class="category-chain-item">go</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/go/" class="print-no-link">#go</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 106 · Go（五）：项目结构、依赖注入与代码生成</div>
+      <div>https://ethan-iopasd.github.io/2026/10/08/每日技术博客106-Go项目结构与依赖注入/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月8日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2091-Go%E6%A0%87%E5%87%86%E5%BA%93%E4%B8%8E%E6%B5%8B%E8%AF%95/" title="每日技术博客 091 · Go（四）：标准库实战与测试">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 091 · Go（四）：标准库实战与测试</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

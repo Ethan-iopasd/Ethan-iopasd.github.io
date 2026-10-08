@@ -1,0 +1,1177 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 101 篇 线上改表为什么把库打挂：从 MDL 排队、ALGORITHM 选择，到大表变更工具与可回滚的三段式迁移。  📚 SQL 系列目录   章节 主题 状态    一 索引与执行计划 已发布   二 事务、隔离级别与锁 已发布   三 慢查询排查实战 已发布   四 分库分表与读写分离 已发布   五 窗口函数与 CTE 已发布   六 数">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 101 · SQL（七）：在线 DDL 与数据迁移">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2101-SQL%E5%9C%A8%E7%BA%BFDDL%E4%B8%8E%E6%95%B0%E6%8D%AE%E8%BF%81%E7%A7%BB/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 101 篇 线上改表为什么把库打挂：从 MDL 排队、ALGORITHM 选择，到大表变更工具与可回滚的三段式迁移。  📚 SQL 系列目录   章节 主题 状态    一 索引与执行计划 已发布   二 事务、隔离级别与锁 已发布   三 慢查询排查实战 已发布   四 分库分表与读写分离 已发布   五 窗口函数与 CTE 已发布   六 数">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-08T07:35:00.000Z">
+<meta property="article:modified_time" content="2026-10-08T03:19:32.914Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="sql">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 101 · SQL（七）：在线 DDL 与数据迁移 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 101 · SQL（七）：在线 DDL 与数据迁移"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-08 15:35" pubdate>
+          2026年10月8日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          3.3k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          28 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 101 · SQL（七）：在线 DDL 与数据迁移</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-08 · 第 101 篇</p>
+<p>线上改表为什么把库打挂：从 MDL 排队、ALGORITHM 选择，到大表变更工具与可回滚的三段式迁移。</p>
+</blockquote>
+<h2 id="📚-SQL-系列目录"><a href="#📚-SQL-系列目录" class="headerlink" title="📚 SQL 系列目录"></a>📚 SQL 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>索引与执行计划</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>事务、隔离级别与锁</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>慢查询排查实战</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td>分库分表与读写分离</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>五</td>
+<td>窗口函数与 CTE</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>六</td>
+<td>数据库设计与范式</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>七</td>
+<td>在线 DDL 与数据迁移</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>DDL 的危险不在 DDL 本身，而在它要抢的那把 MDL 排他锁 —— 一个未提交的长事务就能让 DDL 排队，进而堵死后面所有查询。</strong></p>
+<h2 id="一、DDL-为什么会锁表：MDL-才是主角"><a href="#一、DDL-为什么会锁表：MDL-才是主角" class="headerlink" title="一、DDL 为什么会锁表：MDL 才是主角"></a>一、DDL 为什么会锁表：MDL 才是主角</h2><p>MySQL 8.0 的 <code>ALTER TABLE</code> 执行分三段：<strong>准备阶段（拿 MDL 排他锁）→ 执行阶段（按 ALGORITHM 干活）→ 提交阶段（改元数据 + 再拿一次 MDL 排他锁）</strong>。</p>
+<p>关键在于：<strong>准备和提交阶段都需要短暂的 MDL 排他锁</strong>。这个锁必须等所有持有 MDL 共享锁的事务结束。</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs sql">时刻 T1  事务 A: <span class="hljs-keyword">BEGIN</span>; <span class="hljs-keyword">SELECT</span> <span class="hljs-operator">*</span> <span class="hljs-keyword">FROM</span> t <span class="hljs-keyword">WHERE</span> id<span class="hljs-operator">=</span><span class="hljs-number">1</span>;   <span class="hljs-comment">-- 持有 MDL 共享锁，未提交</span><br>时刻 T2  <span class="hljs-keyword">ALTER TABLE</span> t <span class="hljs-keyword">ADD</span> <span class="hljs-keyword">COLUMN</span> c <span class="hljs-type">INT</span>;              <span class="hljs-comment">-- 申请 MDL 排他锁 → 阻塞等待 A</span><br>时刻 T3  事务 B: <span class="hljs-keyword">SELECT</span> <span class="hljs-operator">*</span> <span class="hljs-keyword">FROM</span> t <span class="hljs-keyword">WHERE</span> id<span class="hljs-operator">=</span><span class="hljs-number">2</span>;          <span class="hljs-comment">-- 申请 MDL 共享锁 → 排在 ALTER 后面 → 阻塞</span><br>时刻 T4  事务 C<span class="hljs-operator">/</span>D<span class="hljs-operator">/</span>E ...: 所有访问 t 的查询全部排队     <span class="hljs-comment">-- 连接池打满，线上雪崩</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 这就是最经典的线上事故链：<strong>长事务 → DDL 等锁 → DDL 之后的查询全部排队</strong>。哪怕 DDL 本身是 <code>ALGORITHM=INSTANT</code> 也躲不过，因为卡的是 MDL，不是数据重建。</p>
+</blockquote>
+<h3 id="先杀掉长事务，再执行-DDL"><a href="#先杀掉长事务，再执行-DDL" class="headerlink" title="先杀掉长事务，再执行 DDL"></a>先杀掉长事务，再执行 DDL</h3><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><code class="hljs sql"><span class="hljs-comment">-- 找出运行超过 60 秒的事务</span><br><span class="hljs-keyword">SELECT</span> trx_id, trx_state, trx_started,<br>       TIMESTAMPDIFF(<span class="hljs-keyword">SECOND</span>, trx_started, NOW()) <span class="hljs-keyword">AS</span> secs,<br>       trx_mysql_thread_id, trx_query<br><span class="hljs-keyword">FROM</span> information_schema.innodb_trx<br><span class="hljs-keyword">WHERE</span> TIMESTAMPDIFF(<span class="hljs-keyword">SECOND</span>, trx_started, NOW()) <span class="hljs-operator">&gt;</span> <span class="hljs-number">60</span><br><span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> secs <span class="hljs-keyword">DESC</span>;<br><br><span class="hljs-comment">-- 找出持有 t 表 MDL 的会话</span><br><span class="hljs-keyword">SELECT</span> <span class="hljs-operator">*</span> <span class="hljs-keyword">FROM</span> performance_schema.metadata_locks<br><span class="hljs-keyword">WHERE</span> OBJECT_SCHEMA <span class="hljs-operator">=</span> <span class="hljs-string">&#x27;your_db&#x27;</span> <span class="hljs-keyword">AND</span> OBJECT_NAME <span class="hljs-operator">=</span> <span class="hljs-string">&#x27;t&#x27;</span> <span class="hljs-keyword">AND</span> LOCK_STATUS <span class="hljs-operator">=</span> <span class="hljs-string">&#x27;GRANTED&#x27;</span>;<br><br><span class="hljs-comment">-- 揪出阻塞链的源头</span><br><span class="hljs-keyword">SELECT</span> <span class="hljs-operator">*</span> <span class="hljs-keyword">FROM</span> sys.schema_table_lock_waits\G<br></code></pre></td></tr></table></figure>
+
+<h3 id="给-DDL-加锁等待超时，避免无限排队"><a href="#给-DDL-加锁等待超时，避免无限排队" class="headerlink" title="给 DDL 加锁等待超时，避免无限排队"></a>给 DDL 加锁等待超时，避免无限排队</h3><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs sql"><span class="hljs-keyword">SET</span> SESSION lock_wait_timeout <span class="hljs-operator">=</span> <span class="hljs-number">5</span>;   <span class="hljs-comment">-- DDL 等锁最多 5 秒，超时自己失败，别拖垮整个库</span><br><span class="hljs-keyword">ALTER TABLE</span> t <span class="hljs-keyword">ADD</span> <span class="hljs-keyword">COLUMN</span> c <span class="hljs-type">INT</span>, ALGORITHM<span class="hljs-operator">=</span>INSTANT;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>lock_wait_timeout</code> 是<strong>会话级</strong>的，DDL 默认值是 31536000 秒（一年）。不改它，DDL 会一直排队，把后面的查询全堵死。</p>
+</blockquote>
+<h2 id="二、ALGORITHM-三档：INSTANT-INPLACE-COPY"><a href="#二、ALGORITHM-三档：INSTANT-INPLACE-COPY" class="headerlink" title="二、ALGORITHM 三档：INSTANT &#x2F; INPLACE &#x2F; COPY"></a>二、ALGORITHM 三档：INSTANT &#x2F; INPLACE &#x2F; COPY</h2><table>
+<thead>
+<tr>
+<th>ALGORITHM</th>
+<th>是否重建表</th>
+<th>是否复制数据</th>
+<th>并发 DML</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>INSTANT</code></td>
+<td>否</td>
+<td>否</td>
+<td>✅</td>
+<td>只改元数据，毫秒级</td>
+</tr>
+<tr>
+<td><code>INPLACE</code></td>
+<td>多数否（部分原位重建）</td>
+<td>视操作</td>
+<td>✅（部分需 <code>LOCK=SHARED</code>）</td>
+<td>需记录 DDL 期间的并发变更</td>
+</tr>
+<tr>
+<td><code>COPY</code></td>
+<td><strong>是</strong></td>
+<td><strong>是</strong></td>
+<td>❌ 阻塞写</td>
+<td>最重，等于重建整张表</td>
+</tr>
+</tbody></table>
+<p><strong>哪些操作能走 INSTANT（MySQL 8.0 官方 Online DDL 表）：</strong></p>
+<table>
+<thead>
+<tr>
+<th>操作</th>
+<th>INSTANT 支持</th>
+<th>起始版本</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>ADD COLUMN</code></td>
+<td>✅</td>
+<td>8.0.12 起默认 INSTANT</td>
+</tr>
+<tr>
+<td><code>DROP COLUMN</code></td>
+<td>✅</td>
+<td>8.0.29 起默认 INSTANT</td>
+</tr>
+<tr>
+<td><code>RENAME COLUMN</code></td>
+<td>✅</td>
+<td>8.0.28 起（需同类型、同 NULL 属性）</td>
+</tr>
+<tr>
+<td>设置 &#x2F; 删除列默认值</td>
+<td>✅</td>
+<td>仅改数据字典</td>
+</tr>
+<tr>
+<td>末尾追加 ENUM &#x2F; SET 成员</td>
+<td>✅</td>
+<td>仅当存储大小不变</td>
+</tr>
+<tr>
+<td>加 &#x2F; 删 VIRTUAL 生成列</td>
+<td>✅</td>
+<td>非分区表</td>
+</tr>
+<tr>
+<td>重命名表</td>
+<td>✅</td>
+<td>仅重命名文件</td>
+</tr>
+<tr>
+<td>修改索引类型（<code>USING BTREE</code>）</td>
+<td>✅</td>
+<td>—</td>
+</tr>
+</tbody></table>
+<p><strong>哪些操作必须重建表（COPY 或 INPLACE 原位重建）：</strong></p>
+<table>
+<thead>
+<tr>
+<th>操作</th>
+<th>实际算法</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>修改列数据类型</strong></td>
+<td><code>COPY</code></td>
+<td>几乎一定重建，代价最大</td>
+</tr>
+<tr>
+<td>缩小 VARCHAR</td>
+<td><code>COPY</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td>VARCHAR 从 &lt;256 字节扩到 ≥256 字节</td>
+<td><code>COPY</code></td>
+<td>长度字节从 1 变 2</td>
+</tr>
+<tr>
+<td>删除主键（不加新主键）</td>
+<td><code>COPY</code></td>
+<td>只有 COPY 支持</td>
+</tr>
+<tr>
+<td>添加主键（单加）</td>
+<td><code>INPLACE</code></td>
+<td>原位重建，需 <code>SQL_MODE</code> 严格</td>
+</tr>
+<tr>
+<td>加 &#x2F; 删 STORED 生成列</td>
+<td><code>COPY</code> &#x2F; <code>INPLACE</code></td>
+<td>添加与改序仅 COPY</td>
+</tr>
+<tr>
+<td><code>PARTITION BY</code> &#x2F; <code>REMOVE PARTITIONING</code></td>
+<td><code>COPY</code></td>
+<td>重建整表</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>改列类型几乎一定是 COPY</strong>。所以「把 <code>VARCHAR(20)</code> 改成 <code>VARCHAR(64)</code>」这种扩长通常可以 INPLACE，但「<code>INT</code> 改 <code>BIGINT</code>」就是全表重建 —— 千万行表在高峰期执行等于自杀。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ INSTANT 有<strong>行版本上限 64</strong>：每次 INSTANT 加 &#x2F; 删列都会产生一个新行版本，由 <code>INFORMATION_SCHEMA.INNODB_TABLES.TOTAL_ROW_VERSIONS</code> 跟踪（<code>SELECT NAME, TOTAL_ROW_VERSIONS FROM INFORMATION_SCHEMA.INNODB_TABLES WHERE NAME LIKE &#39;%/t&#39;</code>），超过 64 后 INSTANT 会被拒绝，必须退回 INPLACE &#x2F; COPY 重建。</p>
+</blockquote>
+<h2 id="三、LOCK-级别与降级行为"><a href="#三、LOCK-级别与降级行为" class="headerlink" title="三、LOCK 级别与降级行为"></a>三、LOCK 级别与降级行为</h2><table>
+<thead>
+<tr>
+<th>LOCK</th>
+<th>允许并发读</th>
+<th>允许并发写</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>LOCK=NONE</code></td>
+<td>✅</td>
+<td>✅</td>
+<td>在线首选</td>
+</tr>
+<tr>
+<td><code>LOCK=SHARED</code></td>
+<td>✅</td>
+<td>❌</td>
+<td>如加 SPATIAL 索引</td>
+</tr>
+<tr>
+<td><code>LOCK=EXCLUSIVE</code></td>
+<td>❌</td>
+<td>❌</td>
+<td>最差，尽量避免</td>
+</tr>
+<tr>
+<td><code>LOCK=DEFAULT</code></td>
+<td>由操作决定</td>
+<td>由操作决定</td>
+<td>不显式指定时的行为</td>
+</tr>
+</tbody></table>
+<p><strong>降级规则</strong>（<code>ALGORITHM</code> &#x2F; <code>LOCK</code> 都是「向上申请、向下兼容」）：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs sql"><span class="hljs-comment">-- 明确要最轻量：不支持就报错，不要偷偷降级</span><br><span class="hljs-keyword">ALTER TABLE</span> t <span class="hljs-keyword">ADD</span> <span class="hljs-keyword">COLUMN</span> c <span class="hljs-type">INT</span>, ALGORITHM<span class="hljs-operator">=</span>INSTANT, LOCK<span class="hljs-operator">=</span><span class="hljs-keyword">NONE</span>;<br><br><span class="hljs-comment">-- 报错示例（不满足 INSTANT 条件时）</span><br><span class="hljs-comment">-- ERROR 4092 (HY000): ALGORITHM=INSTANT is not supported. Reason: ...</span><br><span class="hljs-comment">--                            Try ALGORITHM=INPLACE/COPY</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>不显式指定 <code>ALGORITHM</code> &#x2F; <code>LOCK</code> 时，MySQL 会自己挑一个</strong>。挑到 COPY 你也不知道 —— 生产环境 DDL <strong>永远显式写死</strong> <code>ALGORITHM</code> 和 <code>LOCK</code>。比如 <code>ALTER TABLE t MODIFY COLUMN c VARCHAR(64), ALGORITHM=INPLACE, LOCK=NONE;</code> —— 若只能 COPY，它会直接失败，而不是默默重建。</p>
+</blockquote>
+<h2 id="四、innodb-online-alter-log-max-size-与「DDL-跑到一半失败」"><a href="#四、innodb-online-alter-log-max-size-与「DDL-跑到一半失败」" class="headerlink" title="四、innodb_online_alter_log_max_size 与「DDL 跑到一半失败」"></a>四、innodb_online_alter_log_max_size 与「DDL 跑到一半失败」</h2><p>INPLACE 期间，并发 DML 的变更会写进一块 <strong>online alter log（临时日志）</strong>，等 DDL 完成后重放到新结构上。这块日志的大小上限由 <code>innodb_online_alter_log_max_size</code> 控制。</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>默认值</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>innodb_online_alter_log_max_size</code></td>
+<td>128 MB</td>
+<td>在线 DDL 期间并发 DML 日志上限</td>
+</tr>
+</tbody></table>
+<p><strong>超上限的后果</strong>：DDL <strong>直接失败并回滚</strong>，前面几小时的重建全部作废：</p>
+<figure class="highlight subunit"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs subunit"><span class="hljs-keyword">ERROR </span>1799 (HY000): Creating index &#x27;idx_x&#x27; required more than<br>&#x27;innodb_online_alter_log_max_size&#x27; bytes of modification log. Please try again.<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 大表 + 高写入的 INPLACE DDL 一定要<strong>先调大</strong>这个值（比如 1G），并且<strong>在低峰期执行</strong>。写入越猛，日志涨得越快，失败得越早。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 另一种失败是 <code>Lock wait timeout exceeded</code> —— 说明 DDL 在等 MDL，前面有长事务。<strong>先清长事务，再重试</strong>，不要盲目加大 <code>lock_wait_timeout</code>。</p>
+</blockquote>
+<h2 id="五、大表变更：pt-online-schema-change-与-gh-ost"><a href="#五、大表变更：pt-online-schema-change-与-gh-ost" class="headerlink" title="五、大表变更：pt-online-schema-change 与 gh-ost"></a>五、大表变更：pt-online-schema-change 与 gh-ost</h2><p><code>ALGORITHM=INSTANT</code> 覆盖不了所有场景（改类型、删主键、重建分区），大表这时要用外部工具。两者都是<strong>影子表</strong>思路，区别在<strong>怎么同步增量</strong>。</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>pt-online-schema-change</th>
+<th>gh-ost</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>增量同步方式</td>
+<td><strong>在源表上建触发器</strong>（INSERT&#x2F;UPDATE&#x2F;DELETE）</td>
+<td><strong>读取 binlog</strong>（伪装成 replica）</td>
+</tr>
+<tr>
+<td>对源表的影响</td>
+<td>触发器增加写入开销</td>
+<td>无触发器，源表几乎零额外负载</td>
+</tr>
+<tr>
+<td>需要权限</td>
+<td>建触发器权限</td>
+<td>REPLICATION SLAVE + REPLICATION CLIENT</td>
+</tr>
+<tr>
+<td>外键</td>
+<td>支持（受限）</td>
+<td>不支持外键</td>
+</tr>
+<tr>
+<td>暂停 &#x2F; 限速</td>
+<td>支持</td>
+<td>支持，且可动态调整</td>
+</tr>
+<tr>
+<td>切换（cut-over）</td>
+<td>短暂锁（<code>RENAME</code> 原子切换）</td>
+<td>同样短暂锁，需 <code>RENAME</code></td>
+</tr>
+<tr>
+<td>适用</td>
+<td>通用、成熟</td>
+<td>高写入大表、不想加触发器</td>
+</tr>
+</tbody></table>
+<figure class="highlight brainfuck"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs brainfuck"><span class="hljs-comment">pt</span><span class="hljs-literal">-</span><span class="hljs-comment">osc:  源表</span> <span class="hljs-literal">--</span><span class="hljs-comment">触发器</span><span class="hljs-literal">--</span>&gt; <span class="hljs-comment">影子表</span> <span class="hljs-literal">--</span><span class="hljs-comment">(拷完</span> <span class="hljs-literal">+</span> <span class="hljs-comment">切换)</span><span class="hljs-literal">--</span>&gt; <span class="hljs-comment">原子 RENAME</span><br><span class="hljs-comment">gh</span><span class="hljs-literal">-</span><span class="hljs-comment">ost:  源表</span> <span class="hljs-literal">--</span><span class="hljs-comment">binlog</span><span class="hljs-literal">--</span>&gt; <span class="hljs-comment">影子表</span> <span class="hljs-literal">--</span><span class="hljs-comment">(拷完</span> <span class="hljs-literal">+</span> <span class="hljs-comment">切换)</span><span class="hljs-literal">--</span>&gt; <span class="hljs-comment">原子 RENAME</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>两者切换瞬间都会短暂锁表</strong>（<code>RENAME TABLE</code> 需要 MDL），只是窗口从「小时级」压到「秒级」。这不是零锁，是「极小锁」。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>对主从延迟的影响是双刃剑</strong>：影子表重建会产生大量 binlog，从库重放跟不上 → 主从延迟飙升。所以工具都要<strong>限速</strong>（<code>--max-load</code> &#x2F; <code>--critical-load</code> &#x2F; <code>--chunk-time</code>），宁可慢，不要打爆从库。</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># gh-ost 典型调用</span><br>gh-ost \<br>  --host=127.0.0.1 --database=app --table=orders \<br>  --alter=<span class="hljs-string">&quot;MODIFY COLUMN amount DECIMAL(18,4) NOT NULL&quot;</span> \<br>  --allow-on-master --execute \<br>  --max-load=<span class="hljs-string">&#x27;Threads_running=50&#x27;</span> \<br>  --critical-load=<span class="hljs-string">&#x27;Threads_running=100&#x27;</span> \<br>  --chunk-size=1000 \<br>  --max-lag-millis=1500<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># pt-osc 典型调用：--max-load 控负载、--max-lag 控延迟、--chunk-time 控每批耗时</span><br>pt-online-schema-change --alter <span class="hljs-string">&quot;ADD INDEX idx_uid (user_id)&quot;</span> \<br>  --max-load=<span class="hljs-string">&#x27;Threads_running=50&#x27;</span> --critical-load=<span class="hljs-string">&#x27;Threads_running=100&#x27;</span> \<br>  --chunk-size=1000 --chunk-time=0.5 --max-lag=1 D=app,t=orders --execute<br></code></pre></td></tr></table></figure>
+
+<h2 id="六、迁移工具：版本表与-checksum"><a href="#六、迁移工具：版本表与-checksum" class="headerlink" title="六、迁移工具：版本表与 checksum"></a>六、迁移工具：版本表与 checksum</h2><table>
+<thead>
+<tr>
+<th>工具</th>
+<th>语言</th>
+<th>版本表</th>
+<th>校验机制</th>
+<th>回滚</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Flyway</td>
+<td>Java</td>
+<td><code>flyway_schema_history</code></td>
+<td>记录每个版本的 <strong>checksum</strong></td>
+<td>社区版无自动 undo（需 <code>undo</code> 脚本，Teams 版）</td>
+</tr>
+<tr>
+<td>Liquibase</td>
+<td>Java</td>
+<td><code>DATABASECHANGELOG</code></td>
+<td>changeset 级 checksum</td>
+<td>支持 <code>rollback</code>（需写 rollback 段）</td>
+</tr>
+<tr>
+<td>Alembic</td>
+<td>Python</td>
+<td><code>alembic_version</code></td>
+<td>链式 revision</td>
+<td><code>downgrade</code></td>
+</tr>
+<tr>
+<td>golang-migrate</td>
+<td>Go</td>
+<td><code>schema_migrations</code></td>
+<td><code>up</code> &#x2F; <code>down</code> 成对文件</td>
+<td><code>down</code> 脚本</td>
+</tr>
+</tbody></table>
+<p><strong>核心规则：已执行的迁移文件不能改。</strong></p>
+<figure class="highlight stata"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs stata">Flyway 启动时校验 flyway_schema_history 里每个版本的 <span class="hljs-keyword">checksum</span>；<br>如果本地文件被改过 → 校验失败 → 直接拒绝启动。<br><br>Validate failed: Migration <span class="hljs-keyword">checksum</span> mismatch <span class="hljs-keyword">for</span> migration <span class="hljs-keyword">version</span> 3<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>改已执行迁移 &#x3D; 改了历史</strong>。线上环境会 checksum 失败启动不了；就算强制忽略，各环境结构已经分叉。<strong>要改就新增一个版本，不要动老的。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>回滚脚本要不要写？</strong> 看场景：结构变更（加列）用「向后兼容 + 新增修复版本」比 <code>down</code> 更安全 —— <code>down</code> 在生产常常没法真正回滚（数据已经写进去了）。<strong>数据变更的 <code>down</code> 基本是骗自己</strong>。</p>
+</blockquote>
+<h2 id="七、向后兼容的三段式迁移（expand-→-migrate-→-contract）"><a href="#七、向后兼容的三段式迁移（expand-→-migrate-→-contract）" class="headerlink" title="七、向后兼容的三段式迁移（expand → migrate → contract）"></a>七、向后兼容的三段式迁移（expand → migrate → contract）</h2><p><strong>目标：每一步都可以独立回滚，且任意时刻新旧代码都能跑。</strong></p>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>动作</th>
+<th>兼容性</th>
+<th>回滚</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>① Expand（扩展）</td>
+<td>加新列 &#x2F; 新表（<strong>可空、带默认值</strong>）</td>
+<td>新旧代码都能跑</td>
+<td>删列（无数据损失）</td>
+</tr>
+<tr>
+<td>② Migrate（双写迁移）</td>
+<td>应用<strong>同时写新旧结构</strong>，回填历史数据</td>
+<td>新旧都能跑</td>
+<td>停双写，回到单写</td>
+</tr>
+<tr>
+<td>③ Contract（收缩）</td>
+<td>确认无读旧结构后，<strong>删旧列 &#x2F; 旧表</strong></td>
+<td>只跑新代码</td>
+<td>需从备份恢复（不可逆）</td>
+</tr>
+</tbody></table>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs sql"><span class="hljs-comment">-- ① Expand：加列必须可空或带默认值，避免阻塞</span><br><span class="hljs-keyword">ALTER TABLE</span> users <span class="hljs-keyword">ADD</span> <span class="hljs-keyword">COLUMN</span> phone_new <span class="hljs-type">VARCHAR</span>(<span class="hljs-number">32</span>) <span class="hljs-keyword">NULL</span>, ALGORITHM<span class="hljs-operator">=</span>INSTANT;<br><br><span class="hljs-comment">-- ② Migrate：分批回填（见下节），应用层双写 phone + phone_new</span><br><br><span class="hljs-comment">-- ③ Contract：确认旧列无引用后删除</span><br><span class="hljs-keyword">ALTER TABLE</span> users <span class="hljs-keyword">DROP</span> <span class="hljs-keyword">COLUMN</span> phone, ALGORITHM<span class="hljs-operator">=</span>INSTANT;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>改列名不要直接 <code>RENAME COLUMN</code> 就上线</strong>。老代码还在读旧名，会立刻报 <code>Unknown column</code>。<strong>正确姿势是加新列 + 双写 + 回填 + 切读 + 删旧列</strong>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>加列带 <code>NOT NULL</code> 且无默认值</strong>在 COPY 算法下会重建表；即使 INSTANT 也要求默认值语义明确。<strong>能可空就先用可空</strong>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>Contract 阶段是不可逆的</strong>。删列前必须确认：代码里没有任何 SQL 引用该列（含 ORM、视图、存储过程、BI 报表）。<strong>删列前的搜索范围往往被低估。</strong></p>
+</blockquote>
+<h2 id="八、大表数据回填：分批-限速-断点续传"><a href="#八、大表数据回填：分批-限速-断点续传" class="headerlink" title="八、大表数据回填：分批 + 限速 + 断点续传"></a>八、大表数据回填：分批 + 限速 + 断点续传</h2><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs sql"><span class="hljs-comment">-- ❌ 绝对不要：一条 UPDATE 全表 —— 千万行 = 巨型事务，undo 爆、主从延迟爆</span><br><span class="hljs-keyword">UPDATE</span> users <span class="hljs-keyword">SET</span> phone_new <span class="hljs-operator">=</span> phone;<br><br><span class="hljs-comment">-- ✅ 按主键区间切片 + 幂等条件（可断点续传），每批 1000 行</span><br><span class="hljs-keyword">UPDATE</span> users <span class="hljs-keyword">SET</span> phone_new <span class="hljs-operator">=</span> phone<br><span class="hljs-keyword">WHERE</span> id <span class="hljs-operator">&gt;</span> <span class="hljs-number">0</span> <span class="hljs-keyword">AND</span> id <span class="hljs-operator">&lt;=</span> <span class="hljs-number">1000</span> <span class="hljs-keyword">AND</span> phone_new <span class="hljs-keyword">IS</span> <span class="hljs-keyword">NULL</span>;<br><br><span class="hljs-comment">-- ✅ 更稳的 LIMIT 批处理：循环执行直到 affected rows = 0</span><br><span class="hljs-keyword">UPDATE</span> users <span class="hljs-keyword">SET</span> phone_new <span class="hljs-operator">=</span> phone<br><span class="hljs-keyword">WHERE</span> phone_new <span class="hljs-keyword">IS</span> <span class="hljs-keyword">NULL</span> <span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> id LIMIT <span class="hljs-number">1000</span>;<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 分批回填 + 限速 + 观测主从延迟</span><br><span class="hljs-keyword">while</span> <span class="hljs-literal">true</span>; <span class="hljs-keyword">do</span><br>  rows=$(mysql -N -e <span class="hljs-string">&quot;UPDATE users SET phone_new=phone WHERE phone_new IS NULL ORDER BY id LIMIT 1000; SELECT ROW_COUNT();&quot;</span>)<br>  [ <span class="hljs-string">&quot;<span class="hljs-variable">$rows</span>&quot;</span> -eq 0 ] &amp;&amp; <span class="hljs-built_in">break</span><br>  lag=$(mysql -N -e <span class="hljs-string">&quot;SHOW REPLICA STATUS\G&quot;</span> | awk <span class="hljs-string">&#x27;/Seconds_Behind_Source/&#123;print $2&#125;&#x27;</span>)<br>  [ <span class="hljs-string">&quot;<span class="hljs-variable">$lag</span>&quot;</span> -gt 5 ] &amp;&amp; <span class="hljs-built_in">sleep</span> 5        <span class="hljs-comment"># 延迟超阈值就歇一歇</span><br>  <span class="hljs-built_in">sleep</span> 0.1                          <span class="hljs-comment"># 别不打盹，等于持续压测</span><br><span class="hljs-keyword">done</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>断点续传靠的是「条件可重入」</strong>：<code>WHERE phone_new IS NULL</code> 这种幂等条件，中断后重跑不会重复处理。别用「第 N 页」这种游标，中间插入 &#x2F; 删除就错位。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>每批之间要 sleep</strong>（如 50~200ms），否则等于对数据库做持续压测。观察 <code>Threads_running</code> 和主从延迟，超阈值就停。</p>
+</blockquote>
+<h2 id="九、主从延迟、校验与演练"><a href="#九、主从延迟、校验与演练" class="headerlink" title="九、主从延迟、校验与演练"></a>九、主从延迟、校验与演练</h2><table>
+<thead>
+<tr>
+<th>关注点</th>
+<th>现象</th>
+<th>对策</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>从库延迟</td>
+<td>重建 &#x2F; 回填产生海量 binlog，从库重放慢</td>
+<td>限速、低峰执行、临时提高 <code>replica_parallel_workers</code></td>
+</tr>
+<tr>
+<td>读写分离读旧结构</td>
+<td>从库还没应用 DDL，读到旧表结构报错</td>
+<td>DDL 后<strong>等从库追平</strong>再切流量；或短暂关闭读从库</td>
+</tr>
+<tr>
+<td>校验</td>
+<td>迁移后行数 &#x2F; 内容对不上</td>
+<td>行数比对 + checksum + 抽样</td>
+</tr>
+<tr>
+<td>演练</td>
+<td>生产执行时长无法预估</td>
+<td><strong>先在影子库跑一遍全流程</strong>，量出耗时</td>
+</tr>
+</tbody></table>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs sql"><span class="hljs-comment">-- 行数比对：主库 / 从库 COUNT(*) 必须一致</span><br><span class="hljs-comment">-- 抽样比对：下列应返回空</span><br><span class="hljs-keyword">SELECT</span> id, phone, phone_new <span class="hljs-keyword">FROM</span> users<br><span class="hljs-keyword">WHERE</span> phone <span class="hljs-operator">&lt;&gt;</span> phone_new <span class="hljs-keyword">OR</span> (phone <span class="hljs-keyword">IS</span> <span class="hljs-keyword">NULL</span>) <span class="hljs-operator">&lt;&gt;</span> (phone_new <span class="hljs-keyword">IS</span> <span class="hljs-keyword">NULL</span>) LIMIT <span class="hljs-number">20</span>;<br><br><span class="hljs-comment">-- 校验和（按区间比对）</span><br><span class="hljs-keyword">SELECT</span> BIT_XOR(CRC32(CONCAT_WS(<span class="hljs-string">&#x27;#&#x27;</span>, id, phone, phone_new))) <span class="hljs-keyword">AS</span> chk<br><span class="hljs-keyword">FROM</span> users <span class="hljs-keyword">WHERE</span> id <span class="hljs-keyword">BETWEEN</span> <span class="hljs-number">1</span> <span class="hljs-keyword">AND</span> <span class="hljs-number">100000</span>;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>双写期间的一致性校验只能抽样 + 对账</strong>，全量校验成本极高。生产做法通常是<strong>按天对账 + 差异修复</strong>，而不是实时全量比对。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>迁移演练不是可选项</strong>。同一张表在测试库（10 万行）和生产（1 亿行）的执行时间差几个数量级。<strong>用生产数据量的影子库跑一遍，才能估出窗口。</strong></p>
+</blockquote>
+<h3 id="跨库迁移的三条路"><a href="#跨库迁移的三条路" class="headerlink" title="跨库迁移的三条路"></a>跨库迁移的三条路</h3><table>
+<thead>
+<tr>
+<th>方式</th>
+<th>原理</th>
+<th>适用</th>
+<th>注意</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>导出导入</td>
+<td><code>mysqldump</code> &#x2F; <code>SELECT INTO OUTFILE</code></td>
+<td>一次性、可停机</td>
+<td>大表慢，需分批</td>
+</tr>
+<tr>
+<td>binlog 同步</td>
+<td>主从复制 &#x2F; <code>mysqlbinlog</code> 回放</td>
+<td>增量、近实时</td>
+<td>需处理 DDL 与 GTID</td>
+</tr>
+<tr>
+<td>CDC（Debezium）</td>
+<td>解析 binlog → Kafka</td>
+<td>不停机、可多下游</td>
+<td>需维护位点、处理 schema 变更</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ CDC 的<strong>位点（offset）管理是命门</strong>：位点丢了要么丢数据、要么重复。必须有<strong>幂等消费 + 位点持久化</strong>，不能只靠「重启从上次位置继续」。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 生产 DDL 不显式指定 <code>ALGORITHM</code> &#x2F; <code>LOCK</code>，被 MySQL 默默降级成 COPY 重建</li>
+<li><input disabled="" type="checkbox"> 执行 DDL 前不检查长事务，MDL 排队把后续所有查询堵死</li>
+<li><input disabled="" type="checkbox"> <code>lock_wait_timeout</code> 用默认值（一年），DDL 无限排队</li>
+<li><input disabled="" type="checkbox"> 忘记 INSTANT 行版本上限 64，反复加 &#x2F; 删列后突然无法 INSTANT</li>
+<li><input disabled="" type="checkbox"> 高峰期在大表上 <code>MODIFY COLUMN</code> 改类型（COPY 重建）</li>
+<li><input disabled="" type="checkbox"> <code>innodb_online_alter_log_max_size</code> 太小，INPLACE 跑到一半失败回滚</li>
+<li><input disabled="" type="checkbox"> 大表直接用 <code>ALTER TABLE</code> 而不是 gh-ost &#x2F; pt-osc</li>
+<li><input disabled="" type="checkbox"> 用 pt-osc 却忽略触发器带来的源表写入开销</li>
+<li><input disabled="" type="checkbox"> 大表变更不限速，从库延迟飙升拖垮读业务</li>
+<li><input disabled="" type="checkbox"> 修改已经执行过的迁移文件，导致 checksum 校验失败</li>
+<li><input disabled="" type="checkbox"> 生产环境指望 <code>down</code> &#x2F; rollback 脚本真正回滚数据变更</li>
+<li><input disabled="" type="checkbox"> 改列名直接 <code>RENAME COLUMN</code>，老代码立刻 <code>Unknown column</code></li>
+<li><input disabled="" type="checkbox"> 加列时带 <code>NOT NULL</code> 且无默认值，触发重建</li>
+<li><input disabled="" type="checkbox"> 回填脚本不幂等，中断后重跑重复处理或错位</li>
+<li><input disabled="" type="checkbox"> 回填不限速、无 sleep，等于对库持续压测</li>
+<li><input disabled="" type="checkbox"> DDL 后不等从库追平就切读流量，读到旧结构</li>
+<li><input disabled="" type="checkbox"> 迁移不做影子库演练，上线才发现耗时远超窗口</li>
+<li><input disabled="" type="checkbox"> Contract 阶段删列前没有全量搜索引用（视图 &#x2F; 存储过程 &#x2F; BI）</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://dev.mysql.com/doc/refman/8.0/en/innodb-online-ddl-operations.html">MySQL 8.0 · Online DDL Operations</a> · <a target="_blank" rel="noopener" href="https://dev.mysql.com/doc/refman/8.0/en/innodb-online-ddl-limitations.html">MySQL 8.0 · Online DDL Limitations</a> · <a target="_blank" rel="noopener" href="https://dev.mysql.com/doc/refman/8.0/en/innodb-parameters.html#sysvar_innodb_online_alter_log_max_size">MySQL 8.0 · innodb_online_alter_log_max_size</a> · <a target="_blank" rel="noopener" href="https://dev.mysql.com/doc/refman/8.0/en/performance-schema-metadata-locks-table.html">MySQL 8.0 · performance_schema.metadata_locks</a> · <a target="_blank" rel="noopener" href="https://github.com/github/gh-ost">gh-ost · GitHub</a> · <a target="_blank" rel="noopener" href="https://docs.percona.com/percona-toolkit/pt-online-schema-change.html">Percona Toolkit · pt-online-schema-change</a> · <a target="_blank" rel="noopener" href="https://documentation.red-gate.com/flyway/flyway-concepts/migrations">Flyway · Checksums</a> · <a target="_blank" rel="noopener" href="https://debezium.io/documentation/reference/stable/connectors/mysql.html">Debezium · MySQL Connector</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/sql/" class="category-chain-item">sql</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/sql/" class="print-no-link">#sql</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 101 · SQL（七）：在线 DDL 与数据迁移</div>
+      <div>https://ethan-iopasd.github.io/2026/10/08/每日技术博客101-SQL在线DDL与数据迁移/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月8日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2085-SQL%E6%95%B0%E6%8D%AE%E5%BA%93%E8%AE%BE%E8%AE%A1%E4%B8%8E%E8%8C%83%E5%BC%8F/" title="每日技术博客 085 · SQL（六）：数据库设计与范式">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 085 · SQL（六）：数据库设计与范式</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

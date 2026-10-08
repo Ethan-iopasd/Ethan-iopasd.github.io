@@ -1,0 +1,1009 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 098 篇 Vue 3 系列收尾：自定义指令只能拿 DOM、Teleport 解决层叠上下文、插件机制决定全局能力怎么注入 —— 三者都是框架留的逃生舱，用错比不用更贵。  📚 Vue 3 系列目录   章节 主题 状态    一 模板语法、响应式与组合式 API 已发布   二 组件、Props &#x2F; Emits &#x2F; 插槽与双">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 098 · Vue 3（十）：自定义指令、Teleport 与插件机制">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2098-Vue3%E8%87%AA%E5%AE%9A%E4%B9%89%E6%8C%87%E4%BB%A4%E4%B8%8E%E6%8F%92%E4%BB%B6%E6%9C%BA%E5%88%B6/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 098 篇 Vue 3 系列收尾：自定义指令只能拿 DOM、Teleport 解决层叠上下文、插件机制决定全局能力怎么注入 —— 三者都是框架留的逃生舱，用错比不用更贵。  📚 Vue 3 系列目录   章节 主题 状态    一 模板语法、响应式与组合式 API 已发布   二 组件、Props &#x2F; Emits &#x2F; 插槽与双">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-08T07:20:00.000Z">
+<meta property="article:modified_time" content="2026-10-08T03:19:00.225Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="vue3">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 098 · Vue 3（十）：自定义指令、Teleport 与插件机制 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 098 · Vue 3（十）：自定义指令、Teleport 与插件机制"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-08 15:20" pubdate>
+          2026年10月8日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.9k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          25 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 098 · Vue 3（十）：自定义指令、Teleport 与插件机制</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-08 · 第 098 篇</p>
+<p>Vue 3 系列收尾：自定义指令只能拿 DOM、Teleport 解决层叠上下文、插件机制决定全局能力怎么注入 —— 三者都是框架留的逃生舱，用错比不用更贵。</p>
+</blockquote>
+<h2 id="📚-Vue-3-系列目录"><a href="#📚-Vue-3-系列目录" class="headerlink" title="📚 Vue 3 系列目录"></a>📚 Vue 3 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>模板语法、响应式与组合式 API</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>组件、Props &#x2F; Emits &#x2F; 插槽与双向绑定</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>Vue Router 路由</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td>Pinia 状态管理</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>五</td>
+<td>性能优化与生产构建</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>六</td>
+<td>组合式函数与逻辑复用</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>七</td>
+<td>测试与调试</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>八</td>
+<td>组件设计模式与渲染机制</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>九</td>
+<td>国际化、SSR 与微前端</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>十</td>
+<td>自定义指令、Teleport 与插件机制</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>自定义指令是操作 DOM 的最后手段，不是逻辑复用的手段。</strong> 逻辑复用优先用 composable；只有当需求本质是「对某个 DOM 元素做副作用」时才写指令。Teleport 管「DOM 渲染到哪」，插件管「全局能力怎么注入」。</p>
+<h2 id="一、自定义指令：钩子与生命周期的对应"><a href="#一、自定义指令：钩子与生命周期的对应" class="headerlink" title="一、自定义指令：钩子与生命周期的对应"></a>一、自定义指令：钩子与生命周期的对应</h2><p>指令对象是一组钩子，触发时机与<strong>所在组件</strong>强相关，作用对象是<strong>绑定的元素</strong>。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> vFocus = &#123;<br>  <span class="hljs-title function_">created</span>(<span class="hljs-params">el, binding</span>) &#123;&#125;,          <span class="hljs-comment">// 属性/监听器应用前，未插入 DOM</span><br>  <span class="hljs-title function_">beforeMount</span>(<span class="hljs-params">el, binding</span>) &#123;&#125;,      <span class="hljs-comment">// 元素即将插入</span><br>  <span class="hljs-title function_">mounted</span>(<span class="hljs-params">el, binding</span>) &#123; el.<span class="hljs-title function_">focus</span>() &#125;,  <span class="hljs-comment">// 已插入父节点（最常用）</span><br>  <span class="hljs-title function_">beforeUpdate</span>(<span class="hljs-params">el, binding</span>) &#123;&#125;,     <span class="hljs-comment">// 所在组件更新前</span><br>  <span class="hljs-title function_">updated</span>(<span class="hljs-params">el, binding</span>) &#123;&#125;,          <span class="hljs-comment">// 组件与子组件都更新后</span><br>  <span class="hljs-title function_">beforeUnmount</span>(<span class="hljs-params">el, binding</span>) &#123;&#125;,    <span class="hljs-comment">// 移除前</span><br>  <span class="hljs-title function_">unmounted</span>(<span class="hljs-params">el, binding</span>) &#123;&#125;,        <span class="hljs-comment">// 移除后</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>指令钩子</th>
+<th>触发时机</th>
+<th>对应组件钩子</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>created</code></td>
+<td>属性应用前，<strong>未插入 DOM</strong></td>
+<td>早于 <code>onBeforeMount</code></td>
+</tr>
+<tr>
+<td><code>beforeMount</code></td>
+<td>即将插入 DOM</td>
+<td><code>onBeforeMount</code> 附近</td>
+</tr>
+<tr>
+<td><code>mounted</code></td>
+<td>已插入父节点</td>
+<td><code>onMounted</code> 附近，<strong>子元素可能未就绪</strong></td>
+</tr>
+<tr>
+<td><code>beforeUpdate</code></td>
+<td>所在组件更新前</td>
+<td><code>onBeforeUpdate</code></td>
+</tr>
+<tr>
+<td><code>updated</code></td>
+<td>组件与子组件都更新完</td>
+<td><code>onUpdated</code></td>
+</tr>
+<tr>
+<td><code>beforeUnmount</code></td>
+<td>元素移除前</td>
+<td><code>onBeforeUnmount</code></td>
+</tr>
+<tr>
+<td><code>unmounted</code></td>
+<td>元素移除后</td>
+<td><code>onUnmounted</code></td>
+</tr>
+</tbody></table>
+<p>简写形式只对 <code>mounted</code> &#x2F; <code>updated</code> 有效：<code>app.directive(&#39;color&#39;, (el, b) =&gt; &#123; el.style.color = b.value &#125;)</code>。</p>
+<blockquote>
+<p>⚠️ <code>mounted</code> 只保证本元素插入了，不保证子节点完成布局。在 <code>mounted</code> 里读 <code>scrollHeight</code> &#x2F; 子元素宽度可能拿到旧值，用 <code>nextTick</code> 或 <code>requestAnimationFrame</code> 兜一层。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>updated</code> 在<strong>所在组件任意更新</strong>时都触发，哪怕绑定的值没变。昂贵逻辑要先判断 <code>binding.value !== binding.oldValue</code>。</p>
+</blockquote>
+<h3 id="binding-三件套"><a href="#binding-三件套" class="headerlink" title="binding 三件套"></a>binding 三件套</h3><p><code>v-demo:foo.bar.baz=&quot;someValue&quot;</code> 解析为 <code>&#123; value, oldValue, arg: &#39;foo&#39;, modifiers: &#123; bar: true, baz: true &#125;, instance, dir &#125;</code>。<code>oldValue</code> 仅 <code>beforeUpdate</code> &#x2F; <code>updated</code> 中有。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> vDebounce = &#123;<br>  <span class="hljs-title function_">mounted</span>(<span class="hljs-params">el, binding</span>) &#123;<br>    <span class="hljs-keyword">const</span> event = binding.<span class="hljs-property">arg</span> || <span class="hljs-string">&#x27;click&#x27;</span><br>    <span class="hljs-keyword">const</span> wrapped = <span class="hljs-title function_">debounce</span>(binding.<span class="hljs-property">value</span>, <span class="hljs-title class_">Number</span>(binding.<span class="hljs-property">modifiers</span>.<span class="hljs-property">wait</span>) || <span class="hljs-number">300</span>)<br>    el.<span class="hljs-property">__db__</span> = &#123; wrapped, event &#125;<br>    el.<span class="hljs-title function_">addEventListener</span>(event, wrapped)<br>  &#125;,<br>  <span class="hljs-title function_">unmounted</span>(<span class="hljs-params">el</span>) &#123;<br>    <span class="hljs-keyword">if</span> (el.<span class="hljs-property">__db__</span>) &#123; el.<span class="hljs-title function_">removeEventListener</span>(el.<span class="hljs-property">__db__</span>.<span class="hljs-property">event</span>, el.<span class="hljs-property">__db__</span>.<span class="hljs-property">wrapped</span>); <span class="hljs-keyword">delete</span> el.<span class="hljs-property">__db__</span> &#125;<br>  &#125;,<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 指令挂在 <code>el</code> 上的属性与监听器<strong>必须自己在 <code>unmounted</code> 清</strong>。不 <code>removeEventListener</code> 时，闭包连同组件状态一起泄漏。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>binding.value</code> 是<strong>快照</strong>，不是响应式引用。值内部变化不会重跑指令；只有绑定表达式求值结果变化、且组件因此更新时才触发 <code>updated</code>。要响应深层变化得自己在 <code>mounted</code> 里 <code>watch</code>。</p>
+</blockquote>
+<h2 id="二、指令-vs-组合式函数：能不用就不用"><a href="#二、指令-vs-组合式函数：能不用就不用" class="headerlink" title="二、指令 vs 组合式函数：能不用就不用"></a>二、指令 vs 组合式函数：能不用就不用</h2><table>
+<thead>
+<tr>
+<th>需求</th>
+<th>指令</th>
+<th>composable</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>自动聚焦</td>
+<td>✅ 直观</td>
+<td>可以</td>
+</tr>
+<tr>
+<td>数据请求 &#x2F; 状态</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>需要返回值 &#x2F; 多个值</td>
+<td>❌ 拿不到</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>参与响应式依赖追踪</td>
+<td>❌ 只有 DOM</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>模板外复用</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>SSR 下工作</td>
+<td>⚠️ 需 <code>getSSRProps</code></td>
+<td>✅</td>
+</tr>
+<tr>
+<td>纯逻辑单测</td>
+<td>❌ 要真实 DOM</td>
+<td>✅</td>
+</tr>
+</tbody></table>
+<p><strong>判断标准：输入输出与 DOM 无关的逻辑，就不该是指令。</strong> 指令只能拿 <code>el</code> 和 <code>binding</code>，无法返回值、无法被单测，这是硬边界 —— 比如「曝光时长」这类返回值只有 composable 能给。</p>
+<h3 id="v-permission-做按钮级权限"><a href="#v-permission-做按钮级权限" class="headerlink" title="v-permission 做按钮级权限"></a>v-permission 做按钮级权限</h3><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> vPermission = &#123;<br>  <span class="hljs-title function_">mounted</span>(<span class="hljs-params">el, binding</span>) &#123;<br>    <span class="hljs-keyword">const</span> store = <span class="hljs-title function_">usePermissionStore</span>()<br>    <span class="hljs-keyword">const</span> list = <span class="hljs-title class_">Array</span>.<span class="hljs-title function_">isArray</span>(binding.<span class="hljs-property">value</span>) ? binding.<span class="hljs-property">value</span> : [binding.<span class="hljs-property">value</span>]<br>    <span class="hljs-keyword">const</span> ok = binding.<span class="hljs-property">arg</span> === <span class="hljs-string">&#x27;any&#x27;</span> ? list.<span class="hljs-title function_">some</span>(<span class="hljs-function"><span class="hljs-params">p</span> =&gt;</span> store.<span class="hljs-title function_">has</span>(p)) : list.<span class="hljs-title function_">every</span>(<span class="hljs-function"><span class="hljs-params">p</span> =&gt;</span> store.<span class="hljs-title function_">has</span>(p))<br>    <span class="hljs-keyword">if</span> (!ok) el.<span class="hljs-property">parentNode</span>?.<span class="hljs-title function_">removeChild</span>(el)<br>  &#125;,<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs html"><span class="hljs-tag">&lt;<span class="hljs-name">button</span> <span class="hljs-attr">v-permission</span>=<span class="hljs-string">&quot;&#x27;user:delete&#x27;&quot;</span>&gt;</span>删除<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span><br><span class="hljs-tag">&lt;<span class="hljs-name">button</span> <span class="hljs-attr">v-permission:any</span>=<span class="hljs-string">&quot;[&#x27;user:edit&#x27;, &#x27;user:delete&#x27;]&quot;</span>&gt;</span>编辑<span class="hljs-tag">&lt;/<span class="hljs-name">button</span>&gt;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 前端权限指令只是 UI 遮挡，<strong>不是安全边界</strong>。元素被移除，接口照样能被直接调用，真正的校验必须在后端。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>removeChild</code> 之后元素<strong>不会</strong>被 Vue 插回。权限异步加载时 <code>mounted</code> 里 store 还是空的，按钮被误删且不恢复 —— 要么等权限就绪再渲染，要么改用 <code>display: none</code>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 多数场景用 <code>v-if</code> + 权限函数比指令更好：条件在模板里显式可见，接手的人不用翻指令定义。</p>
+</blockquote>
+<h3 id="指令在-SSR-下的行为"><a href="#指令在-SSR-下的行为" class="headerlink" title="指令在 SSR 下的行为"></a>指令在 SSR 下的行为</h3><p><strong>服务端没有 DOM</strong>，所以挂载类钩子（<code>created</code> 之外）在 SSR 期间<strong>不执行</strong>。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> vFocus = &#123;<br>  <span class="hljs-title function_">mounted</span>(<span class="hljs-params">el</span>) &#123; el.<span class="hljs-title function_">focus</span>() &#125;,            <span class="hljs-comment">// SSR 阶段不跑</span><br>  <span class="hljs-title function_">getSSRProps</span>(<span class="hljs-params">binding, vnode</span>) &#123; <span class="hljs-keyword">return</span> &#123; <span class="hljs-attr">autofocus</span>: <span class="hljs-string">&#x27;&#x27;</span> &#125; &#125;,  <span class="hljs-comment">// 合并到服务端渲染的属性</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 依赖 DOM 测量 &#x2F; 事件绑定 &#x2F; 第三方 DOM 库的指令在 SSR 下<strong>静默失效</strong> —— 不报错，客户端 hydration 后才有行为，表现为首屏闪烁。别只盯着组件代码排查。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 在 <code>beforeMount</code> 里增删 DOM 会导致 hydration mismatch；<code>mounted</code> 里改则不会（它在 hydration 之后跑）。</p>
+</blockquote>
+<h2 id="三、Teleport：把-DOM-渲染到别处"><a href="#三、Teleport：把-DOM-渲染到别处" class="headerlink" title="三、Teleport：把 DOM 渲染到别处"></a>三、Teleport：把 DOM 渲染到别处</h2><p>核心场景：模态框、通知、下拉菜单。它们需要脱离父级 DOM 树，否则会被父级 <code>overflow: hidden</code> 裁掉，或被父级的 <code>transform</code> &#x2F; <code>filter</code> &#x2F; <code>z-index</code> 创建的新层叠上下文困住。</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs html"><span class="hljs-comment">&lt;!-- ❌ 父级 overflow:hidden 或 transform → 弹层被裁 / z-index 失效 --&gt;</span><br><span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">style</span>=<span class="hljs-string">&quot;overflow:hidden; transform: translateZ(0)&quot;</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">class</span>=<span class="hljs-string">&quot;dropdown&quot;</span>&gt;</span>...<span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span><br><br><span class="hljs-comment">&lt;!-- ✅ 传送出去 --&gt;</span><br><span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">style</span>=<span class="hljs-string">&quot;overflow:hidden&quot;</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-name">Teleport</span> <span class="hljs-attr">to</span>=<span class="hljs-string">&quot;body&quot;</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">class</span>=<span class="hljs-string">&quot;dropdown&quot;</span>&gt;</span>...<span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">Teleport</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>属性</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>to</code></td>
+<td>目标选择器 &#x2F; 元素，如 <code>body</code>、<code>#modal-root</code></td>
+</tr>
+<tr>
+<td><code>disabled</code></td>
+<td><code>true</code> 时原地渲染，不传送</td>
+</tr>
+<tr>
+<td><code>defer</code>（3.5+）</td>
+<td>推迟到本渲染周期之后再解析目标</td>
+</tr>
+</tbody></table>
+<p>多个 Teleport 到同一目标：<strong>按模板挂载顺序依次追加</strong>（先出现的在前），与 <code>z-index</code> 无关。</p>
+<blockquote>
+<p>⚠️ <code>to</code> 的目标<strong>必须已存在</strong>。目标在同一次渲染里才创建时，3.5 之前直接报错，这就是 <code>defer</code> 被引入的原因。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ Teleport 只改 DOM 位置，<strong>不改组件树的逻辑父子关系</strong>。事件冒泡按 DOM 树走（冒到 <code>body</code> 下的祖先，不是模板里的父组件），<code>provide/inject</code> 仍按组件树走。「点击外部关闭」靠冒泡判断时会和直觉不一致。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ SSR 下 Teleport 内容在服务端不会真的插到 <code>to</code> 位置，客户端 hydration 时才传送，可能布局跳动。</p>
+</blockquote>
+<h2 id="四、Suspense：等待异步依赖"><a href="#四、Suspense：等待异步依赖" class="headerlink" title="四、Suspense：等待异步依赖"></a>四、Suspense：等待异步依赖</h2><figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs html"><span class="hljs-tag">&lt;<span class="hljs-name">Suspense</span>&gt;</span><br>  <span class="hljs-tag">&lt;<span class="hljs-name">template</span> #<span class="hljs-attr">default</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-name">AsyncProfile</span> /&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">template</span>&gt;</span><br>  <span class="hljs-tag">&lt;<span class="hljs-name">template</span> #<span class="hljs-attr">fallback</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-name">div</span>&gt;</span>加载中...<span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">template</span>&gt;</span><br><span class="hljs-tag">&lt;/<span class="hljs-name">Suspense</span>&gt;</span><br></code></pre></td></tr></table></figure>
+
+<p>它等待默认插槽内的<strong>异步依赖</strong>：<code>defineAsyncComponent</code> 的异步组件，或 <code>setup</code> 顶层 <code>await</code> 的组件。事件有 <code>pending</code>（进入挂起）、<code>resolve</code>（默认插槽完成）、<code>fallback</code>（fallback 显示）。</p>
+<blockquote>
+<p>⚠️ <strong><code>Suspense</code> 截至 Vue 3.5 仍是实验性 API</strong>，官方标注 API 可能变化，生产使用要有跟版本改的心理准备。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>Suspense</code> 只等待<strong>直接异步依赖</strong>，嵌套 Suspense 不向上冒泡；异步失败会抛到边界，需 <code>onErrorCaptured</code> 兜底，否则整棵树崩掉。</p>
+</blockquote>
+<h2 id="五、插件机制：app-use"><a href="#五、插件机制：app-use" class="headerlink" title="五、插件机制：app.use"></a>五、插件机制：app.use</h2><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-comment">// 形式一：带 install 的对象</span><br><span class="hljs-keyword">const</span> <span class="hljs-title class_">MyPlugin</span> = &#123; <span class="hljs-title function_">install</span>(<span class="hljs-params">app, options</span>) &#123; <span class="hljs-comment">/* 注册组件/指令/provide/config */</span> &#125; &#125;<br>app.<span class="hljs-title function_">use</span>(<span class="hljs-title class_">MyPlugin</span>, &#123; <span class="hljs-comment">/* options */</span> &#125;)<br><br><span class="hljs-comment">// 形式二：函数</span><br><span class="hljs-keyword">function</span> <span class="hljs-title function_">MyPlugin</span>(<span class="hljs-params">app, options</span>) &#123;&#125;<br>app.<span class="hljs-title function_">use</span>(<span class="hljs-title class_">MyPlugin</span>, &#123; <span class="hljs-comment">/* options */</span> &#125;)<br></code></pre></td></tr></table></figure>
+
+<p><code>app.use</code> 是幂等的（同一插件只装一次），返回 <code>app</code> 可链式调用，且<strong>必须在 <code>app.mount()</code> 之前</strong>完成。</p>
+<p>插件里可用的 <code>app</code> API：<code>app.component</code> &#x2F; <code>app.directive</code>（全局注册）、<code>app.provide</code>（应用级注入）、<code>app.config.globalProperties</code>（<strong>不推荐</strong>）、<code>app.config.errorHandler</code> &#x2F; <code>warnHandler</code>（全局错误 &#x2F; 警告）、<code>app.config.performance</code>（组件性能追踪）、<code>app.runWithContext(fn)</code>（在应用上下文里执行 <code>inject</code>，3.3+）。</p>
+<blockquote>
+<p>⚠️ <code>app.component</code> &#x2F; <code>app.directive</code> 全局注册会让打包器<strong>无法 tree-shaking</strong>：注册了哪怕没用也进产物，且全局命名空间容易撞名，能局部导入就别全局注册。</p>
+</blockquote>
+<h3 id="globalProperties-vs-inject：优先-inject"><a href="#globalProperties-vs-inject：优先-inject" class="headerlink" title="globalProperties vs inject：优先 inject"></a>globalProperties vs inject：优先 inject</h3><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-comment">// ❌ 全局属性：Composition API 里得 getCurrentInstance().appContext.config.globalProperties.$http，极别扭</span><br>app.<span class="hljs-property">config</span>.<span class="hljs-property">globalProperties</span>.<span class="hljs-property">$http</span> = http<br><br><span class="hljs-comment">// ✅ Symbol key + provide</span><br><span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> httpKey = <span class="hljs-title class_">Symbol</span>(<span class="hljs-string">&#x27;http&#x27;</span>)<br>app.<span class="hljs-title function_">provide</span>(httpKey, http)          <span class="hljs-comment">// 组件里：const http = inject(httpKey)</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th><code>globalProperties</code></th>
+<th><code>app.provide</code> + <code>inject</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Composition API 使用</td>
+<td>需 <code>getCurrentInstance()</code></td>
+<td>直接 <code>inject</code></td>
+</tr>
+<tr>
+<td>类型推导</td>
+<td>要手写模块扩展</td>
+<td><code>inject</code> 泛型</td>
+</tr>
+<tr>
+<td>命名冲突</td>
+<td>全局命名空间易撞</td>
+<td><code>Symbol</code> key 不会撞</td>
+</tr>
+<tr>
+<td>可测试性</td>
+<td>依赖全局实例</td>
+<td>可单独 provide</td>
+</tr>
+<tr>
+<td>响应式</td>
+<td>非响应式，需自己包</td>
+<td>传 <code>ref</code> &#x2F; <code>reactive</code> 即可</td>
+</tr>
+<tr>
+<td>推荐度</td>
+<td>仅兼容旧代码</td>
+<td><strong>首选</strong></td>
+</tr>
+</tbody></table>
+<p><code>app.provide</code> 是<strong>应用级</strong>注入，与组件树的 <code>provide</code> 层级不同：应用级对整棵树可见，组件级只对子树可见，同名时<strong>离得近的覆盖远的</strong>。</p>
+<figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs ts"><span class="hljs-keyword">declare</span> <span class="hljs-variable language_">module</span> <span class="hljs-string">&#x27;@vue/runtime-core&#x27;</span> &#123;<br>  <span class="hljs-keyword">interface</span> <span class="hljs-title class_">ComponentCustomProperties</span> &#123; <span class="hljs-attr">$http</span>: <span class="hljs-title class_">HttpClient</span> &#125;<br>&#125;<br><span class="hljs-keyword">export</span> &#123;&#125;   <span class="hljs-comment">// 让文件成为模块，否则 declare module 变成覆盖</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>globalProperties</code> 上的属性<strong>不是响应式的</strong>，模板里改它不触发重渲染。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>app.use</code> &#x2F; <code>app.component</code> &#x2F; <code>app.directive</code> 写在 <code>mount()</code> 之后<strong>不报错也不生效</strong> —— 这是「组件 &#x2F; 指令莫名找不到」的常见原因。</p>
+</blockquote>
+<h2 id="六、组合式-API-的边界"><a href="#六、组合式-API-的边界" class="headerlink" title="六、组合式 API 的边界"></a>六、组合式 API 的边界</h2><h3 id="effectScope-与手动清理"><a href="#effectScope-与手动清理" class="headerlink" title="effectScope 与手动清理"></a>effectScope 与手动清理</h3><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-keyword">const</span> scope = <span class="hljs-title function_">effectScope</span>()<br>scope.<span class="hljs-title function_">run</span>(<span class="hljs-function">() =&gt;</span> &#123; <span class="hljs-title function_">watch</span>(a, fn) &#125;)        <span class="hljs-comment">// 内部创建的 effect 归它管</span><br>scope.<span class="hljs-title function_">stop</span>()                             <span class="hljs-comment">// 一次性停掉</span><br><br><span class="hljs-keyword">export</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">useInterval</span>(<span class="hljs-params">fn, ms</span>) &#123;<br>  <span class="hljs-keyword">const</span> id = <span class="hljs-built_in">setInterval</span>(fn, ms)<br>  <span class="hljs-title function_">onScopeDispose</span>(<span class="hljs-function">() =&gt;</span> <span class="hljs-built_in">clearInterval</span>(id))   <span class="hljs-comment">// 组件卸载或 scope.stop 时触发</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 在组件 <code>setup</code> 外创建的 <code>watch</code> &#x2F; <code>watchEffect</code>（全局单例、store 外部）<strong>不会自动清理</strong>，必须用 <code>effectScope</code> 包起来或手动 stop —— 否则「切页后旧 watch 还在跑」。</p>
+</blockquote>
+<h3 id="useTemplateRef（3-5-）"><a href="#useTemplateRef（3-5-）" class="headerlink" title="useTemplateRef（3.5+）"></a>useTemplateRef（3.5+）</h3><figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs html"><span class="hljs-tag">&lt;<span class="hljs-name">script</span> <span class="hljs-attr">setup</span>&gt;</span><span class="language-javascript"></span><br><span class="language-javascript"><span class="hljs-keyword">import</span> &#123; useTemplateRef, onMounted &#125; <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;vue&#x27;</span></span><br><span class="language-javascript"><span class="hljs-keyword">const</span> inputRef = <span class="hljs-title function_">useTemplateRef</span>(<span class="hljs-string">&#x27;myInput&#x27;</span>)   <span class="hljs-comment">// 名字 = 模板 ref 属性的值</span></span><br><span class="language-javascript"><span class="hljs-title function_">onMounted</span>(<span class="hljs-function">() =&gt;</span> inputRef.<span class="hljs-property">value</span>?.<span class="hljs-title function_">focus</span>())</span><br><span class="language-javascript"></span><span class="hljs-tag">&lt;/<span class="hljs-name">script</span>&gt;</span><br><span class="hljs-tag">&lt;<span class="hljs-name">template</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-name">input</span> <span class="hljs-attr">ref</span>=<span class="hljs-string">&quot;myInput&quot;</span> /&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">template</span>&gt;</span><br></code></pre></td></tr></table></figure>
+
+<p>对比旧写法 <code>const el = ref(null)</code> + <code>ref=&quot;el&quot;</code>（3.0+，变量名须与模板 <code>ref</code> 值一致）：<code>useTemplateRef</code> 显式声明名字、变量名自由，抽 composable 更稳。</p>
+<blockquote>
+<p>⚠️ <code>useTemplateRef</code> 的参数是<strong>模板里 <code>ref</code> 属性的值</strong>，不是变量名。写错就一直拿到 <code>null</code>。</p>
+</blockquote>
+<h3 id="defineModel（3-4-稳定）与-useId（3-5-）"><a href="#defineModel（3-4-稳定）与-useId（3-5-）" class="headerlink" title="defineModel（3.4+ 稳定）与 useId（3.5+）"></a>defineModel（3.4+ 稳定）与 useId（3.5+）</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs vue">&lt;script setup&gt;<br>const model = defineModel()                 // v-model<br>const title = defineModel(&#x27;title&#x27;)          // v-model:title<br>const count = defineModel(&#x27;count&#x27;, &#123; type: Number, default: 0 &#125;)<br>&lt;/script&gt;<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-keyword">import</span> &#123; useId &#125; <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;vue&#x27;</span><br><span class="hljs-keyword">const</span> id = <span class="hljs-title function_">useId</span>()   <span class="hljs-comment">// 如 &quot;v-0&quot;，SSR/CSR 一致，用于 label[for] / aria-describedby</span><br></code></pre></td></tr></table></figure>
+
+<p><code>defineModel</code> 编译后等价于声明 <code>modelValue</code> prop + <code>update:modelValue</code> emit，<strong>3.4 起稳定</strong>。</p>
+<blockquote>
+<p>⚠️ <code>defineModel</code> 返回 <code>ref</code>，赋值即更新本地并 emit。要拦截修改用 <code>defineModel(&#123; set &#125;)</code> 自定义 setter，别在 <code>watch</code> 里改。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>useId</code> <strong>不能在 <code>computed</code> 里调用</strong>（实例冲突），必须在 <code>setup</code> 顶层同步调用一次；其值依赖组件树顺序，只在单次渲染内有意义，别当稳定 key 存进数据库。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 在 <code>mounted</code> 里读子元素尺寸，拿到未完成布局的值</li>
+<li><input disabled="" type="checkbox"> 把昂贵逻辑放 <code>updated</code>，不判断值是否变化</li>
+<li><input disabled="" type="checkbox"> 指令挂在 <code>el</code> 上的属性 &#x2F; 监听器不在 <code>unmounted</code> 清理</li>
+<li><input disabled="" type="checkbox"> 以为 <code>binding.value</code> 是响应式引用，改值指令会自动重跑</li>
+<li><input disabled="" type="checkbox"> 用指令做数据请求 &#x2F; 状态管理（拿不到返回值、无法测试）</li>
+<li><input disabled="" type="checkbox"> 前端权限指令当安全边界，以为接口不会被调</li>
+<li><input disabled="" type="checkbox"> <code>v-permission</code> 在权限未就绪时误删元素且不恢复</li>
+<li><input disabled="" type="checkbox"> 期望依赖 DOM 的指令在 SSR 下生效</li>
+<li><input disabled="" type="checkbox"> Teleport 的 <code>to</code> 目标渲染时不存在（3.5 前报错）</li>
+<li><input disabled="" type="checkbox"> 以为 Teleport 改变了组件逻辑父子关系</li>
+<li><input disabled="" type="checkbox"> 父级 <code>overflow: hidden</code> &#x2F; <code>transform</code> 裁掉弹层，没想到 Teleport</li>
+<li><input disabled="" type="checkbox"> 生产环境用 <code>Suspense</code> 却没意识到它仍是实验性 API</li>
+<li><input disabled="" type="checkbox"> <code>app.use</code> &#x2F; <code>app.component</code> &#x2F; <code>app.directive</code> 写在 <code>mount()</code> 之后</li>
+<li><input disabled="" type="checkbox"> 用 <code>globalProperties</code> 挂工具对象，Composition API 访问别扭且无类型</li>
+<li><input disabled="" type="checkbox"> 类型声明文件没写成模块，<code>declare module</code> 扩展失效</li>
+<li><input disabled="" type="checkbox"> 组件外的 <code>watch</code> 不用 <code>effectScope</code>，切换后仍在跑</li>
+<li><input disabled="" type="checkbox"> <code>useTemplateRef</code> 参数写成变量名而非模板 <code>ref</code> 值</li>
+<li><input disabled="" type="checkbox"> 在 <code>computed</code> 里调用 <code>useId</code></li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://cn.vuejs.org/guide/essentials/custom-directives.html">Vue 3 · 自定义指令</a> · <a target="_blank" rel="noopener" href="https://cn.vuejs.org/guide/built-ins/teleport.html">Vue 3 · Teleport</a> · <a target="_blank" rel="noopener" href="https://cn.vuejs.org/guide/built-ins/suspense.html">Vue 3 · Suspense</a> · <a target="_blank" rel="noopener" href="https://cn.vuejs.org/guide/reusability/plugins.html">Vue 3 · 插件</a> · <a target="_blank" rel="noopener" href="https://cn.vuejs.org/api/application.html">Vue 3 · 应用实例 API</a> · <a target="_blank" rel="noopener" href="https://cn.vuejs.org/api/composition-api-helpers.html">Vue 3 · 组合式 API 辅助函数</a> · <a target="_blank" rel="noopener" href="https://cn.vuejs.org/api/reactivity-advanced.html#effectscope">Vue 3 · effectScope</a> · <a target="_blank" rel="noopener" href="https://cn.vuejs.org/guide/ssr.html">Vue 3 · SSR</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/vue3/" class="category-chain-item">vue3</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/vue3/" class="print-no-link">#vue3</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 098 · Vue 3（十）：自定义指令、Teleport 与插件机制</div>
+      <div>https://ethan-iopasd.github.io/2026/10/08/每日技术博客098-Vue3自定义指令与插件机制/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月8日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2083-Vue3%E5%9B%BD%E9%99%85%E5%8C%96SSR%E4%B8%8E%E5%BE%AE%E5%89%8D%E7%AB%AF/" title="每日技术博客 083 · Vue 3（九）：国际化、SSR 与微前端">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 083 · Vue 3（九）：国际化、SSR 与微前端</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

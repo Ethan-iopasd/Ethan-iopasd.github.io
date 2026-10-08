@@ -1,0 +1,1178 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 096 篇 Rust 系列第一篇。用编译期所有权检查换掉 GC 和运行时数据竞争检查，代价是你要学会跟借用检查器讲道理。  📚 Rust 系列目录   章节 主题 状态    一 所有权、借用与生命周期 本篇    开场：一句话结论Rust 不靠 GC，也不靠程序员自觉 —— 它把「谁负责释放内存」「谁能同时改这块内存」变成类型系统的一部分，编译">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 096 · Rust（一）：所有权、借用与生命周期">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2096-Rust%E6%89%80%E6%9C%89%E6%9D%83%E4%B8%8E%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 096 篇 Rust 系列第一篇。用编译期所有权检查换掉 GC 和运行时数据竞争检查，代价是你要学会跟借用检查器讲道理。  📚 Rust 系列目录   章节 主题 状态    一 所有权、借用与生命周期 本篇    开场：一句话结论Rust 不靠 GC，也不靠程序员自觉 —— 它把「谁负责释放内存」「谁能同时改这块内存」变成类型系统的一部分，编译">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-08T07:10:00.000Z">
+<meta property="article:modified_time" content="2026-10-08T03:19:29.085Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="rust">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 096 · Rust（一）：所有权、借用与生命周期 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 096 · Rust（一）：所有权、借用与生命周期"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-08 15:10" pubdate>
+          2026年10月8日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          3k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          26 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 096 · Rust（一）：所有权、借用与生命周期</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-08 · 第 096 篇</p>
+<p>Rust 系列第一篇。用编译期所有权检查换掉 GC 和运行时数据竞争检查，代价是你要学会跟借用检查器讲道理。</p>
+</blockquote>
+<h2 id="📚-Rust-系列目录"><a href="#📚-Rust-系列目录" class="headerlink" title="📚 Rust 系列目录"></a>📚 Rust 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>所有权、借用与生命周期</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p>Rust 不靠 GC，也不靠程序员自觉 —— 它把「谁负责释放内存」「谁能同时改这块内存」变成<strong>类型系统的一部分</strong>，编译不过就是真的会出事。</p>
+<h2 id="一、它到底在跟谁抢活"><a href="#一、它到底在跟谁抢活" class="headerlink" title="一、它到底在跟谁抢活"></a>一、它到底在跟谁抢活</h2><table>
+<thead>
+<tr>
+<th>语言</th>
+<th>内存回收</th>
+<th>数据竞争</th>
+<th>空指针 &#x2F; 悬垂</th>
+<th>运行时成本</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>C &#x2F; C++</td>
+<td>手动 &#x2F; RAII + 智能指针</td>
+<td>无保证，UB</td>
+<td>无保证，UB</td>
+<td>接近零</td>
+</tr>
+<tr>
+<td>Go</td>
+<td>GC</td>
+<td>运行时 <code>-race</code> 才检测</td>
+<td><code>nil</code> panic</td>
+<td>GC 停顿</td>
+</tr>
+<tr>
+<td>Java</td>
+<td>GC</td>
+<td>靠 <code>synchronized</code> &#x2F; <code>volatile</code></td>
+<td><code>NullPointerException</code></td>
+<td>GC 停顿</td>
+</tr>
+<tr>
+<td><strong>Rust</strong></td>
+<td><strong>编译期所有权 + <code>Drop</code></strong></td>
+<td><strong>编译期 <code>Send</code> &#x2F; <code>Sync</code> 拒绝</strong></td>
+<td><strong><code>Option</code> 显式建模</strong></td>
+<td><strong>接近零</strong></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ Rust 的安全不是「不会崩」，而是「不会<strong>未定义行为</strong>」。越界访问照样 panic，只是 panic 是<strong>定义良好</strong>的行为，不是 UB。</p>
+</blockquote>
+<h2 id="二、所有权三原则"><a href="#二、所有权三原则" class="headerlink" title="二、所有权三原则"></a>二、所有权三原则</h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs rust"><span class="hljs-comment">// 1. 每个值有且只有一个所有者（owner）</span><br><span class="hljs-comment">// 2. 同一时刻只有一个所有者</span><br><span class="hljs-comment">// 3. 所有者离开作用域，值被 drop（释放）</span><br><span class="hljs-keyword">fn</span> <span class="hljs-title function_">main</span>() &#123;<br>    <span class="hljs-keyword">let</span> <span class="hljs-variable">s</span> = <span class="hljs-type">String</span>::<span class="hljs-title function_ invoke__">from</span>(<span class="hljs-string">&quot;hi&quot;</span>);   <span class="hljs-comment">// s 是这块堆内存的所有者</span><br>    &#123;<br>        <span class="hljs-keyword">let</span> <span class="hljs-variable">t</span> = s;                <span class="hljs-comment">// 所有权 move 给 t，s 失效</span><br>        <span class="hljs-built_in">println!</span>(<span class="hljs-string">&quot;&#123;t&#125;&quot;</span>);<br>    &#125;                              <span class="hljs-comment">// t 出作用域 → drop → 释放</span><br>    <span class="hljs-comment">// println!(&quot;&#123;s&#125;&quot;);           // ✗ 编译错误：borrow of moved value</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>作用域结束时，<code>Drop::drop</code> 会<strong>按声明的逆序</strong>依次调用；结构体内部则按<strong>字段声明顺序</strong> drop。</p>
+<h2 id="三、移动（move）vs-拷贝（Copy）"><a href="#三、移动（move）vs-拷贝（Copy）" class="headerlink" title="三、移动（move）vs 拷贝（Copy）"></a>三、移动（move）vs 拷贝（Copy）</h2><table>
+<thead>
+<tr>
+<th>类型</th>
+<th>赋值 &#x2F; 传参行为</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>实现了 <code>Copy</code> 的类型</td>
+<td>按位复制，原变量仍可用</td>
+</tr>
+<tr>
+<td>未实现 <code>Copy</code> 的类型</td>
+<td><strong>移动</strong>，原变量失效</td>
+</tr>
+</tbody></table>
+<p>实现 <code>Copy</code> 的常见类型：</p>
+<table>
+<thead>
+<tr>
+<th>类别</th>
+<th>例子</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>整数 &#x2F; 浮点</td>
+<td><code>i32</code> <code>u64</code> <code>usize</code> <code>f64</code></td>
+</tr>
+<tr>
+<td><code>bool</code> &#x2F; <code>char</code></td>
+<td><code>bool</code> <code>char</code></td>
+</tr>
+<tr>
+<td>共享引用</td>
+<td><code>&amp;T</code></td>
+</tr>
+<tr>
+<td>由 <code>Copy</code> 组成的复合</td>
+<td><code>(i32, bool)</code>、<code>[u8; 4]</code>、<code>Option&lt;i32&gt;</code></td>
+</tr>
+<tr>
+<td>裸指针 &#x2F; 函数指针</td>
+<td><code>*const T</code> <code>fn(i32) -&gt; i32</code></td>
+</tr>
+</tbody></table>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs rust"><span class="hljs-keyword">let</span> <span class="hljs-variable">a</span> = <span class="hljs-number">5</span>;<br><span class="hljs-keyword">let</span> <span class="hljs-variable">b</span> = a;            <span class="hljs-comment">// Copy，a 仍然可用</span><br><span class="hljs-built_in">println!</span>(<span class="hljs-string">&quot;&#123;a&#125; &#123;b&#125;&quot;</span>);  <span class="hljs-comment">// ✓</span><br><br><span class="hljs-keyword">let</span> <span class="hljs-variable">s1</span> = <span class="hljs-type">String</span>::<span class="hljs-title function_ invoke__">from</span>(<span class="hljs-string">&quot;x&quot;</span>);<br><span class="hljs-keyword">let</span> <span class="hljs-variable">s2</span> = s1;          <span class="hljs-comment">// move</span><br><span class="hljs-comment">// println!(&quot;&#123;s1&#125;&quot;);  // ✗ value borrowed here after move</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>&amp;mut T</code> 不是 <code>Copy</code>。</strong> 可变借用一旦被移动（比如传进函数），原来的借用就失效了 —— 这是为了独占性。<br>⚠️ <strong>为什么 <code>String</code> 不是 <code>Copy</code>？</strong> 它持有堆指针。若允许按位复制，两个变量会指向同一块堆内存，出作用域时<strong>双重释放（double free）</strong>。这正是 Rust 拒绝隐式复制的理由。</p>
+</blockquote>
+<h2 id="四、Clone：显式深拷贝，代价自己扛"><a href="#四、Clone：显式深拷贝，代价自己扛" class="headerlink" title="四、Clone：显式深拷贝，代价自己扛"></a>四、<code>Clone</code>：显式深拷贝，代价自己扛</h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs rust"><span class="hljs-keyword">let</span> <span class="hljs-variable">s1</span> = <span class="hljs-type">String</span>::<span class="hljs-title function_ invoke__">from</span>(<span class="hljs-string">&quot;hello&quot;</span>);<br><span class="hljs-keyword">let</span> <span class="hljs-variable">s2</span> = s1.<span class="hljs-title function_ invoke__">clone</span>();     <span class="hljs-comment">// 显式分配新堆内存</span><br><span class="hljs-built_in">println!</span>(<span class="hljs-string">&quot;&#123;s1&#125; &#123;s2&#125;&quot;</span>);   <span class="hljs-comment">// ✓ 两个独立所有者</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>方式</th>
+<th>是否分配</th>
+<th>是否显式</th>
+<th>原变量</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Copy</code> 隐式</td>
+<td>栈上按位</td>
+<td>否</td>
+<td>可用</td>
+</tr>
+<tr>
+<td><code>.clone()</code></td>
+<td>视类型（<code>String</code> 会分配）</td>
+<td><strong>是</strong></td>
+<td>可用</td>
+</tr>
+<tr>
+<td>move</td>
+<td>否</td>
+<td>否</td>
+<td><strong>失效</strong></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>.clone()</code> 是<strong>性能可见</strong>的操作。在大循环里无脑 <code>.clone()</code> 是新手最典型的性能坑 —— 编译器不会替你优化掉它。<br>⚠️ <code>#[derive(Clone)]</code> 只是自动实现，<strong>不改变语义</strong>：字段是 <code>Vec</code> 就真的深拷贝整个 <code>Vec</code>。</p>
+</blockquote>
+<h2 id="五、借用：-T-与-mut-T"><a href="#五、借用：-T-与-mut-T" class="headerlink" title="五、借用：&amp;T 与 &amp;mut T"></a>五、借用：<code>&amp;T</code> 与 <code>&amp;mut T</code></h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs rust"><span class="hljs-keyword">fn</span> <span class="hljs-title function_">len</span>(s: &amp;<span class="hljs-type">String</span>) <span class="hljs-punctuation">-&gt;</span> <span class="hljs-type">usize</span> &#123; s.<span class="hljs-title function_ invoke__">len</span>() &#125;         <span class="hljs-comment">// 不可变借用</span><br><span class="hljs-keyword">fn</span> <span class="hljs-title function_">push</span>(s: &amp;<span class="hljs-keyword">mut</span> <span class="hljs-type">String</span>) &#123; s.<span class="hljs-title function_ invoke__">push</span>(<span class="hljs-string">&#x27;!&#x27;</span>); &#125;        <span class="hljs-comment">// 可变借用</span><br><br><span class="hljs-keyword">let</span> <span class="hljs-keyword">mut </span><span class="hljs-variable">s</span> = <span class="hljs-type">String</span>::<span class="hljs-title function_ invoke__">from</span>(<span class="hljs-string">&quot;a&quot;</span>);<br><span class="hljs-keyword">let</span> <span class="hljs-variable">n</span> = <span class="hljs-title function_ invoke__">len</span>(&amp;s);        <span class="hljs-comment">// 借用期间 s 仍归 main 所有</span><br><span class="hljs-title function_ invoke__">push</span>(&amp;<span class="hljs-keyword">mut</span> s);<br></code></pre></td></tr></table></figure>
+
+<p><strong>借用规则（编译期强制）</strong>：</p>
+<blockquote>
+<p>同一作用域内，对同一数据：<strong>要么任意多个 <code>&amp;T</code>，要么唯一一个 <code>&amp;mut T</code>，二者不可兼得。</strong></p>
+</blockquote>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs rust"><span class="hljs-keyword">let</span> <span class="hljs-keyword">mut </span><span class="hljs-variable">v</span> = <span class="hljs-built_in">vec!</span>[<span class="hljs-number">1</span>, <span class="hljs-number">2</span>, <span class="hljs-number">3</span>];<br><span class="hljs-keyword">let</span> <span class="hljs-variable">r1</span> = &amp;v;            <span class="hljs-comment">// ✓ 共享借用</span><br><span class="hljs-keyword">let</span> <span class="hljs-variable">r2</span> = &amp;v;            <span class="hljs-comment">// ✓ 共享借用可以并存</span><br><span class="hljs-built_in">println!</span>(<span class="hljs-string">&quot;&#123;r1:?&#125; &#123;r2:?&#125;&quot;</span>);<br><br><span class="hljs-keyword">let</span> <span class="hljs-variable">m</span> = &amp;<span class="hljs-keyword">mut</span> v;         <span class="hljs-comment">// ✗ 在 r1/r2 还活着时，不能可变借用</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>借用</th>
+<th>别名数</th>
+<th>可否写</th>
+<th>跨线程共享（若 <code>T: Sync</code>）</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>&amp;T</code></td>
+<td>多个</td>
+<td>否</td>
+<td>可以</td>
+</tr>
+<tr>
+<td><code>&amp;mut T</code></td>
+<td>唯一</td>
+<td>是</td>
+<td>可以（<code>T: Send</code>）</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 这条规则就是 Rust <strong>不需要读-写锁就能静态排除数据竞争</strong>的根基：有别名就不能写，能写就没有别名。<br>⚠️ 借用是<strong>非词法（NLL）</strong>的：生命周期到<strong>最后一次使用</strong>为止，不是到作用域结束 —— 老代码里那些「明明没冲突」的报错，现在很多已经不报了。</p>
+</blockquote>
+<h2 id="六、借用检查器常见报错与修法"><a href="#六、借用检查器常见报错与修法" class="headerlink" title="六、借用检查器常见报错与修法"></a>六、借用检查器常见报错与修法</h2><table>
+<thead>
+<tr>
+<th>报错</th>
+<th>触发场景</th>
+<th>修法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>cannot borrow as mutable</code></td>
+<td>已有共享借用还活着</td>
+<td>缩短共享借用作用域，或改用 <code>RefCell</code> &#x2F; <code>Mutex</code></td>
+</tr>
+<tr>
+<td><code>cannot borrow as immutable ... as mutable</code></td>
+<td>可变借用还活着时读</td>
+<td>把读挪到写之后，或先 <code>drop(m)</code></td>
+</tr>
+<tr>
+<td><code>does not live long enough</code></td>
+<td>返回了局部变量的引用</td>
+<td>返回拥有所有权的值，或让调用方传 <code>&amp;mut</code> 输出参数</td>
+</tr>
+<tr>
+<td><code>cannot move out of borrowed content</code></td>
+<td>从 <code>&amp;T</code> 里 move 字段</td>
+<td><code>.clone()</code>、<code>mem::take</code> &#x2F; <code>mem::replace</code>，或 <code>Option::take</code></td>
+</tr>
+<tr>
+<td><code>use of moved value</code></td>
+<td>move 后又用原变量</td>
+<td>改传引用，或 <code>.clone()</code></td>
+</tr>
+<tr>
+<td><code>borrowed here after move</code></td>
+<td>闭包捕获后又被使用</td>
+<td>用 <code>move</code> 闭包 &#x2F; <code>Rc</code> 共享</td>
+</tr>
+</tbody></table>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs rust"><span class="hljs-keyword">fn</span> <span class="hljs-title function_">bad</span>() <span class="hljs-punctuation">-&gt;</span> &amp;<span class="hljs-type">str</span> &#123; <span class="hljs-keyword">let</span> <span class="hljs-variable">s</span> = <span class="hljs-type">String</span>::<span class="hljs-title function_ invoke__">from</span>(<span class="hljs-string">&quot;x&quot;</span>); &amp;s &#125;   <span class="hljs-comment">// ✗ 悬垂引用</span><br><span class="hljs-keyword">fn</span> <span class="hljs-title function_">good</span>() <span class="hljs-punctuation">-&gt;</span> <span class="hljs-type">String</span> &#123; <span class="hljs-type">String</span>::<span class="hljs-title function_ invoke__">from</span>(<span class="hljs-string">&quot;x&quot;</span>) &#125;            <span class="hljs-comment">// ✓ 交出所有权</span><br><span class="hljs-keyword">fn</span> <span class="hljs-title function_">take</span>(v: &amp;<span class="hljs-type">Vec</span>&lt;<span class="hljs-type">String</span>&gt;) <span class="hljs-punctuation">-&gt;</span> <span class="hljs-type">String</span> &#123; v[<span class="hljs-number">0</span>].<span class="hljs-title function_ invoke__">clone</span>() &#125;  <span class="hljs-comment">// ✓ 借用里不能 move，克隆</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>mem::take</code> 对 <code>&amp;mut T</code> 生效（要求 <code>T: Default</code>），<code>mem::replace</code> 可以塞回一个替换值。这两个是「从借用里拿出所有权」的标准手法。</p>
+</blockquote>
+<h2 id="七、生命周期标注-a"><a href="#七、生命周期标注-a" class="headerlink" title="七、生命周期标注 &#39;a"></a>七、生命周期标注 <code>&#39;a</code></h2><p>生命周期标注<strong>不改变任何值的存活时间</strong>，它只告诉编译器「这些引用之间的约束关系」。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs rust"><span class="hljs-comment">// 返回值的生命周期跟两个输入都有关 → 显式标注</span><br><span class="hljs-keyword">fn</span> <span class="hljs-title function_">longest</span>&lt;<span class="hljs-symbol">&#x27;a</span>&gt;(x: &amp;<span class="hljs-symbol">&#x27;a</span> <span class="hljs-type">str</span>, y: &amp;<span class="hljs-symbol">&#x27;a</span> <span class="hljs-type">str</span>) <span class="hljs-punctuation">-&gt;</span> &amp;<span class="hljs-symbol">&#x27;a</span> <span class="hljs-type">str</span> &#123;<br>    <span class="hljs-keyword">if</span> x.<span class="hljs-title function_ invoke__">len</span>() &gt; y.<span class="hljs-title function_ invoke__">len</span>() &#123; x &#125; <span class="hljs-keyword">else</span> &#123; y &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p><strong>生命周期省略（elision）三条规则</strong> —— 满足就不用手写：</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>规则</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>每个引用参数各自分配一个独立生命周期</td>
+</tr>
+<tr>
+<td>2</td>
+<td>只有一个输入生命周期时，它被赋给<strong>所有</strong>输出生命周期</td>
+</tr>
+<tr>
+<td>3</td>
+<td>有 <code>&amp;self</code> &#x2F; <code>&amp;mut self</code> 时，<code>self</code> 的生命周期赋给所有输出</td>
+</tr>
+</tbody></table>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs rust"><span class="hljs-keyword">fn</span> <span class="hljs-title function_">first</span>(s: &amp;<span class="hljs-type">str</span>) <span class="hljs-punctuation">-&gt;</span> &amp;<span class="hljs-type">str</span> &#123; &amp;s[..<span class="hljs-number">1</span>] &#125;        <span class="hljs-comment">// 规则 2 生效，省略合法</span><br><span class="hljs-keyword">struct</span> <span class="hljs-title class_">Excerpt</span>&lt;<span class="hljs-symbol">&#x27;a</span>&gt; &#123; part: &amp;<span class="hljs-symbol">&#x27;a</span> <span class="hljs-type">str</span> &#125;         <span class="hljs-comment">// 结构体持有引用必须标注</span><br></code></pre></td></tr></table></figure>
+
+<p><strong><code>&#39;static</code> 的真实含义</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>写法</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>&amp;&#39;static T</code></td>
+<td>该引用<strong>可以</strong>活到程序结束（字符串字面量就是）</td>
+</tr>
+<tr>
+<td><code>T: &#39;static</code></td>
+<td><code>T</code> 内部<strong>不含</strong>任何非 <code>&#39;static</code> 引用 —— <strong>不是说值活到永远</strong></td>
+</tr>
+<tr>
+<td><code>Box&lt;dyn Trait + &#39;static&gt;</code></td>
+<td>默认约束，<code>Box</code> 里的东西不能借用外部短命数据</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>T: &#39;static</code> 经常被误读成「活得久」。<code>String</code>、<code>Vec&lt;u8&gt;</code> 都满足 <code>T: &#39;static</code>，它们照样会在作用域结束时被 drop。<br>⚠️ 把 <code>&amp;&#39;static</code> 当成「万能解」硬塞进结构体，是新手最常见的逃逸手段 —— 它通常意味着设计错了。</p>
+</blockquote>
+<h2 id="八、-str-String-Cow-与-T-Vec"><a href="#八、-str-String-Cow-与-T-Vec" class="headerlink" title="八、&amp;str &#x2F; String &#x2F; Cow 与 &amp;[T] &#x2F; Vec&lt;T&gt;"></a>八、<code>&amp;str</code> &#x2F; <code>String</code> &#x2F; <code>Cow</code> 与 <code>&amp;[T]</code> &#x2F; <code>Vec&lt;T&gt;</code></h2><table>
+<thead>
+<tr>
+<th>类型</th>
+<th>拥有所有权</th>
+<th>可增长</th>
+<th>典型用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>str</code></td>
+<td>否（DST）</td>
+<td>否</td>
+<td>只能以 <code>&amp;str</code> &#x2F; <code>Box&lt;str&gt;</code> 出现</td>
+</tr>
+<tr>
+<td><code>&amp;str</code></td>
+<td>否</td>
+<td>否</td>
+<td>函数<strong>入参</strong>、切片</td>
+</tr>
+<tr>
+<td><code>String</code></td>
+<td>是</td>
+<td>是</td>
+<td>需要拥有 &#x2F; 修改的字符串</td>
+</tr>
+<tr>
+<td><code>Cow&lt;&#39;a, str&gt;</code></td>
+<td>视情况</td>
+<td>视情况</td>
+<td>多数只读、偶尔要改</td>
+</tr>
+</tbody></table>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs rust"><span class="hljs-keyword">fn</span> <span class="hljs-title function_">shout</span>(s: &amp;<span class="hljs-type">str</span>) <span class="hljs-punctuation">-&gt;</span> <span class="hljs-type">String</span> &#123; s.<span class="hljs-title function_ invoke__">to_uppercase</span>() &#125;   <span class="hljs-comment">// 入参 &amp;str，返回 String</span><br><br><span class="hljs-keyword">use</span> std::borrow::Cow;<br><span class="hljs-keyword">fn</span> <span class="hljs-title function_">normalize</span>(input: &amp;<span class="hljs-type">str</span>) <span class="hljs-punctuation">-&gt;</span> Cow&lt;<span class="hljs-symbol">&#x27;_</span>, <span class="hljs-type">str</span>&gt; &#123;<br>    <span class="hljs-keyword">if</span> input.<span class="hljs-title function_ invoke__">contains</span>(<span class="hljs-string">&#x27; &#x27;</span>) &#123; Cow::<span class="hljs-title function_ invoke__">Owned</span>(input.<span class="hljs-title function_ invoke__">replace</span>(<span class="hljs-string">&#x27; &#x27;</span>, <span class="hljs-string">&quot;_&quot;</span>)) &#125;  <span class="hljs-comment">// 需要时才分配</span><br>    <span class="hljs-keyword">else</span> &#123; Cow::<span class="hljs-title function_ invoke__">Borrowed</span>(input) &#125;                                   <span class="hljs-comment">// 零拷贝</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>选型</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>只读入参</td>
+<td><code>&amp;str</code> &#x2F; <code>&amp;[T]</code></td>
+</tr>
+<tr>
+<td>需要返回新值</td>
+<td><code>String</code> &#x2F; <code>Vec&lt;T&gt;</code></td>
+</tr>
+<tr>
+<td>绝大多数只读、偶尔改</td>
+<td><code>Cow&lt;&#39;a, T&gt;</code></td>
+</tr>
+<tr>
+<td>跨线程传递且要改</td>
+<td><code>Arc&lt;Mutex&lt;Vec&lt;T&gt;&gt;&gt;</code></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>&amp;String</code> &#x2F; <code>&amp;Vec&lt;T&gt;</code> 作为参数<strong>几乎总是错的</strong> —— 用 <code>&amp;str</code> &#x2F; <code>&amp;[T]</code>，它们能接受更多调用方（<code>&amp;String</code> 能自动 <code>Deref</code> 成 <code>&amp;str</code>，反过来不行）。</p>
+</blockquote>
+<h2 id="九、Drop-与-RAII"><a href="#九、Drop-与-RAII" class="headerlink" title="九、Drop 与 RAII"></a>九、<code>Drop</code> 与 RAII</h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs rust"><span class="hljs-keyword">struct</span> <span class="hljs-title class_">Guard</span> &#123; name: <span class="hljs-type">String</span> &#125;<br><span class="hljs-keyword">impl</span> <span class="hljs-title class_">Drop</span> <span class="hljs-keyword">for</span> <span class="hljs-title class_">Guard</span> &#123;<br>    <span class="hljs-keyword">fn</span> <span class="hljs-title function_">drop</span>(&amp;<span class="hljs-keyword">mut</span> <span class="hljs-keyword">self</span>) &#123; <span class="hljs-built_in">println!</span>(<span class="hljs-string">&quot;closing &#123;&#125;&quot;</span>, <span class="hljs-keyword">self</span>.name); &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>机制</th>
+<th>触发时机</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Drop::drop</code></td>
+<td>所有者离开作用域 &#x2F; 被 <code>drop(x)</code> 显式释放</td>
+</tr>
+<tr>
+<td>提前释放</td>
+<td><code>drop(value)</code> 移动进 <code>drop</code> 函数后立即释放</td>
+</tr>
+<tr>
+<td>不可提前</td>
+<td>实现了 <code>Drop</code> 的类型<strong>不能</strong>做字段级部分移动</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>Rust 没有 <code>finally</code> 的等价需求</strong>：文件、锁、连接都在 <code>Drop</code> 里释放，<code>?</code> 提前返回也不会漏 —— 这正是 RAII 的价值。</p>
+</blockquote>
+<h2 id="十、Box-Rc-RefCell-Arc-Mutex-选型"><a href="#十、Box-Rc-RefCell-Arc-Mutex-选型" class="headerlink" title="十、Box &#x2F; Rc &#x2F; RefCell &#x2F; Arc &#x2F; Mutex 选型"></a>十、<code>Box</code> &#x2F; <code>Rc</code> &#x2F; <code>RefCell</code> &#x2F; <code>Arc</code> &#x2F; <code>Mutex</code> 选型</h2><table>
+<thead>
+<tr>
+<th>类型</th>
+<th>解决什么</th>
+<th>线程安全</th>
+<th>运行时代价</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Box&lt;T&gt;</code></td>
+<td>堆分配 &#x2F; 递归类型 &#x2F; <code>dyn Trait</code></td>
+<td>继承 <code>T</code></td>
+<td>一次分配</td>
+</tr>
+<tr>
+<td><code>Rc&lt;T&gt;</code></td>
+<td>多所有者（单线程）</td>
+<td><strong>否（非 <code>Send</code>&#x2F;<code>Sync</code>）</strong></td>
+<td>非原子计数</td>
+</tr>
+<tr>
+<td><code>Arc&lt;T&gt;</code></td>
+<td>多所有者（多线程）</td>
+<td>是</td>
+<td>原子计数</td>
+</tr>
+<tr>
+<td><code>Cell&lt;T&gt;</code></td>
+<td>内部可变性（<code>T: Copy</code>，无引用）</td>
+<td>否</td>
+<td>零检查</td>
+</tr>
+<tr>
+<td><code>RefCell&lt;T&gt;</code></td>
+<td>内部可变性（任意 <code>T</code>）</td>
+<td><strong>否</strong></td>
+<td><strong>运行时</strong>借用检查，违反则 panic</td>
+</tr>
+<tr>
+<td><code>Mutex&lt;T&gt;</code></td>
+<td>跨线程可变共享</td>
+<td>是</td>
+<td>加锁，可能死锁</td>
+</tr>
+<tr>
+<td><code>RwLock&lt;T&gt;</code></td>
+<td>读多写少的跨线程共享</td>
+<td>是</td>
+<td>读写锁开销</td>
+</tr>
+</tbody></table>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs rust"><span class="hljs-keyword">use</span> std::rc::Rc;<br><span class="hljs-keyword">use</span> std::cell::RefCell;<br><span class="hljs-keyword">let</span> <span class="hljs-variable">shared</span> = Rc::<span class="hljs-title function_ invoke__">new</span>(RefCell::<span class="hljs-title function_ invoke__">new</span>(<span class="hljs-built_in">vec!</span>[<span class="hljs-number">1</span>]));<br>Rc::<span class="hljs-title function_ invoke__">clone</span>(&amp;shared).<span class="hljs-title function_ invoke__">borrow_mut</span>().<span class="hljs-title function_ invoke__">push</span>(<span class="hljs-number">2</span>);    <span class="hljs-comment">// 计数 +1，不是深拷贝</span><br><br><span class="hljs-keyword">use</span> std::sync::&#123;Arc, Mutex&#125;;<br><span class="hljs-keyword">let</span> <span class="hljs-variable">counter</span> = Arc::<span class="hljs-title function_ invoke__">new</span>(Mutex::<span class="hljs-title function_ invoke__">new</span>(<span class="hljs-number">0</span>));<br><span class="hljs-keyword">let</span> <span class="hljs-variable">c</span> = Arc::<span class="hljs-title function_ invoke__">clone</span>(&amp;counter);<br>std::thread::<span class="hljs-title function_ invoke__">spawn</span>(<span class="hljs-keyword">move</span> || &#123; *c.<span class="hljs-title function_ invoke__">lock</span>().<span class="hljs-title function_ invoke__">unwrap</span>() += <span class="hljs-number">1</span>; &#125;);<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>Rc</code> 不是线程安全的</strong> —— 计数不是原子的，<code>Rc&lt;T&gt;</code> 不实现 <code>Send</code>&#x2F;<code>Sync</code>，跨线程会被编译器直接拒绝。<br>⚠️ <strong><code>RefCell</code> 把借用检查推迟到运行时</strong> —— 同时两个 <code>borrow_mut()</code> 会<strong>在运行时 panic</strong>，不是编译错误。滥用 <code>RefCell</code> &#x3D; 把编译期保证换成崩溃。<br>⚠️ <code>Arc&lt;Mutex&lt;T&gt;&gt;</code> 里 <code>Mutex</code> 保护的是<strong>数据本身</strong>，不是「临界区代码」，锁的粒度由包住的范围决定。<br>⚠️ <code>Mutex</code> 中毒（poisoning）：持锁线程 panic 后，后续 <code>lock()</code> 返回 <code>Err</code>，可用 <code>.unwrap_or_else(|e| e.into_inner())</code> 忽略。</p>
+</blockquote>
+<p><strong>内部可变性模式</strong>：外部看是 <code>&amp;self</code>，内部却能改 —— <code>Cell</code> &#x2F; <code>RefCell</code> &#x2F; <code>Mutex</code> &#x2F; <code>RwLock</code> 都是这个模式的不同取舍（检查时机从编译期移到运行时）。</p>
+<h2 id="十一、impl-Trait-vs-泛型"><a href="#十一、impl-Trait-vs-泛型" class="headerlink" title="十一、impl Trait vs 泛型"></a>十一、<code>impl Trait</code> vs 泛型</h2><table>
+<thead>
+<tr>
+<th>写法</th>
+<th>位置</th>
+<th>语义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>fn f(x: impl Trait)</code></td>
+<td>参数</td>
+<td>等价于泛型 <code>fn f&lt;T: Trait&gt;(x: T)</code>，<strong>单态化</strong></td>
+</tr>
+<tr>
+<td><code>fn f() -&gt; impl Trait</code></td>
+<td>返回值</td>
+<td>不透明类型，调用方只知道实现了 <code>Trait</code></td>
+</tr>
+<tr>
+<td><code>fn f&lt;T: Trait&gt;(x: T)</code></td>
+<td>参数</td>
+<td>显式泛型，可被 turbofish 指定 <code>f::&lt;T&gt;</code></td>
+</tr>
+<tr>
+<td><code>dyn Trait</code></td>
+<td>字段 &#x2F; 集合</td>
+<td>动态分发，运行时查虚表，<strong>不能单态化</strong></td>
+</tr>
+</tbody></table>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs rust"><span class="hljs-keyword">fn</span> <span class="hljs-title function_">make</span>() <span class="hljs-punctuation">-&gt;</span> <span class="hljs-keyword">impl</span> <span class="hljs-title class_">Iterator</span>&lt;Item = <span class="hljs-type">i32</span>&gt; &#123; (<span class="hljs-number">0</span>..<span class="hljs-number">3</span>).<span class="hljs-title function_ invoke__">map</span>(|x| x * <span class="hljs-number">2</span>) &#125;   <span class="hljs-comment">// 不用写具体类型</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>impl Trait</code> 参数<strong>不能</strong>同时指定 turbofish；需要显式类型参数时用泛型写法。<br>⚠️ 泛型是<strong>单态化</strong>：每个具体类型生成一份代码，二进制会变大；<code>dyn Trait</code> 只有一份代码但每次调用有虚表开销。</p>
+</blockquote>
+<h2 id="十二、什么时候真的需要-unsafe"><a href="#十二、什么时候真的需要-unsafe" class="headerlink" title="十二、什么时候真的需要 unsafe"></a>十二、什么时候真的需要 <code>unsafe</code></h2><p><code>unsafe</code> <strong>不关闭借用检查</strong>，它只解锁五件事：</p>
+<table>
+<thead>
+<tr>
+<th>能力</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>解引用裸指针</td>
+<td><code>*const T</code> &#x2F; <code>*mut T</code></td>
+</tr>
+<tr>
+<td>调用 <code>unsafe fn</code></td>
+<td>包括 FFI</td>
+</tr>
+<tr>
+<td>访问 <code>union</code> 字段</td>
+<td>——</td>
+</tr>
+<tr>
+<td>实现 <code>unsafe trait</code></td>
+<td>如 <code>Send</code> &#x2F; <code>Sync</code></td>
+</tr>
+<tr>
+<td>修改 <code>static mut</code></td>
+<td>全局可变状态（edition 2024 收紧了规则）</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>unsafe</code> 的语义是「<strong>这段代码的正确性由你保证</strong>」，不是「关掉检查」。用它时要写清 <code>// SAFETY:</code> 注释说明前提。<br>⚠️ <strong>安全抽象的意义</strong>：<code>Vec</code>、<code>HashMap</code>、<code>Rc</code> 内部全是 <code>unsafe</code>，但它们把不变量封在 <code>pub</code> API 后面。用户拿到的是<strong>无需 unsafe 就能安全使用</strong>的类型 —— 这才是 unsafe 的正确用法：<strong>集中封装，而不是四处开花</strong>。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 以为 <code>String</code> 是 <code>Copy</code>，<code>let b = a</code> 之后继续用 <code>a</code></li>
+<li><input disabled="" type="checkbox"> 无脑 <code>.clone()</code> 绕过借用检查，把零拷贝代码写成 O(n²)</li>
+<li><input disabled="" type="checkbox"> 同时持有 <code>&amp;T</code> 和 <code>&amp;mut T</code>，以为「只读一下没事」</li>
+<li><input disabled="" type="checkbox"> 返回局部变量的引用（<code>does not live long enough</code>）</li>
+<li><input disabled="" type="checkbox"> 从 <code>&amp;T</code> 里直接 move 字段，忘了 <code>clone</code> &#x2F; <code>mem::take</code></li>
+<li><input disabled="" type="checkbox"> 把 <code>&amp;&#39;static</code> 当万能解硬塞进结构体</li>
+<li><input disabled="" type="checkbox"> 误读 <code>T: &#39;static</code> 为「值活到程序结束」</li>
+<li><input disabled="" type="checkbox"> 参数写成 <code>&amp;String</code> &#x2F; <code>&amp;Vec&lt;T&gt;</code>，白白限制调用方</li>
+<li><input disabled="" type="checkbox"> 单线程用 <code>Arc</code> &#x2F; <code>Mutex</code>（应该用 <code>Rc</code> &#x2F; <code>RefCell</code>）</li>
+<li><input disabled="" type="checkbox"> 多线程用 <code>Rc</code> &#x2F; <code>RefCell</code>（编译不过，或改错成 <code>Arc</code> 忘了 <code>Mutex</code>）</li>
+<li><input disabled="" type="checkbox"> 同时两个 <code>RefCell::borrow_mut()</code>，运行时 panic</li>
+<li><input disabled="" type="checkbox"> 忘了 <code>Mutex</code> 中毒，<code>.lock().unwrap()</code> 在别人 panic 后连锁崩溃</li>
+<li><input disabled="" type="checkbox"> 以为 <code>unsafe</code> 会关掉借用检查</li>
+<li><input disabled="" type="checkbox"> 用 <code>unsafe</code> 却写不出 <code>// SAFETY:</code> 前提</li>
+<li><input disabled="" type="checkbox"> 结构体字段顺序影响 drop 顺序，却没意识到</li>
+<li><input disabled="" type="checkbox"> 在 <code>Drop</code> 类型上做字段级部分移动</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://doc.rust-lang.org/book/ch04-00-understanding-ownership.html">The Rust Programming Language · 所有权</a> · <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/book/ch10-03-lifetime-syntax.html">The Rust Book · 生命周期与借用</a> · <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/book/ch15-00-smart-pointers.html">The Rust Book · <code>Rc&lt;T&gt;</code> 与 <code>RefCell&lt;T&gt;</code></a> · <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/book/ch20-01-unsafe-rust.html">The Rust Book · <code>unsafe</code></a> · <a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/borrow/enum.Cow.html">std · <code>std::borrow::Cow</code></a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/rust/" class="category-chain-item">rust</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/rust/" class="print-no-link">#rust</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 096 · Rust（一）：所有权、借用与生命周期</div>
+      <div>https://ethan-iopasd.github.io/2026/10/08/每日技术博客096-Rust所有权与生命周期/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月8日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2097-Rust%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86%E4%B8%8E%E5%B9%B6%E5%8F%91/" title="每日技术博客 097 · Rust（二）：错误处理、并发与工程实践">
+                        <span class="hidden-mobile">每日技术博客 097 · Rust（二）：错误处理、并发与工程实践</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
