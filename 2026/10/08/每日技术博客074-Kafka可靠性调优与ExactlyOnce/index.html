@@ -1,0 +1,1177 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 074 篇 Kafka 系列第二篇。幂等与事务到底保证什么、吞吐参数怎么调、故障码怎么读。  📚 Kafka 系列目录   章节 主题 状态    一 架构、Topic &#x2F; Partition 与消费者组 已发布   二 可靠性、幂等生产者与性能调优 本篇    开场：一句话结论幂等生产者只保证单分区、单会话去重；事务把范围扩到跨分区；">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 074 · Kafka（二）：可靠性、幂等生产者与性能调优">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2074-Kafka%E5%8F%AF%E9%9D%A0%E6%80%A7%E8%B0%83%E4%BC%98%E4%B8%8EExactlyOnce/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 074 篇 Kafka 系列第二篇。幂等与事务到底保证什么、吞吐参数怎么调、故障码怎么读。  📚 Kafka 系列目录   章节 主题 状态    一 架构、Topic &#x2F; Partition 与消费者组 已发布   二 可靠性、幂等生产者与性能调优 本篇    开场：一句话结论幂等生产者只保证单分区、单会话去重；事务把范围扩到跨分区；">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-08T05:05:00.000Z">
+<meta property="article:modified_time" content="2026-10-08T03:05:13.836Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="kafka">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 074 · Kafka（二）：可靠性、幂等生产者与性能调优 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 074 · Kafka（二）：可靠性、幂等生产者与性能调优"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-08 13:05" pubdate>
+          2026年10月8日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.4k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          21 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 074 · Kafka（二）：可靠性、幂等生产者与性能调优</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-08 · 第 074 篇</p>
+<p>Kafka 系列第二篇。幂等与事务到底保证什么、吞吐参数怎么调、故障码怎么读。</p>
+</blockquote>
+<h2 id="📚-Kafka-系列目录"><a href="#📚-Kafka-系列目录" class="headerlink" title="📚 Kafka 系列目录"></a>📚 Kafka 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>架构、Topic &#x2F; Partition 与消费者组</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>可靠性、幂等生产者与性能调优</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p>幂等生产者只保证<strong>单分区、单会话</strong>去重；事务把范围扩到<strong>跨分区</strong>；但两者一旦跨出 Kafka（调外部 DB &#x2F; HTTP），<strong>EOS 立刻退化为 at-least-once</strong>。</p>
+<h2 id="一、幂等生产者：约束与去重机制"><a href="#一、幂等生产者：约束与去重机制" class="headerlink" title="一、幂等生产者：约束与去重机制"></a>一、幂等生产者：约束与去重机制</h2><figure class="highlight properties"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs properties"><span class="hljs-attr">enable.idempotence</span>=<span class="hljs-string">true          # Kafka 3.0 起默认就是 true</span><br><span class="hljs-attr">acks</span>=<span class="hljs-string">all</span><br><span class="hljs-attr">retries</span>=<span class="hljs-string">2147483647</span><br><span class="hljs-attr">max.in.flight.requests.per.connection</span>=<span class="hljs-string">5</span><br></code></pre></td></tr></table></figure>
+
+<p>开启幂等后，这三个配置会被<strong>强制约束</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>配置</th>
+<th>要求</th>
+<th>不满足时</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>acks</code></td>
+<td>必须 <code>all</code></td>
+<td>抛 <code>ConfigException</code></td>
+</tr>
+<tr>
+<td><code>retries</code></td>
+<td>必须 <code>&gt; 0</code></td>
+<td>抛 <code>ConfigException</code></td>
+</tr>
+<tr>
+<td><code>max.in.flight.requests.per.connection</code></td>
+<td>必须 <code>≤ 5</code></td>
+<td>抛 <code>ConfigException</code></td>
+</tr>
+</tbody></table>
+<p>去重机制：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs text">Producer 启动 → 向 Broker 申请 PID（Producer ID）<br>每条消息 → (PID, 分区, 序列号) 三元组<br>Broker 端 → 按 (PID, 分区) 记录最近 5 个 batch 的序列号<br>收到重复序列号 → 丢弃，返回成功<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>保证范围</th>
+<th>边界</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>✅ 单分区内去重</td>
+<td>序列号按分区独立维护</td>
+</tr>
+<tr>
+<td>✅ 单个 Producer 会话内</td>
+<td>PID 随会话生成</td>
+</tr>
+<tr>
+<td>❌ 跨分区</td>
+<td>不做跨分区去重</td>
+</tr>
+<tr>
+<td>❌ 跨会话</td>
+<td>Producer 重启 → 新 PID → 老序列号信息失效</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 幂等<strong>不是</strong>「业务幂等」，只解决 Kafka 内部因重试导致的重复写入。<br>⚠️ <code>max.in.flight</code> 从 5 改成 1 会<strong>严重降吞吐</strong>，且幂等本身已处理乱序重试，没必要改。<br>⚠️ 消费端用 <code>enable.auto.commit=true</code> 时，处理成功但提交失败仍会重复消费 —— 幂等生产者管不到这一步。</p>
+</blockquote>
+<h2 id="二、事务：把范围扩到跨分区"><a href="#二、事务：把范围扩到跨分区" class="headerlink" title="二、事务：把范围扩到跨分区"></a>二、事务：把范围扩到跨分区</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs java">props.put(ProducerConfig.TRANSACTIONAL_ID_CONFIG, <span class="hljs-string">&quot;order-tx-1&quot;</span>);<br>producer.initTransactions();<br><br>producer.beginTransaction();<br><span class="hljs-keyword">try</span> &#123;<br>    producer.send(<span class="hljs-keyword">new</span> <span class="hljs-title class_">ProducerRecord</span>&lt;&gt;(<span class="hljs-string">&quot;orders&quot;</span>, key, value));<br>    producer.send(<span class="hljs-keyword">new</span> <span class="hljs-title class_">ProducerRecord</span>&lt;&gt;(<span class="hljs-string">&quot;audit&quot;</span>,  key, auditValue));<br>    <span class="hljs-comment">// 把消费位移也纳入事务</span><br>    producer.sendOffsetsToTransaction(offsets, consumerGroupMetadata);<br>    producer.commitTransaction();<br>&#125; <span class="hljs-keyword">catch</span> (Exception e) &#123;<br>    producer.abortTransaction();<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>API</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>initTransactions()</code></td>
+<td>注册 <code>transactional.id</code>，获取 PID，终止未完成事务</td>
+</tr>
+<tr>
+<td><code>beginTransaction()</code></td>
+<td>开启事务</td>
+</tr>
+<tr>
+<td><code>sendOffsetsToTransaction()</code></td>
+<td>把消费位移提交纳入同一事务（Exactly-Once 消费-处理-生产）</td>
+</tr>
+<tr>
+<td><code>commitTransaction()</code></td>
+<td>提交</td>
+</tr>
+<tr>
+<td><code>abortTransaction()</code></td>
+<td>回滚</td>
+</tr>
+</tbody></table>
+<p>消费端要读到「已提交」的数据：</p>
+<figure class="highlight properties"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs properties"><span class="hljs-attr">isolation.level</span>=<span class="hljs-string">read_committed</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>LSO（Last Stable Offset）</td>
+<td>第一个<strong>未提交</strong>事务的起始 offset；<code>read_committed</code> 下消费者只能读到 LSO 之前</td>
+</tr>
+<tr>
+<td>HW</td>
+<td>之前讲过，ISR 最小 LEO</td>
+</tr>
+<tr>
+<td>关系</td>
+<td><code>read_committed</code> 下可读上界 &#x3D; <code>min(HW, LSO)</code></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>transactional.id</code> 必须<strong>每个 Producer 实例唯一</strong>，重复会导致 fencing —— 老实例被踢下线。<br>⚠️ <code>transaction.max.timeout.ms</code> 默认 <code>900000</code>（15 分钟）；<code>transaction.timeout.ms</code> 超过它，事务会被 Broker 主动 abort。<br>⚠️ <code>read_committed</code> 下未提交事务的消息会被<strong>跳过</strong>，消费者看到的 offset 会出现空洞，不要以为是丢数据。<br>⚠️ 事务会引入额外开销（写入 marker、控制 batch），高吞吐场景要权衡是否真的需要。</p>
+</blockquote>
+<h2 id="三、EOS-的边界"><a href="#三、EOS-的边界" class="headerlink" title="三、EOS 的边界"></a>三、EOS 的边界</h2><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>语义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Kafka → Kafka（读-处理-写）</td>
+<td>✅ 真正 Exactly-Once</td>
+</tr>
+<tr>
+<td>Kafka → 外部 DB（非事务）</td>
+<td>❌ 退化为 at-least-once</td>
+</tr>
+<tr>
+<td>Kafka → 外部 HTTP 调用</td>
+<td>❌ 无法保证</td>
+</tr>
+<tr>
+<td>消费端写 DB + 提交 offset 非原子</td>
+<td>❌ 重复消费不可避免</td>
+</tr>
+</tbody></table>
+<p>要让「Kafka + 外部系统」也 EOS，只能：</p>
+<ol>
+<li>外部系统支持<strong>幂等写</strong>（唯一键 + upsert）；</li>
+<li>或把位移和业务数据写在<strong>同一个事务</strong>里（如 DB 事务 + outbox 表）；</li>
+<li>或外部系统支持<strong>两阶段提交</strong>（极少见）。</li>
+</ol>
+<blockquote>
+<p>⚠️ 事务 + 外部 DB 是最常见的误用：生产者事务提交成功，但 DB 写入失败，Kafka 无法感知。<br>⚠️ 别为了「EOS」引入两阶段提交，大多数业务用「幂等写 + 至少一次」更简单可靠。</p>
+</blockquote>
+<h2 id="四、顺序保证的三个破坏点"><a href="#四、顺序保证的三个破坏点" class="headerlink" title="四、顺序保证的三个破坏点"></a>四、顺序保证的三个破坏点</h2><table>
+<thead>
+<tr>
+<th>破坏点</th>
+<th>原因</th>
+<th>解法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>重试乱序</td>
+<td><code>max.in.flight&gt;1</code> 且未开幂等</td>
+<td>开幂等（<code>max.in.flight≤5</code> 也保序）</td>
+</tr>
+<tr>
+<td>分区变更</td>
+<td>加分区后 <code>hash % N</code> 变化</td>
+<td>分区数一次性规划好，别事后加</td>
+</tr>
+<tr>
+<td>消费端并行</td>
+<td>多线程处理同一分区</td>
+<td>同 key 路由到同一线程，或按分区单线程</td>
+</tr>
+</tbody></table>
+<figure class="highlight properties"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs properties"><span class="hljs-comment"># 生产者保序的最小配置</span><br><span class="hljs-attr">enable.idempotence</span>=<span class="hljs-string">true</span><br><span class="hljs-attr">max.in.flight.requests.per.connection</span>=<span class="hljs-string">5</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 「Kafka 保证顺序」这句话<strong>只在单分区内成立</strong>。跨分区没有任何顺序保证。<br>⚠️ 消费端开线程池并行处理，即使单分区也会乱序 —— 这是业务代码引入的，不是 Kafka 的锅。</p>
+</blockquote>
+<h2 id="五、吞吐调优参数表"><a href="#五、吞吐调优参数表" class="headerlink" title="五、吞吐调优参数表"></a>五、吞吐调优参数表</h2><h3 id="Producer"><a href="#Producer" class="headerlink" title="Producer"></a>Producer</h3><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>默认值</th>
+<th>调大&#x2F;调小的影响</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>batch.size</code></td>
+<td><code>16384</code></td>
+<td>调大 → 更高压缩比、更高吞吐，但单条延迟上升</td>
+</tr>
+<tr>
+<td><code>linger.ms</code></td>
+<td><code>0</code></td>
+<td>调大 → 攒批更充分，吞吐升、延迟升</td>
+</tr>
+<tr>
+<td><code>buffer.memory</code></td>
+<td><code>33554432</code>（32 MB）</td>
+<td>总缓冲，满了 <code>send()</code> 阻塞或抛异常</td>
+</tr>
+<tr>
+<td><code>compression.type</code></td>
+<td><code>none</code></td>
+<td>见下节</td>
+</tr>
+<tr>
+<td><code>max.request.size</code></td>
+<td><code>1048576</code>（1 MB）</td>
+<td>单请求上限，调大才能发大消息</td>
+</tr>
+<tr>
+<td><code>acks</code></td>
+<td><code>all</code>（3.0+ 幂等开启后）</td>
+<td>见第一篇</td>
+</tr>
+</tbody></table>
+<h3 id="Consumer"><a href="#Consumer" class="headerlink" title="Consumer"></a>Consumer</h3><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>默认值</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>fetch.min.bytes</code></td>
+<td><code>1</code></td>
+<td>攒够这么多字节才返回，调大降空转</td>
+</tr>
+<tr>
+<td><code>fetch.max.wait.ms</code></td>
+<td><code>500</code></td>
+<td>最多等这么久就返回</td>
+</tr>
+<tr>
+<td><code>max.partition.fetch.bytes</code></td>
+<td><code>1048576</code></td>
+<td>单分区单次拉取上限</td>
+</tr>
+<tr>
+<td><code>max.poll.records</code></td>
+<td><code>500</code></td>
+<td>单次 <code>poll()</code> 返回的记录数</td>
+</tr>
+<tr>
+<td><code>max.poll.interval.ms</code></td>
+<td><code>300000</code></td>
+<td>处理超时会被踢出组</td>
+</tr>
+</tbody></table>
+<figure class="highlight properties"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs properties"><span class="hljs-comment"># 高吞吐生产者</span><br><span class="hljs-attr">batch.size</span>=<span class="hljs-string">65536</span><br><span class="hljs-attr">linger.ms</span>=<span class="hljs-string">20</span><br><span class="hljs-attr">compression.type</span>=<span class="hljs-string">zstd</span><br><span class="hljs-attr">buffer.memory</span>=<span class="hljs-string">67108864</span><br><span class="hljs-comment"></span><br><span class="hljs-comment"># 高吞吐消费者</span><br><span class="hljs-attr">fetch.min.bytes</span>=<span class="hljs-string">1048576</span><br><span class="hljs-attr">fetch.max.wait.ms</span>=<span class="hljs-string">500</span><br><span class="hljs-attr">max.poll.records</span>=<span class="hljs-string">1000</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>linger.ms</code> 与延迟是<strong>直接冲突</strong>的：设 20ms 意味着每条消息最多等 20ms 才发。低延迟场景保持 0。<br>⚠️ <code>buffer.memory</code> 满了默认<strong>阻塞</strong> <code>send()</code>（<code>max.block.ms</code> 默认 60s），之后抛 <code>TimeoutException</code>；用 <code>send(callback)</code> 别用同步 <code>get()</code>。<br>⚠️ <code>max.partition.fetch.bytes</code> 必须 ≥ 生产者单条消息大小，否则会出现「能写进去但读不出来」的诡异现象。<br>⚠️ <code>max.poll.records</code> 调大不一定更快：单次处理时间变长，可能触发 <code>max.poll.interval.ms</code> 超时。</p>
+</blockquote>
+<h2 id="六、压缩算法对比"><a href="#六、压缩算法对比" class="headerlink" title="六、压缩算法对比"></a>六、压缩算法对比</h2><table>
+<thead>
+<tr>
+<th>算法</th>
+<th>压缩比</th>
+<th>CPU 开销</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>none</code></td>
+<td>1×</td>
+<td>无</td>
+<td>已压缩数据（图片&#x2F;视频）</td>
+</tr>
+<tr>
+<td><code>gzip</code></td>
+<td>高</td>
+<td>高</td>
+<td>网络带宽极紧张</td>
+</tr>
+<tr>
+<td><code>snappy</code></td>
+<td>中</td>
+<td>低</td>
+<td>通用，兼容性好</td>
+</tr>
+<tr>
+<td><code>lz4</code></td>
+<td>中</td>
+<td><strong>最低</strong></td>
+<td>低延迟优先</td>
+</tr>
+<tr>
+<td><code>zstd</code></td>
+<td><strong>最高</strong></td>
+<td>中</td>
+<td>推荐默认（Kafka 2.1+）</td>
+</tr>
+</tbody></table>
+<figure class="highlight properties"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs properties"><span class="hljs-attr">compression.type</span>=<span class="hljs-string">zstd</span><br></code></pre></td></tr></table></figure>
+
+<p>压缩是<strong>批量级</strong>的：整个 record batch 压一次，Broker 存压缩态，只有 Consumer 解压。</p>
+<blockquote>
+<p>⚠️ 换压缩算法会导致<strong>混合压缩格式</strong>的日志段，旧客户端可能不支持新算法，滚动升级要注意顺序。<br>⚠️ 压缩比再高也救不了「消息本身太小」的场景 —— 小消息攒批（<code>linger.ms</code>）比换算法更有效。</p>
+</blockquote>
+<h2 id="七、分区数规划与副本同步"><a href="#七、分区数规划与副本同步" class="headerlink" title="七、分区数规划与副本同步"></a>七、分区数规划与副本同步</h2><p>分区不是越多越好：</p>
+<table>
+<thead>
+<tr>
+<th>成本项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>文件句柄</td>
+<td>每个分区每个 segment 至少 2~3 个文件</td>
+</tr>
+<tr>
+<td>Rebalance 时间</td>
+<td>分区越多，分配计算与元数据传播越慢</td>
+</tr>
+<tr>
+<td>端到端延迟</td>
+<td>多分区 &#x3D; 更多批、更多网络往返</td>
+</tr>
+<tr>
+<td>故障恢复</td>
+<td>Leader 切换要处理更多分区</td>
+</tr>
+<tr>
+<td>元数据</td>
+<td>Controller 维护的分区状态线性增长</td>
+</tr>
+</tbody></table>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>建议分区数</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>低吞吐、强顺序</td>
+<td>1（或按 key 分布）</td>
+</tr>
+<tr>
+<td>常规业务</td>
+<td>6~12</td>
+</tr>
+<tr>
+<td>高吞吐</td>
+<td>按目标吞吐 &#x2F; 单分区吞吐估算，再留 2× 余量</td>
+</tr>
+</tbody></table>
+<p>副本同步：</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>默认值</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>num.replica.fetchers</code></td>
+<td><code>1</code></td>
+<td>每个 Broker 拉取副本的线程数，<strong>调大可加速同步</strong></td>
+</tr>
+<tr>
+<td><code>replica.fetch.max.bytes</code></td>
+<td><code>1048576</code></td>
+<td>单次副本拉取上限</td>
+</tr>
+<tr>
+<td><code>replica.lag.time.max.ms</code></td>
+<td><code>30000</code></td>
+<td>ISR 踢出阈值</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>num.replica.fetchers</code> 从 1 调到 2~4 常能显著降低 ISR 抖动，但会占用更多磁盘&#x2F;网络。<br>⚠️ 分区数加到几百后，<code>__consumer_offsets</code> 的 50 个分区可能成为瓶颈，且 Controller 元数据变更会明显变慢。</p>
+</blockquote>
+<h2 id="八、监控指标与故障排查"><a href="#八、监控指标与故障排查" class="headerlink" title="八、监控指标与故障排查"></a>八、监控指标与故障排查</h2><h3 id="必须盯的指标"><a href="#必须盯的指标" class="headerlink" title="必须盯的指标"></a>必须盯的指标</h3><table>
+<thead>
+<tr>
+<th>指标</th>
+<th>含义</th>
+<th>危险信号</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>UnderReplicatedPartitions</code></td>
+<td>副本数不足的分区数</td>
+<td>持续 &gt; 0</td>
+</tr>
+<tr>
+<td><code>OfflinePartitionsCount</code></td>
+<td>无 Leader 的分区数</td>
+<td><strong>&gt; 0 立即告警</strong></td>
+</tr>
+<tr>
+<td><code>IsrShrinksPerSec</code> &#x2F; <code>IsrExpandsPerSec</code></td>
+<td>ISR 收缩&#x2F;扩张速率</td>
+<td>持续收缩 &#x3D; 同步跟不上</td>
+</tr>
+<tr>
+<td><code>RequestHandlerAvgIdlePercent</code></td>
+<td>请求处理线程空闲率</td>
+<td>&lt; 0.3 说明过载</td>
+</tr>
+<tr>
+<td>Consumer Lag</td>
+<td>消费滞后条数</td>
+<td>持续增长</td>
+</tr>
+<tr>
+<td><code>ActiveControllerCount</code></td>
+<td>集群里应为 1</td>
+<td>&gt; 1 或 &#x3D; 0 都是脑裂&#x2F;无主</td>
+</tr>
+</tbody></table>
+<h3 id="常见异常码"><a href="#常见异常码" class="headerlink" title="常见异常码"></a>常见异常码</h3><table>
+<thead>
+<tr>
+<th>异常</th>
+<th>原因</th>
+<th>处理</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>NotLeaderForPartitionException</code></td>
+<td>请求发给了非 Leader（通常是选举中）</td>
+<td>客户端会自动刷新元数据重试</td>
+</tr>
+<tr>
+<td><code>OffsetOutOfRangeException</code></td>
+<td>提交的 offset 超出范围（数据已被清理）</td>
+<td>检查 <code>auto.offset.reset</code> 与保留策略</td>
+</tr>
+<tr>
+<td><code>UnknownTopicOrPartitionException</code></td>
+<td>Topic 不存在或元数据未同步</td>
+<td>检查是否真的建了 Topic、<code>auto.create.topics.enable</code></td>
+</tr>
+<tr>
+<td><code>RecordTooLargeException</code></td>
+<td>消息超过 <code>max.request.size</code> &#x2F; <code>message.max.bytes</code></td>
+<td>调大或拆分消息</td>
+</tr>
+<tr>
+<td><code>TimeoutException</code>（send）</td>
+<td><code>buffer.memory</code> 满或 Broker 无响应</td>
+<td>看 <code>max.block.ms</code>、网络、Broker 负载</td>
+</tr>
+<tr>
+<td><code>RebalanceInProgressException</code></td>
+<td>消费组正在再平衡</td>
+<td>重试；排查 Rebalance 风暴根因</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 看消费组 lag</span><br>kafka-consumer-groups.sh --bootstrap-server localhost:9092 \<br>  --describe --group order-consumer<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>RecordTooLargeException</code> 有三处限制：Producer <code>max.request.size</code>、Broker <code>message.max.bytes</code>、Consumer <code>fetch.max.bytes</code>，<strong>三处都要放开</strong>。<br>⚠️ <code>OffsetOutOfRangeException</code> 多半是「消费停太久 + 保留期到了」，根治靠监控 lag，而不是调大保留期。<br>⚠️ Rebalance 风暴的典型链路：处理慢 → <code>max.poll.interval.ms</code> 超时 → 退组 → 再平衡 → 处理更慢，必须从业务耗时下手。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 以为开了幂等就万事大吉，忘了它只覆盖单分区单会话</li>
+<li><input disabled="" type="checkbox"> <code>enable.idempotence=true</code> 同时手动设 <code>acks=1</code>，启动直接报错</li>
+<li><input disabled="" type="checkbox"> 把 <code>max.in.flight</code> 改成 1 求顺序，白白牺牲吞吐</li>
+<li><input disabled="" type="checkbox"> 事务里调外部 DB，以为还是 Exactly-Once</li>
+<li><input disabled="" type="checkbox"> <code>transactional.id</code> 多实例共用，触发 fencing 互相踢下线</li>
+<li><input disabled="" type="checkbox"> 消费端 <code>read_committed</code> 看到 offset 空洞，误判为丢数据</li>
+<li><input disabled="" type="checkbox"> 事后给 Topic 加分区，同 key 顺序被破坏</li>
+<li><input disabled="" type="checkbox"> 消费端多线程处理同一分区，自己把顺序搞乱</li>
+<li><input disabled="" type="checkbox"> <code>linger.ms</code> 为了吞吐调到很大，P99 延迟爆炸</li>
+<li><input disabled="" type="checkbox"> <code>max.partition.fetch.bytes</code> 小于消息体，写进去读不出来</li>
+<li><input disabled="" type="checkbox"> <code>max.poll.records</code> 调大后触发 <code>max.poll.interval.ms</code> 超时</li>
+<li><input disabled="" type="checkbox"> 用同步 <code>send().get()</code>，吞吐降到单条级别</li>
+<li><input disabled="" type="checkbox"> 换压缩算法时没考虑滚动升级期间新旧客户端兼容</li>
+<li><input disabled="" type="checkbox"> 盲目加分区，忽略了文件句柄与 Rebalance 成本</li>
+<li><input disabled="" type="checkbox"> 只看 <code>UnderReplicatedPartitions</code>，漏掉 <code>OfflinePartitionsCount</code></li>
+<li><input disabled="" type="checkbox"> <code>RequestHandlerAvgIdlePercent</code> 长期接近 0 却还在加压</li>
+<li><input disabled="" type="checkbox"> <code>RecordTooLargeException</code> 只改了 Producer 没改 Broker</li>
+<li><input disabled="" type="checkbox"> 用调大保留期来掩盖 lag 增长，磁盘最终写满</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://kafka.apache.org/documentation/#producerconfigs">Kafka · Producer 配置</a> · <a target="_blank" rel="noopener" href="https://kafka.apache.org/documentation/#consumerconfigs">Kafka · Consumer 配置</a> · <a target="_blank" rel="noopener" href="https://kafka.apache.org/documentation/#topicconfigs">Kafka · Topic 级配置</a> · <a target="_blank" rel="noopener" href="https://kafka.apache.org/documentation/#semantics">Kafka · 消息投递语义</a> · <a target="_blank" rel="noopener" href="https://kafka.apache.org/documentation/#monitoring">Kafka · 监控指标</a> · <a target="_blank" rel="noopener" href="https://cwiki.apache.org/confluence/display/KAFKA/KIP-98+-+Exactly+Once+Delivery+and+Transactional+Messaging">KIP-98: Exactly Once Delivery and Transactional Messaging</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/kafka/" class="category-chain-item">kafka</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/kafka/" class="print-no-link">#kafka</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 074 · Kafka（二）：可靠性、幂等生产者与性能调优</div>
+      <div>https://ethan-iopasd.github.io/2026/10/08/每日技术博客074-Kafka可靠性调优与ExactlyOnce/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月8日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2073-Kafka%E6%9E%B6%E6%9E%84%E4%B8%8E%E6%B6%88%E8%B4%B9%E8%80%85%E7%BB%84/" title="每日技术博客 073 · Kafka（一）：架构、Topic / Partition 与消费者组">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 073 · Kafka（一）：架构、Topic / Partition 与消费者组</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

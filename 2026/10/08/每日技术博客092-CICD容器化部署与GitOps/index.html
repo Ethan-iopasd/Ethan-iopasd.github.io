@@ -1,0 +1,1114 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 092 篇 CI&#x2F;CD 系列第二篇。构建一次到处部署、镜像标签与配置注入、GitOps 与 Argo CD &#x2F; Flux、Secrets 方案、部署策略与回滚、数据库迁移时序与 DORA 指标。  📚 CI&#x2F;CD 系列目录   章节 主题 状态    一 流水线设计与制品管理 已发布   二 容器化部署与 GitOp">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 092 · CI&#x2F;CD（二）：容器化部署与 GitOps">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2092-CICD%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2%E4%B8%8EGitOps/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 092 篇 CI&#x2F;CD 系列第二篇。构建一次到处部署、镜像标签与配置注入、GitOps 与 Argo CD &#x2F; Flux、Secrets 方案、部署策略与回滚、数据库迁移时序与 DORA 指标。  📚 CI&#x2F;CD 系列目录   章节 主题 状态    一 流水线设计与制品管理 已发布   二 容器化部署与 GitOp">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-08T06:35:00.000Z">
+<meta property="article:modified_time" content="2026-10-08T03:07:57.655Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="ci-cd">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 092 · CI/CD（二）：容器化部署与 GitOps - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 092 · CI/CD（二）：容器化部署与 GitOps"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-08 14:35" pubdate>
+          2026年10月8日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.6k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          22 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 092 · CI/CD（二）：容器化部署与 GitOps</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-08 · 第 092 篇</p>
+<p>CI&#x2F;CD 系列第二篇。构建一次到处部署、镜像标签与配置注入、GitOps 与 Argo CD &#x2F; Flux、Secrets 方案、部署策略与回滚、数据库迁移时序与 DORA 指标。</p>
+</blockquote>
+<h2 id="📚-CI-CD-系列目录"><a href="#📚-CI-CD-系列目录" class="headerlink" title="📚 CI&#x2F;CD 系列目录"></a>📚 CI&#x2F;CD 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>流水线设计与制品管理</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>容器化部署与 GitOps</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p>CI 只负责<strong>产出不可变制品</strong>，CD 只负责<strong>把同一个制品送进不同环境</strong> —— 环境里<strong>绝不重新构建</strong>。</p>
+<h2 id="一、CI-与-CD-的边界"><a href="#一、CI-与-CD-的边界" class="headerlink" title="一、CI 与 CD 的边界"></a>一、CI 与 CD 的边界</h2><table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>输入</th>
+<th>输出</th>
+<th>职责</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>CI</td>
+<td>源码</td>
+<td><strong>镜像 + digest</strong></td>
+<td>编译、测试、构建、扫描、推送</td>
+</tr>
+<tr>
+<td>CD</td>
+<td>镜像 digest</td>
+<td>环境中的运行实例</td>
+<td>拉取、配置注入、编排、发布</td>
+</tr>
+</tbody></table>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs text">commit → build → test → scan → push image@sha256:abc... → deploy(dev) → deploy(prod)<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 「构建一次，到处部署」是<strong>铁律</strong>：测试用的镜像和生产运行的必须是<strong>同一个 digest</strong>，否则测试结论不成立。<br>⚠️ 在环境里 <code>docker build</code> 或 <code>npm install</code> 再打包，等于每个环境一个制品 —— 必然出现「测试过了、线上不同」。</p>
+</blockquote>
+<h2 id="二、镜像标签策略"><a href="#二、镜像标签策略" class="headerlink" title="二、镜像标签策略"></a>二、镜像标签策略</h2><table>
+<thead>
+<tr>
+<th>标签</th>
+<th>可变性</th>
+<th>评价</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>latest</code></td>
+<td>可变</td>
+<td>❌ 无法回滚定位，禁止在生产使用</td>
+</tr>
+<tr>
+<td><code>git sha</code></td>
+<td>不可变</td>
+<td>✅ 与提交一一对应，推荐</td>
+</tr>
+<tr>
+<td>语义版本 <code>v1.2.3</code></td>
+<td>不可变</td>
+<td>✅ 可读，适合对外发布</td>
+</tr>
+<tr>
+<td><code>branch</code> &#x2F; <code>env</code></td>
+<td>可变</td>
+<td>⚠️ 覆盖写，回滚困难</td>
+</tr>
+</tbody></table>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-comment"># 部署时用 digest 固定，杜绝 tag 被覆盖</span><br><span class="hljs-attr">image:</span> <span class="hljs-string">registry.example.com/app@sha256:9f2c...e1</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>latest</code> 的危险在于<strong>同一个标签指向不同内容</strong>，<code>kubectl rollout undo</code> 也回不到确定的版本。<br>⚠️ tag 可以被覆盖，<strong>digest 不能</strong>。生产部署优先固定 digest。<br>⚠️ 用分支名当标签，一旦分支重跑就把旧镜像覆盖了，回滚时找不到原物。</p>
+</blockquote>
+<h2 id="三、环境配置注入"><a href="#三、环境配置注入" class="headerlink" title="三、环境配置注入"></a>三、环境配置注入</h2><table>
+<thead>
+<tr>
+<th>方式</th>
+<th>适用</th>
+<th>注意</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>环境变量</td>
+<td>简单配置、开关</td>
+<td>数量多时难管理</td>
+</tr>
+<tr>
+<td>ConfigMap</td>
+<td>非敏感配置</td>
+<td>改后需重启或触发 reload</td>
+</tr>
+<tr>
+<td>Secret</td>
+<td>敏感信息</td>
+<td>默认 base64 <strong>不是加密</strong></td>
+</tr>
+<tr>
+<td>启动参数</td>
+<td>命令行覆盖</td>
+<td>便于临时调试</td>
+</tr>
+</tbody></table>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-attr">envFrom:</span><br>  <span class="hljs-bullet">-</span> <span class="hljs-attr">configMapRef:</span> &#123; <span class="hljs-attr">name:</span> <span class="hljs-string">app-config</span> &#125;<br>  <span class="hljs-bullet">-</span> <span class="hljs-attr">secretRef:</span>    &#123; <span class="hljs-attr">name:</span> <span class="hljs-string">app-secret</span> &#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>不要把配置打进镜像</strong>：同一镜像要能跑在 dev&#x2F;staging&#x2F;prod，配置靠外部注入。<br>⚠️ K8s <code>Secret</code> 只是 base64 编码，<strong>没有加密</strong>；etcd 未加密时明文可读，必须配 RBAC 与静态加密。<br>⚠️ 改 ConfigMap 后很多应用<strong>不会自动重载</strong>，需要 rollout restart 或挂 reloader。</p>
+</blockquote>
+<h2 id="四、GitOps-核心思想"><a href="#四、GitOps-核心思想" class="headerlink" title="四、GitOps 核心思想"></a>四、GitOps 核心思想</h2><table>
+<thead>
+<tr>
+<th>原则</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Git 是唯一真相源</td>
+<td>期望状态全部声明在 Git</td>
+</tr>
+<tr>
+<td>声明式</td>
+<td>描述「要什么」，不是「怎么改」</td>
+</tr>
+<tr>
+<td>持续协调 Reconciliation</td>
+<td>控制器不断把实际状态对齐到期望状态</td>
+</tr>
+<tr>
+<td>拉模式 Pull</td>
+<td>集群内 agent 主动拉取，而非外部推送</td>
+</tr>
+</tbody></table>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs text">推模式 Push：CI → kubectl apply（集群凭证在 CI 手里）<br>拉模式 Pull：CI → 改 Git → 集群内 Argo/Flux 拉到变更 → 应用<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th></th>
+<th>推模式</th>
+<th>拉模式（GitOps）</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>凭证</td>
+<td>CI 持有集群凭证（高风险）</td>
+<td>集群内 agent 持有 Git 只读凭证</td>
+</tr>
+<tr>
+<td>漂移检测</td>
+<td>无（只能靠人比）</td>
+<td>✅ 自动比对并告警&#x2F;自愈</td>
+</tr>
+<tr>
+<td>回滚</td>
+<td>重跑流水线</td>
+<td><code>git revert</code> &#x2F; 回退 commit</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 拉模式的关键收益是<strong>集群凭证不外泄</strong>，CI 不需要能直接操作生产集群。<br>⚠️ GitOps 的「自愈」会把<strong>手工修改自动抹掉</strong> —— 这是特性不是 bug，但要提前告知运维。</p>
+</blockquote>
+<h2 id="五、Argo-CD-与-Flux"><a href="#五、Argo-CD-与-Flux" class="headerlink" title="五、Argo CD 与 Flux"></a>五、Argo CD 与 Flux</h2><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>Argo CD</th>
+<th>Flux</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>形态</td>
+<td>有 Web UI + CLI，Application CRD</td>
+<td>纯 CLI&#x2F;CRD，控制器集合</td>
+</tr>
+<tr>
+<td>抽象</td>
+<td><code>Application</code> &#x2F; <code>ApplicationSet</code></td>
+<td><code>Kustomization</code> &#x2F; <code>HelmRelease</code></td>
+</tr>
+<tr>
+<td>同步策略</td>
+<td>手动 &#x2F; 自动（<code>syncPolicy</code>）</td>
+<td>自动协调为主</td>
+</tr>
+<tr>
+<td>漂移检测</td>
+<td>UI 直观展示 OutOfSync</td>
+<td>控制器 reconcile + 告警</td>
+</tr>
+<tr>
+<td>多集群</td>
+<td>中心化控制面管理多集群</td>
+<td>每集群各装一套</td>
+</tr>
+</tbody></table>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-comment"># Argo CD Application 要点</span><br><span class="hljs-attr">spec:</span><br>  <span class="hljs-attr">source:</span> &#123; <span class="hljs-attr">repoURL:</span> <span class="hljs-string">...</span>, <span class="hljs-attr">path:</span> <span class="hljs-string">overlays/prod</span>, <span class="hljs-attr">targetRevision:</span> <span class="hljs-string">main</span> &#125;<br>  <span class="hljs-attr">destination:</span> &#123; <span class="hljs-attr">server:</span> <span class="hljs-string">https://kubernetes.default.svc</span>, <span class="hljs-attr">namespace:</span> <span class="hljs-string">prod</span> &#125;<br>  <span class="hljs-attr">syncPolicy:</span><br>    <span class="hljs-attr">automated:</span> &#123; <span class="hljs-attr">prune:</span> <span class="hljs-literal">true</span>, <span class="hljs-attr">selfHeal:</span> <span class="hljs-literal">true</span> &#125;   <span class="hljs-comment"># 自动同步 + 自愈</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>prune: true</code> 会<strong>删除 Git 里已移除的资源</strong>，误删一个目录可能连带清掉生产对象 —— 生产建议先观察再开。<br>⚠️ <code>selfHeal: true</code> 会撤销手工改动，与「紧急热修」流程冲突，要约定好逃生通道。<br>⚠️ Argo CD 默认同步周期较长（约 3 分钟），需要 webhook 触发即时同步。</p>
+</blockquote>
+<h2 id="六、GitOps-里的-Secrets"><a href="#六、GitOps-里的-Secrets" class="headerlink" title="六、GitOps 里的 Secrets"></a>六、GitOps 里的 Secrets</h2><table>
+<thead>
+<tr>
+<th>方案</th>
+<th>原理</th>
+<th>取舍</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Sealed Secrets</td>
+<td>用集群公钥加密，只有集群内私钥能解</td>
+<td>简单；密钥与集群绑定，迁移麻烦</td>
+</tr>
+<tr>
+<td>SOPS</td>
+<td>对 YAML 字段级加密，密钥放 KMS&#x2F;Vault</td>
+<td>灵活；需管理 age&#x2F;KMS 密钥</td>
+</tr>
+<tr>
+<td>External Secrets</td>
+<td>Git 只存引用，运行时从 Vault&#x2F;云 Secret 拉</td>
+<td>最安全；依赖外部系统可用性</td>
+</tr>
+<tr>
+<td>Vault</td>
+<td>独立密钥管理系统</td>
+<td>功能全；运维成本高</td>
+</tr>
+</tbody></table>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-comment"># External Secrets：Git 里只有引用，不含明文</span><br><span class="hljs-attr">spec:</span><br>  <span class="hljs-attr">secretStoreRef:</span> &#123; <span class="hljs-attr">name:</span> <span class="hljs-string">vault-backend</span> &#125;<br>  <span class="hljs-attr">target:</span> &#123; <span class="hljs-attr">name:</span> <span class="hljs-string">app-secret</span> &#125;<br>  <span class="hljs-attr">data:</span><br>    <span class="hljs-bullet">-</span> &#123; <span class="hljs-attr">secretKey:</span> <span class="hljs-string">db-password</span>, <span class="hljs-attr">remoteRef:</span> &#123; <span class="hljs-attr">key:</span> <span class="hljs-string">prod/db</span>, <span class="hljs-attr">property:</span> <span class="hljs-string">password</span> &#125; &#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>永远不要把明文 Secret 提交进 Git</strong>，即使仓库私有 —— 历史记录会一直留着。<br>⚠️ Sealed Secrets 的解密私钥<strong>只在集群里</strong>，集群重建后旧密文无法解，必须备份私钥。<br>⚠️ External Secrets 依赖 Vault 可用；Vault 挂了新 Pod 可能起不来，要做本地缓存。</p>
+</blockquote>
+<h2 id="七、部署策略"><a href="#七、部署策略" class="headerlink" title="七、部署策略"></a>七、部署策略</h2><table>
+<thead>
+<tr>
+<th>策略</th>
+<th>做法</th>
+<th>优点</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>滚动 Rolling</td>
+<td>逐个替换旧 Pod</td>
+<td>简单、资源省</td>
+<td>新旧版本短时共存</td>
+</tr>
+<tr>
+<td>蓝绿 Blue-Green</td>
+<td>两套环境整体切换</td>
+<td>秒级回滚</td>
+<td>双倍资源</td>
+</tr>
+<tr>
+<td>金丝雀 Canary</td>
+<td>先导小比例流量</td>
+<td>风险可控、可自动判定</td>
+<td>需要流量切分与指标判定</td>
+</tr>
+</tbody></table>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-comment"># 金丝雀：先 5% 流量，观察指标再逐步放量</span><br><span class="hljs-attr">strategy:</span><br>  <span class="hljs-attr">canary:</span><br>    <span class="hljs-attr">steps:</span><br>      <span class="hljs-bullet">-</span> <span class="hljs-attr">setWeight:</span> <span class="hljs-number">5</span><br>      <span class="hljs-bullet">-</span> <span class="hljs-attr">pause:</span> &#123; <span class="hljs-attr">duration:</span> <span class="hljs-string">10m</span> &#125;<br>      <span class="hljs-bullet">-</span> <span class="hljs-attr">setWeight:</span> <span class="hljs-number">50</span><br>      <span class="hljs-bullet">-</span> <span class="hljs-attr">pause:</span> &#123; <span class="hljs-attr">duration:</span> <span class="hljs-string">10m</span> &#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 滚动更新期间<strong>新旧版本同时在线</strong>，接口必须向后兼容，否则调用方随机报错。<br>⚠️ 蓝绿切换前要确认<strong>数据库兼容两个版本</strong>，否则切过去就炸。<br>⚠️ 金丝雀没有<strong>自动判定指标</strong>（错误率、延迟）就是「手动放量」，风险依旧。</p>
+</blockquote>
+<h2 id="八、回滚：三种手段的优先级"><a href="#八、回滚：三种手段的优先级" class="headerlink" title="八、回滚：三种手段的优先级"></a>八、回滚：三种手段的优先级</h2><table>
+<thead>
+<tr>
+<th>手段</th>
+<th>速度</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>特性开关 Feature Flag</td>
+<td><strong>秒级</strong></td>
+<td>代码已部署、仅需关功能</td>
+</tr>
+<tr>
+<td>镜像版本回退</td>
+<td>分钟级</td>
+<td>需换回旧版本</td>
+</tr>
+<tr>
+<td><code>git revert</code> + 同步</td>
+<td>分钟级</td>
+<td>配置&#x2F;清单回滚</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash">kubectl rollout undo deployment/app          <span class="hljs-comment"># 回退到上一个 ReplicaSet</span><br>kubectl rollout status deployment/app        <span class="hljs-comment"># 观察进度</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>优先用特性开关</strong>：不改镜像、不动部署，关闭开关即可止血，回滚成本最低。<br>⚠️ 镜像回退要求<strong>数据库向后兼容</strong>，否则旧代码读不懂新表结构。<br>⚠️ <code>git revert</code> 之后要等控制器同步，<strong>不是立刻生效</strong>，紧急时直接改镜像更快。</p>
+</blockquote>
+<h2 id="九、数据库迁移与部署时序"><a href="#九、数据库迁移与部署时序" class="headerlink" title="九、数据库迁移与部署时序"></a>九、数据库迁移与部署时序</h2><p><strong>扩展-迁移-收缩（Expand → Migrate → Contract）</strong> 三段式：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs text">1. Expand  ：加新列/新表（兼容旧代码）<br>2. Migrate ：双写 / 回填数据，代码切到新结构<br>3. Contract：确认无人使用旧结构后，再删除<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>时序</th>
+<th>做法</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>❌ 先发码后迁移</td>
+<td>新代码读不存在的列</td>
+<td>立刻报错</td>
+</tr>
+<tr>
+<td>✅ 先迁移后发码</td>
+<td>旧代码容忍新结构</td>
+<td>新旧版本共存安全</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>迁移必须向后兼容</strong>：滚动更新期间新旧代码同时运行，删列&#x2F;改类型会直接打挂旧版本。<br>⚠️ 大表 <code>ALTER TABLE</code> 可能锁表，生产要用在线 DDL 或分步执行。<br>⚠️ 迁移脚本要<strong>幂等</strong>，失败重跑不能报错。</p>
+</blockquote>
+<h2 id="十、健康检查与部署门禁"><a href="#十、健康检查与部署门禁" class="headerlink" title="十、健康检查与部署门禁"></a>十、健康检查与部署门禁</h2><table>
+<thead>
+<tr>
+<th>探针</th>
+<th>作用</th>
+<th>失败后果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>liveness</td>
+<td>进程是否活着</td>
+<td><strong>重启</strong>容器</td>
+</tr>
+<tr>
+<td>readiness</td>
+<td>是否能接流量</td>
+<td>从 Service 摘除</td>
+</tr>
+<tr>
+<td>startup</td>
+<td>启动是否完成</td>
+<td>保护慢启动应用</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">kubectl rollout status deployment/app --<span class="hljs-built_in">timeout</span>=120s   <span class="hljs-comment"># 门禁：未就绪即失败</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ liveness 探针配太激进（如 1s 超时）会把<strong>启动慢的应用反复杀死</strong>，形成重启循环。<br>⚠️ readiness 未就绪就接流量，滚动更新时用户会收到 502。<br>⚠️ 探针只测 <code>/health</code> 返回 200，却<strong>不检查依赖</strong>（DB&#x2F;缓存），照样会放出坏实例。</p>
+</blockquote>
+<h2 id="十一、多环境结构与漂移"><a href="#十一、多环境结构与漂移" class="headerlink" title="十一、多环境结构与漂移"></a>十一、多环境结构与漂移</h2><table>
+<thead>
+<tr>
+<th>组织方式</th>
+<th>结构</th>
+<th>特点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>分支隔离</td>
+<td><code>env/dev</code>、<code>env/prod</code> 分支</td>
+<td>易漂移，合并痛苦</td>
+</tr>
+<tr>
+<td>目录隔离（推荐）</td>
+<td><code>base/</code> + <code>overlays/dev</code>、<code>overlays/prod</code></td>
+<td>共享基线，仅覆盖差异</td>
+</tr>
+</tbody></table>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs text">kustomize/<br>  base/            # 公共清单<br>  overlays/dev/    # 副本数、镜像 tag、配置<br>  overlays/prod/<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 多分支管理环境会导致<strong>同一个修复要 merge 多次</strong>，长期必然漂移。<br>⚠️ <strong>禁止手工改生产</strong>：手改的下一刻就被 GitOps 自愈抹掉，还会造成「配置只改一次」的幻觉。<br>⚠️ 环境差异只应存在于 overlay 的<strong>覆盖项</strong>里，base 必须完全共享。</p>
+</blockquote>
+<h2 id="十二、部署可观测性与-DORA-指标"><a href="#十二、部署可观测性与-DORA-指标" class="headerlink" title="十二、部署可观测性与 DORA 指标"></a>十二、部署可观测性与 DORA 指标</h2><p>把<strong>变更事件</strong>（部署&#x2F;回滚）叠加到指标面板上，故障时一眼看出「是哪次发布引起的」。</p>
+<table>
+<thead>
+<tr>
+<th>DORA 指标</th>
+<th>含义</th>
+<th>方向</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>部署频率 Deployment Frequency</td>
+<td>多久发一次</td>
+<td>越高越好</td>
+</tr>
+<tr>
+<td>前置时间 Lead Time for Changes</td>
+<td>提交到上线耗时</td>
+<td>越短越好</td>
+</tr>
+<tr>
+<td>变更失败率 Change Failure Rate</td>
+<td>需修复&#x2F;回滚的发布占比</td>
+<td>越低越好</td>
+</tr>
+<tr>
+<td>恢复时间 Time to Restore</td>
+<td>故障到恢复耗时</td>
+<td>越短越好</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 只追求部署频率而不看<strong>变更失败率</strong>，是在制造事故。<br>⚠️ 没有变更事件打点，故障复盘只能靠人回忆「刚才是不是发了版」。<br>⚠️ 四个指标要<strong>一起看</strong>，单看任何一个都能被刷。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 在每个环境里重新构建，导致测试与生产的镜像不是同一个</li>
+<li><input disabled="" type="checkbox"> 生产用 <code>latest</code> 标签，回滚时定位不到版本</li>
+<li><input disabled="" type="checkbox"> 用分支名当镜像标签，重跑覆盖旧镜像</li>
+<li><input disabled="" type="checkbox"> 部署不用 digest 固定，tag 被覆盖后行为漂移</li>
+<li><input disabled="" type="checkbox"> 把配置打进镜像，同一镜像无法跨环境</li>
+<li><input disabled="" type="checkbox"> 以为 K8s Secret 是加密的（实际只是 base64）</li>
+<li><input disabled="" type="checkbox"> 改 ConfigMap 后不重启，以为配置已生效</li>
+<li><input disabled="" type="checkbox"> CI 持有生产集群凭证（推模式），凭证泄露风险高</li>
+<li><input disabled="" type="checkbox"> 开 <code>prune: true</code> 误删 Git 里已移除的生产资源</li>
+<li><input disabled="" type="checkbox"> 开 <code>selfHeal</code> 但没约定紧急热修流程</li>
+<li><input disabled="" type="checkbox"> 把明文 Secret 提交进 Git</li>
+<li><input disabled="" type="checkbox"> Sealed Secrets 私钥不备份，集群重建后无法解密</li>
+<li><input disabled="" type="checkbox"> 滚动更新期间新旧版本接口不兼容</li>
+<li><input disabled="" type="checkbox"> 金丝雀没有自动指标判定，实为手动放量</li>
+<li><input disabled="" type="checkbox"> 回滚优先改镜像而非关特性开关，止血慢</li>
+<li><input disabled="" type="checkbox"> 数据库先发码后迁移，新代码读不存在的列</li>
+<li><input disabled="" type="checkbox"> 迁移不向后兼容，滚动期间打挂旧版本</li>
+<li><input disabled="" type="checkbox"> liveness 探针过激，把慢启动应用反复杀死</li>
+<li><input disabled="" type="checkbox"> 探针不检查依赖，放出坏实例</li>
+<li><input disabled="" type="checkbox"> 手工改生产配置，造成环境漂移</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://argo-cd.readthedocs.io/">Argo CD · Documentation</a> · <a target="_blank" rel="noopener" href="https://fluxcd.io/docs/">Flux · Documentation</a> · <a target="_blank" rel="noopener" href="https://kubernetes.io/docs/concepts/workloads/controllers/deployment/">Kubernetes · Deployments</a> · <a target="_blank" rel="noopener" href="https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/">Kubernetes · Liveness, Readiness, Startup Probes</a> · <a target="_blank" rel="noopener" href="https://kubernetes.io/docs/concepts/configuration/secret/">Kubernetes · Secrets</a> · <a target="_blank" rel="noopener" href="https://kustomize.io/">Kustomize · Documentation</a> · <a target="_blank" rel="noopener" href="https://external-secrets.io/">External Secrets Operator</a> · <a target="_blank" rel="noopener" href="https://github.com/getsops/sops">SOPS</a> · <a target="_blank" rel="noopener" href="https://github.com/bitnami-labs/sealed-secrets">Sealed Secrets</a> · <a target="_blank" rel="noopener" href="https://dora.dev/guides/dora-metrics-four-keys/">DORA · Metrics</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/ci-cd/" class="category-chain-item">ci-cd</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/ci-cd/" class="print-no-link">#ci-cd</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 092 · CI/CD（二）：容器化部署与 GitOps</div>
+      <div>https://ethan-iopasd.github.io/2026/10/08/每日技术博客092-CICD容器化部署与GitOps/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月8日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2072-CICD%E6%B5%81%E6%B0%B4%E7%BA%BF%E8%AE%BE%E8%AE%A1/" title="每日技术博客 072 · CI/CD（一）：流水线设计与制品管理">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 072 · CI/CD（一）：流水线设计与制品管理</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

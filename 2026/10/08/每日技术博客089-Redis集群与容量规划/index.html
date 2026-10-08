@@ -1,0 +1,1140 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 089 篇 Redis 系列第四篇。复制、Sentinel、Cluster 三种高可用形态各自的边界，以及内存与大 key 的治理。  📚 Redis 系列目录   章节 主题 状态    一 数据结构与典型场景 已发布   二 缓存三大问题与持久化 已发布   三 分布式锁、限流与 Lua 已发布   四 主从、哨兵、Cluster 与容量规划">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 089 · Redis（四）：主从、哨兵、Cluster 与容量规划">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2089-Redis%E9%9B%86%E7%BE%A4%E4%B8%8E%E5%AE%B9%E9%87%8F%E8%A7%84%E5%88%92/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 089 篇 Redis 系列第四篇。复制、Sentinel、Cluster 三种高可用形态各自的边界，以及内存与大 key 的治理。  📚 Redis 系列目录   章节 主题 状态    一 数据结构与典型场景 已发布   二 缓存三大问题与持久化 已发布   三 分布式锁、限流与 Lua 已发布   四 主从、哨兵、Cluster 与容量规划">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-08T06:20:00.000Z">
+<meta property="article:modified_time" content="2026-10-08T03:06:37.440Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="redis">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 089 · Redis（四）：主从、哨兵、Cluster 与容量规划 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 089 · Redis（四）：主从、哨兵、Cluster 与容量规划"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-08 14:20" pubdate>
+          2026年10月8日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.2k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          19 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 089 · Redis（四）：主从、哨兵、Cluster 与容量规划</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-08 · 第 089 篇</p>
+<p>Redis 系列第四篇。复制、Sentinel、Cluster 三种高可用形态各自的边界，以及内存与大 key 的治理。</p>
+</blockquote>
+<h2 id="📚-Redis-系列目录"><a href="#📚-Redis-系列目录" class="headerlink" title="📚 Redis 系列目录"></a>📚 Redis 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>数据结构与典型场景</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>缓存三大问题与持久化</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>分布式锁、限流与 Lua</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td>主从、哨兵、Cluster 与容量规划</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p>主从解决<strong>读扩展与备份</strong>，Sentinel 解决<strong>单主自动切换</strong>，Cluster 解决<strong>分片与水平扩展</strong> —— 三者不是替代关系，而 Cluster 的核心代价是<strong>多 key 操作不再自由</strong>。</p>
+<h2 id="一、主从复制：全量-部分重同步"><a href="#一、主从复制：全量-部分重同步" class="headerlink" title="一、主从复制：全量 &#x2F; 部分重同步"></a>一、主从复制：全量 &#x2F; 部分重同步</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash">replicaof 10.0.0.1 6379     <span class="hljs-comment"># Redis 5+ 推荐；slaveof 仍兼容</span><br>replica-read-only <span class="hljs-built_in">yes</span>       <span class="hljs-comment"># 从库只读</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs text">1. replica 发 PSYNC ? -1 → master BGSAVE 生成 RDB 并发送<br>2. 期间的写命令缓存在 repl_backlog，随 RDB 一并发送<br>3. 之后 master 持续把写命令传播给 replica<br>4. 断线重连发 PSYNC &lt;runid&gt; &lt;offset&gt;：<br>   offset 仍在 backlog 内 → 部分重同步；已超出 → 全量重同步<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>配置</th>
+<th>默认值</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>repl-backlog-size</code></td>
+<td><code>1mb</code></td>
+<td>环形缓冲区，决定部分重同步能容忍多久断线</td>
+</tr>
+<tr>
+<td><code>repl-diskless-sync</code></td>
+<td><code>yes</code>（6.0+）</td>
+<td>不落盘，直接经 socket 传 RDB</td>
+</tr>
+<tr>
+<td><code>repl-diskless-sync-delay</code></td>
+<td><code>5</code></td>
+<td>等待更多 replica 一起做无盘同步</td>
+</tr>
+<tr>
+<td><code>repl-timeout</code></td>
+<td><code>60</code></td>
+<td>复制超时</td>
+</tr>
+<tr>
+<td><code>client-output-buffer-limit replica</code></td>
+<td><code>256mb 64mb 60</code></td>
+<td>从库缓冲上限，超了断开</td>
+</tr>
+</tbody></table>
+<p>复制风暴的两种形态：</p>
+<table>
+<thead>
+<tr>
+<th>形态</th>
+<th>场景</th>
+<th>缓解</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>单 master 多 replica</td>
+<td>同时重连，master 反复 BGSAVE</td>
+<td><code>repl-diskless-sync-delay</code> 聚合</td>
+</tr>
+<tr>
+<td>级联（master → replica → replica）</td>
+<td>副本数量多</td>
+<td>中间层分担，减少 master 直接下游</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">WAIT 2 100   <span class="hljs-comment"># 阻塞等待至少 2 个副本确认，最多 100ms，返回实际确认数</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>repl-backlog-size</code> 默认只有 1MB，高写入场景几秒写满，断线必然触发<strong>全量同步</strong>。<br>⚠️ <code>repl-diskless-sync-delay=5</code> 会<strong>延迟 5 秒</strong>才开始同步，对快速切主有影响。<br>⚠️ 复制是<strong>异步</strong>的：master 返回 OK 时数据可能还没到 replica，<code>min-replicas-to-write</code> 是唯一兜底。<br>⚠️ <code>WAIT</code> 只等「当前时刻的复制进度」，<strong>不是持久化保证</strong>；且会阻塞当前连接，别放热路径。</p>
+</blockquote>
+<h2 id="二、Sentinel：quorum-与-majority-不是一回事"><a href="#二、Sentinel：quorum-与-majority-不是一回事" class="headerlink" title="二、Sentinel：quorum 与 majority 不是一回事"></a>二、Sentinel：quorum 与 majority 不是一回事</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs conf">sentinel monitor mymaster 10.0.0.1 6379 2<br>sentinel down-after-milliseconds mymaster 30000<br>sentinel failover-timeout mymaster 180000<br>sentinel parallel-syncs mymaster 1<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>SDOWN</td>
+<td><strong>主观下线</strong>：单个 Sentinel 自己认为 master 挂了</td>
+</tr>
+<tr>
+<td>ODOWN</td>
+<td><strong>客观下线</strong>：达到 <code>quorum</code> 个 Sentinel 都认为挂了</td>
+</tr>
+<tr>
+<td>quorum</td>
+<td>判定 ODOWN 所需的票数</td>
+</tr>
+<tr>
+<td>majority</td>
+<td>真正发起故障转移所需的<strong>多数派</strong>（&gt; 总数 &#x2F; 2）</td>
+</tr>
+</tbody></table>
+<table>
+<thead>
+<tr>
+<th>Sentinel 总数</th>
+<th>quorum&#x3D;2 时</th>
+<th>能否 failover</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>3</td>
+<td>2 票 ODOWN</td>
+<td>✅ 需 2 票 &gt; 1.5</td>
+</tr>
+<tr>
+<td>5</td>
+<td>2 票 ODOWN</td>
+<td>✅ 需 3 票（majority）</td>
+</tr>
+<tr>
+<td>2</td>
+<td>2 票 ODOWN</td>
+<td>❌ 无容错，脑裂时无多数派</td>
+</tr>
+</tbody></table>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs conf"># master 端：至少 1 个副本且延迟 ≤ 10s，否则拒绝写入<br>min-replicas-to-write 1<br>min-replicas-max-lag 10<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>quorum 只决定「是否标记 ODOWN」，majority 才决定「能否真正切换」</strong>，quorum 设小只让判定更快。<br>⚠️ Sentinel 必须<strong>奇数且 ≥ 3</strong>，否则脑裂时无法形成多数派。<br>⚠️ 客户端必须支持 Sentinel 协议（先连 Sentinel 拿 master 地址），直连 IP 的话切换后仍打旧主。<br>⚠️ <code>min-replicas-to-write</code> 是防脑裂丢数据的关键，代价是副本全挂时<strong>拒绝写入</strong>（刻意取舍）。</p>
+</blockquote>
+<h2 id="三、Cluster：16384-个-slot-与重定向"><a href="#三、Cluster：16384-个-slot-与重定向" class="headerlink" title="三、Cluster：16384 个 slot 与重定向"></a>三、Cluster：16384 个 slot 与重定向</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs bash">redis-cli --cluster create \<br>  10.0.0.1:6379 10.0.0.2:6379 10.0.0.3:6379 \<br>  10.0.0.4:6379 10.0.0.5:6379 10.0.0.6:6379 \<br>  --cluster-replicas 1<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>slot 总数</td>
+<td><strong>16384</strong></td>
+</tr>
+<tr>
+<td>分片算法</td>
+<td><code>CRC16(key) mod 16384</code></td>
+</tr>
+<tr>
+<td>最小节点数</td>
+<td>3 主（多数派要求）</td>
+</tr>
+<tr>
+<td>集群总线端口</td>
+<td><code>port + 10000</code></td>
+</tr>
+</tbody></table>
+<table>
+<thead>
+<tr>
+<th>返回</th>
+<th>含义</th>
+<th>客户端动作</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>MOVED &lt;slot&gt; &lt;ip:port&gt;</code></td>
+<td>slot <strong>已永久</strong>归属别的节点</td>
+<td>更新本地 slot 映射并重发</td>
+</tr>
+<tr>
+<td><code>ASK &lt;slot&gt; &lt;ip:port&gt;</code></td>
+<td>slot 正在<strong>迁移中</strong>，该 key 已在目标节点</td>
+<td><strong>只重发这一次</strong>，不更新映射</td>
+</tr>
+<tr>
+<td><code>TRYAGAIN</code></td>
+<td>多 key 命令涉及正在迁移的 slot</td>
+<td>稍后重试</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 源节点</span><br>CLUSTER SETSLOT 866 MIGRATING &lt;目标 node-id&gt;<br>CLUSTER GETKEYSINSLOT 866 100<br>MIGRATE &lt;目标ip&gt; &lt;端口&gt; <span class="hljs-string">&quot;&quot;</span> 0 5000 KEYS key1 key2<br><span class="hljs-comment"># 目标节点</span><br>CLUSTER SETSLOT 866 IMPORTING &lt;源 node-id&gt;<br><span class="hljs-comment"># 两边都执行</span><br>CLUSTER SETSLOT 866 NODE &lt;目标 node-id&gt;<br>CLUSTER COUNTKEYSINSLOT 866     <span class="hljs-comment"># 该 slot 里有多少 key</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>MOVED</code> 要更新映射，<code>ASK</code> <strong>不能</strong>更新映射 —— 搞反会导致后续请求持续打错节点。<br>⚠️ resharding 期间对正在迁移的 slot 做多 key 操作，可能拿到 <code>TRYAGAIN</code>，业务必须能重试。<br>⚠️ Cluster 模式下 <code>SELECT</code> 不可用（只有 db 0），<code>FLUSHALL</code> 也只作用于当前节点。</p>
+</blockquote>
+<h2 id="四、多-key-与-Lua-的跨-slot-限制"><a href="#四、多-key-与-Lua-的跨-slot-限制" class="headerlink" title="四、多 key 与 Lua 的跨 slot 限制"></a>四、多 key 与 Lua 的跨 slot 限制</h2><table>
+<thead>
+<tr>
+<th>操作</th>
+<th>单机</th>
+<th>Cluster</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>MGET</code> &#x2F; <code>MSET</code></td>
+<td>✅</td>
+<td>⚠️ 同 slot 才行</td>
+</tr>
+<tr>
+<td><code>SUNIONSTORE</code> &#x2F; <code>RENAME</code></td>
+<td>✅</td>
+<td>⚠️ 同 slot 才行</td>
+</tr>
+<tr>
+<td><code>EVAL</code>（Lua）</td>
+<td>✅</td>
+<td>⚠️ 所有 key 必须同 slot</td>
+</tr>
+<tr>
+<td>事务 <code>MULTI/EXEC</code></td>
+<td>✅</td>
+<td>⚠️ 同 slot 才行</td>
+</tr>
+</tbody></table>
+<p>强制同 slot 用 <strong>hash tag</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash">SET user:&#123;1001&#125;:name  <span class="hljs-string">&quot;Tom&quot;</span><br>SET user:&#123;1001&#125;:email <span class="hljs-string">&quot;t@x.com&quot;</span><br>MGET user:&#123;1001&#125;:name user:&#123;1001&#125;:email   <span class="hljs-comment"># ✅ 同 slot</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ hash tag 是<strong>双刃剑</strong>：所有 <code>&#123;1001&#125;</code> 的 key 挤在同一个 slot &#x2F; 同一个节点，容易造成<strong>热点</strong>。<br>⚠️ 别用 <code>&#123;user&#125;</code> 这种常量 tag 把整个业务塞进一个 slot —— 那等于放弃分片。<br>⚠️ Cluster 下没有跨节点原子操作；要跨 key 原子性只能靠 Lua + 同 slot，或换回单机。</p>
+</blockquote>
+<h2 id="五、持久化与主从的结合"><a href="#五、持久化与主从的结合" class="headerlink" title="五、持久化与主从的结合"></a>五、持久化与主从的结合</h2><table>
+<thead>
+<tr>
+<th>方式</th>
+<th>说明</th>
+<th>恢复速度</th>
+<th>数据安全</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>RDB</td>
+<td>定时快照，文件紧凑</td>
+<td>快</td>
+<td>可能丢最后一次快照后的数据</td>
+</tr>
+<tr>
+<td>AOF</td>
+<td>追加写命令日志</td>
+<td>慢</td>
+<td>取决于 <code>appendfsync</code></td>
+</tr>
+<tr>
+<td>RDB + AOF</td>
+<td>同时开启，重启优先用 AOF</td>
+<td>中</td>
+<td>最好</td>
+</tr>
+</tbody></table>
+<table>
+<thead>
+<tr>
+<th><code>appendfsync</code></th>
+<th>行为</th>
+<th>丢数据窗口</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>always</code></td>
+<td>每条命令都 fsync</td>
+<td>几乎不丢，性能最差</td>
+</tr>
+<tr>
+<td><code>everysec</code>（默认）</td>
+<td>每秒 fsync 一次</td>
+<td>最多丢 1 秒</td>
+</tr>
+<tr>
+<td><code>no</code></td>
+<td>交给操作系统</td>
+<td>可能丢几十秒</td>
+</tr>
+</tbody></table>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs conf">appendonly yes<br>appendfsync everysec<br>auto-aof-rewrite-percentage 100<br>auto-aof-rewrite-min-size 64mb<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 正确组合是<strong>主库开 AOF、从库开 RDB</strong>，避免主库在 BGSAVE fork 时抖动。<br>⚠️ AOF 重写也会 fork，<code>aof-rewrite-incremental-fsync yes</code> 能缓解尖峰。<br>⚠️ 别把持久化当备份：<code>FLUSHALL</code>、误删都会同步写进 AOF，必须有异地快照。</p>
+</blockquote>
+<h2 id="六、内存管理与淘汰策略"><a href="#六、内存管理与淘汰策略" class="headerlink" title="六、内存管理与淘汰策略"></a>六、内存管理与淘汰策略</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs conf">maxmemory 4gb<br>maxmemory-policy allkeys-lru<br></code></pre></td></tr></table></figure>
+
+<p>八种淘汰策略：</p>
+<table>
+<thead>
+<tr>
+<th>策略</th>
+<th>淘汰范围</th>
+<th>算法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>noeviction</code>（默认）</td>
+<td>不淘汰</td>
+<td>写命令直接报错</td>
+</tr>
+<tr>
+<td><code>allkeys-lru</code></td>
+<td>所有 key</td>
+<td>近似 LRU</td>
+</tr>
+<tr>
+<td><code>allkeys-lfu</code></td>
+<td>所有 key</td>
+<td>近似 LFU</td>
+</tr>
+<tr>
+<td><code>allkeys-random</code></td>
+<td>所有 key</td>
+<td>随机</td>
+</tr>
+<tr>
+<td><code>volatile-lru</code></td>
+<td>仅设了 TTL 的 key</td>
+<td>近似 LRU</td>
+</tr>
+<tr>
+<td><code>volatile-lfu</code></td>
+<td>仅设了 TTL 的 key</td>
+<td>近似 LFU</td>
+</tr>
+<tr>
+<td><code>volatile-random</code></td>
+<td>仅设了 TTL 的 key</td>
+<td>随机</td>
+</tr>
+<tr>
+<td><code>volatile-ttl</code></td>
+<td>仅设了 TTL 的 key</td>
+<td>优先淘汰 TTL 短的</td>
+</tr>
+</tbody></table>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>推荐</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>纯缓存，所有 key 都可丢</td>
+<td><code>allkeys-lru</code> 或 <code>allkeys-lfu</code></td>
+</tr>
+<tr>
+<td>缓存 + 持久数据混用</td>
+<td><code>volatile-lru</code>（务必给缓存设 TTL）</td>
+</tr>
+<tr>
+<td>不允许丢数据</td>
+<td><code>noeviction</code> + 容量告警</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash">INFO memory            <span class="hljs-comment"># used_memory / used_memory_rss / mem_fragmentation_ratio</span><br>MEMORY USAGE mykey     <span class="hljs-comment"># 单个 key 的字节数</span><br>MEMORY DOCTOR          <span class="hljs-comment"># 内存健康建议</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th><code>mem_fragmentation_ratio</code></th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>≈ 1.0</td>
+<td>正常</td>
+</tr>
+<tr>
+<td>&gt; 1.5</td>
+<td>碎片严重，考虑 <code>activedefrag</code></td>
+</tr>
+<tr>
+<td>&lt; 1</td>
+<td>⚠️ 已发生 swap，性能急剧下降</td>
+</tr>
+</tbody></table>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs conf">activedefrag yes<br>active-defrag-ignore-bytes 100mb<br>active-defrag-threshold-lower 10<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>noeviction</code> 下内存满了写命令报 <code>OOM command not allowed</code>，读命令仍可用 —— 常被误判为 Redis 挂了。<br>⚠️ <code>volatile-*</code> 系列在<strong>没有 key 设 TTL</strong> 时等同 <code>noeviction</code>，会直接报错。<br>⚠️ <code>mem_fragmentation_ratio &lt; 1</code> 说明用了 swap，单线程模型下会拖垮全部请求。<br>⚠️ 淘汰策略只对<strong>设了 <code>maxmemory</code></strong> 生效；不设就一直吃到物理内存耗尽被 OOM Killer 杀掉。</p>
+</blockquote>
+<h2 id="七、大-key-热-key-与阻塞排查"><a href="#七、大-key-热-key-与阻塞排查" class="headerlink" title="七、大 key &#x2F; 热 key 与阻塞排查"></a>七、大 key &#x2F; 热 key 与阻塞排查</h2><table>
+<thead>
+<tr>
+<th>命令</th>
+<th>问题</th>
+<th>替代</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>KEYS *</code></td>
+<td>全量扫描</td>
+<td><code>SCAN</code> 游标迭代</td>
+</tr>
+<tr>
+<td><code>FLUSHALL</code> &#x2F; <code>FLUSHDB</code></td>
+<td>清空全部</td>
+<td><code>FLUSHALL ASYNC</code></td>
+</tr>
+<tr>
+<td><code>DEL</code> 大 key</td>
+<td>同步释放，阻塞</td>
+<td><code>UNLINK</code>（4.0+，后台释放）</td>
+</tr>
+<tr>
+<td><code>HGETALL</code> &#x2F; <code>SMEMBERS</code> 大对象</td>
+<td>一次性返回全部</td>
+<td><code>HSCAN</code> &#x2F; <code>SSCAN</code></td>
+</tr>
+<tr>
+<td><code>LRANGE key 0 -1</code></td>
+<td>全量返回大 list</td>
+<td>分段 <code>LRANGE</code></td>
+</tr>
+<tr>
+<td><code>SORT</code></td>
+<td>复杂度高</td>
+<td>数据量小才用</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs bash">redis-cli --bigkeys              <span class="hljs-comment"># 找大 key（只适合从库或低峰期）</span><br>redis-cli --memkeys<br>redis-cli --hotkeys              <span class="hljs-comment"># 需 maxmemory-policy 为 lfu 系列</span><br>redis-cli --scan --pattern <span class="hljs-string">&#x27;user:*&#x27;</span> | <span class="hljs-built_in">head</span> -100   <span class="hljs-comment"># 在线扫描，不阻塞</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs bash">CONFIG SET slowlog-log-slower-than 10000   <span class="hljs-comment"># 微秒，10000 = 10ms</span><br>CONFIG SET slowlog-max-len 128<br>SLOWLOG GET 10<br>LATENCY DOCTOR<br>LATENCY RESET<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>KEYS *</code> 在生产上是<strong>事故级命令</strong>，数据量大时能阻塞几秒到几十秒。<br>⚠️ <code>--bigkeys</code> 内部用 <code>SCAN</code>，但会对每个 key 做 <code>TYPE</code> 与大小统计，仍有开销，别在高峰期跑。<br>⚠️ <code>UNLINK</code> 只是把释放动作丢给后台线程，<strong>内存不会立刻下降</strong>。<br>⚠️ <code>slowlog</code> 只记录<strong>命令执行</strong>耗时，不含网络往返，客户端看到的慢不一定在慢日志里。<br>⚠️ <code>slowlog-log-slower-than 0</code> 会记录所有命令，生产上会迅速吃满内存。<br>⚠️ <code>latency monitor</code> 抓的是事件级延迟（fork、过期键、淘汰等），和 slowlog 互补。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 用默认 <code>repl-backlog-size=1mb</code>，高写入下断线必然全量同步</li>
+<li><input disabled="" type="checkbox"> 把 <code>WAIT</code> 当成持久化保证</li>
+<li><input disabled="" type="checkbox"> 混淆 Sentinel 的 <code>quorum</code> 与 <code>majority</code>，以为 quorum 设小就更容易切换</li>
+<li><input disabled="" type="checkbox"> Sentinel 部署偶数个或只有 2 个，脑裂时无法形成多数派</li>
+<li><input disabled="" type="checkbox"> 客户端不支持 Sentinel 协议，切主后仍打旧主</li>
+<li><input disabled="" type="checkbox"> 没开 <code>min-replicas-to-write</code>，脑裂后丢失隔离期的写入</li>
+<li><input disabled="" type="checkbox"> 把 <code>MOVED</code> 和 <code>ASK</code> 处理逻辑写反，ASK 时更新了本地映射</li>
+<li><input disabled="" type="checkbox"> Cluster 下直接 <code>MGET</code> 跨 slot 的 key，报 CROSSSLOT</li>
+<li><input disabled="" type="checkbox"> 用常量 hash tag 把整个业务塞进一个 slot，热点集中</li>
+<li><input disabled="" type="checkbox"> 主库同时开 RDB + AOF，BGSAVE fork 时抖动</li>
+<li><input disabled="" type="checkbox"> 把持久化当备份，误删后无法恢复</li>
+<li><input disabled="" type="checkbox"> 内存满了却用 <code>noeviction</code>，误判为 Redis 宕机</li>
+<li><input disabled="" type="checkbox"> 用 <code>volatile-lru</code> 但缓存 key 忘了设 TTL，等价于不淘汰</li>
+<li><input disabled="" type="checkbox"> 不设 <code>maxmemory</code>，被系统 OOM Killer 杀掉</li>
+<li><input disabled="" type="checkbox"> 忽略 <code>mem_fragmentation_ratio &lt; 1</code>，已 swap 却继续加压</li>
+<li><input disabled="" type="checkbox"> 生产上执行 <code>KEYS *</code> 或同步版 <code>FLUSHALL</code></li>
+<li><input disabled="" type="checkbox"> 用 <code>DEL</code> 删大 key，阻塞主线程</li>
+<li><input disabled="" type="checkbox"> 高峰期跑 <code>--bigkeys</code>，把 Redis 拖慢</li>
+<li><input disabled="" type="checkbox"> 只盯 slowlog 不看 <code>LATENCY</code>，漏掉 fork &#x2F; 淘汰类延迟</li>
+<li><input disabled="" type="checkbox"> <code>slowlog-log-slower-than 0</code> 上线，日志把内存吃满</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://redis.io/docs/latest/operate/oss_and_stack/management/replication/">Redis 官方文档 · 复制</a> · <a target="_blank" rel="noopener" href="https://redis.io/docs/latest/operate/oss_and_stack/management/sentinel/">Redis · Sentinel 高可用</a> · <a target="_blank" rel="noopener" href="https://redis.io/docs/latest/operate/oss_and_stack/management/scaling/">Redis · Cluster 教程</a> · <a target="_blank" rel="noopener" href="https://redis.io/docs/latest/operate/oss_and_stack/management/persistence/">Redis · 持久化</a> · <a target="_blank" rel="noopener" href="https://redis.io/docs/latest/develop/reference/optimization/memory-optimization/">Redis · 内存优化</a> · <a target="_blank" rel="noopener" href="https://redis.io/docs/latest/develop/reference/eviction/">Redis · 键淘汰</a> · <a target="_blank" rel="noopener" href="https://redis.io/docs/latest/operate/oss_and_stack/management/optimization/latency-monitor/">Redis · 延迟监控</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/redis/" class="category-chain-item">redis</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/redis/" class="print-no-link">#redis</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 089 · Redis（四）：主从、哨兵、Cluster 与容量规划</div>
+      <div>https://ethan-iopasd.github.io/2026/10/08/每日技术博客089-Redis集群与容量规划/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月8日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2055-Redis%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81%E4%B8%8E%E9%99%90%E6%B5%81/" title="每日技术博客 055 · Redis（三）：分布式锁、限流与 Lua">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 055 · Redis（三）：分布式锁、限流与 Lua</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

@@ -1,0 +1,1133 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 078 篇 gRPC 系列第二篇。流式调用的背压与坑、deadline 传播、拦截器、负载均衡、重试，以及上线前的可观测性与调优。  📚 gRPC 系列目录   章节 主题 状态    一 Protocol Buffers 与 gRPC 基础 已发布   二 流式调用、拦截器与生产实践 本篇    开场：一句话结论流式调用省的是「往返次数」不是「">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 078 · gRPC（二）：流式调用、拦截器与生产实践">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2078-gRPC%E6%B5%81%E5%BC%8F%E6%8B%A6%E6%88%AA%E5%99%A8%E4%B8%8E%E7%94%9F%E4%BA%A7%E5%AE%9E%E8%B7%B5/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 078 篇 gRPC 系列第二篇。流式调用的背压与坑、deadline 传播、拦截器、负载均衡、重试，以及上线前的可观测性与调优。  📚 gRPC 系列目录   章节 主题 状态    一 Protocol Buffers 与 gRPC 基础 已发布   二 流式调用、拦截器与生产实践 本篇    开场：一句话结论流式调用省的是「往返次数」不是「">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-08T05:25:00.000Z">
+<meta property="article:modified_time" content="2026-10-08T03:05:02.959Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="grpc">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 078 · gRPC（二）：流式调用、拦截器与生产实践 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 078 · gRPC（二）：流式调用、拦截器与生产实践"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-08 13:25" pubdate>
+          2026年10月8日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.6k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          22 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 078 · gRPC（二）：流式调用、拦截器与生产实践</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-08 · 第 078 篇</p>
+<p>gRPC 系列第二篇。流式调用的背压与坑、deadline 传播、拦截器、负载均衡、重试，以及上线前的可观测性与调优。</p>
+</blockquote>
+<h2 id="📚-gRPC-系列目录"><a href="#📚-gRPC-系列目录" class="headerlink" title="📚 gRPC 系列目录"></a>📚 gRPC 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>Protocol Buffers 与 gRPC 基础</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>流式调用、拦截器与生产实践</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>流式调用省的是「往返次数」不是「数据量」</strong>，生产上真正让 gRPC 稳定的，是 deadline、拦截器、客户端负载均衡和 keepalive 这四件事。</p>
+<h2 id="一、四种流式调用的适用场景"><a href="#一、四种流式调用的适用场景" class="headerlink" title="一、四种流式调用的适用场景"></a>一、四种流式调用的适用场景</h2><table>
+<thead>
+<tr>
+<th>类型</th>
+<th>语义</th>
+<th>适合</th>
+<th>不适合</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Unary</td>
+<td>1 请求 1 响应</td>
+<td>绝大多数 CRUD</td>
+<td>——</td>
+</tr>
+<tr>
+<td>Server streaming</td>
+<td>1 请求 N 响应</td>
+<td>大结果集、进度、订阅</td>
+<td>需要客户端应答</td>
+</tr>
+<tr>
+<td>Client streaming</td>
+<td>N 请求 1 响应</td>
+<td>批量上传、聚合</td>
+<td>需要中途返回</td>
+</tr>
+<tr>
+<td>Bidirectional</td>
+<td>N 请求 N 响应</td>
+<td>实时聊天、双向同步</td>
+<td>简单请求响应</td>
+</tr>
+</tbody></table>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(s *srv)</span></span> ListUsers(req *pb.ListReq, stream pb.Svc_ListUsersServer) <span class="hljs-type">error</span> &#123;<br>    <span class="hljs-keyword">for</span> _, u := <span class="hljs-keyword">range</span> s.query(req) &#123;<br>        <span class="hljs-keyword">if</span> err := stream.Send(u); err != <span class="hljs-literal">nil</span> &#123;   <span class="hljs-comment">// 客户端断开会在这里报错</span><br>            <span class="hljs-keyword">return</span> err<br>        &#125;<br>    &#125;<br>    <span class="hljs-keyword">return</span> <span class="hljs-literal">nil</span>                                   <span class="hljs-comment">// 返回 nil 才会发 OK</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>Send</code> 是阻塞的</strong>。当 HTTP&#x2F;2 窗口用尽，<code>Send</code> 会挂住直到对端 <code>WINDOW_UPDATE</code>。这就是背压 —— 但如果你在持锁时 <code>Send</code>，锁会被一直占住。</p>
+</blockquote>
+<h2 id="二、背压与流控"><a href="#二、背压与流控" class="headerlink" title="二、背压与流控"></a>二、背压与流控</h2><figure class="highlight armasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs armasm">发送方 ──<span class="hljs-meta">DATA</span> 帧──► 接收方<br>        ◄──WINDOW_UPDATE──   （告诉对端「我还能收 N 字节」）<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>位置</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>连接级窗口</td>
+<td>HTTP&#x2F;2 层</td>
+<td>整条连接的收发额度</td>
+</tr>
+<tr>
+<td>流级窗口</td>
+<td>每条 stream</td>
+<td>单个流的收发额度</td>
+</tr>
+<tr>
+<td><code>initial_window_size</code></td>
+<td>连接配置</td>
+<td>初始窗口，默认 64KB</td>
+</tr>
+<tr>
+<td><code>max_concurrent_streams</code></td>
+<td>HTTP&#x2F;2 SETTINGS</td>
+<td>单连接最大并发流</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>窗口默认 64KB，大消息会「走走停停」</strong>。高带宽场景调大 <code>initial_window_size</code>（如 1MB）能显著提升吞吐，但会增加内存占用。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>max_concurrent_streams</code> 默认 100</strong>。流式连接数多的服务要主动调大，否则新流会被排队而不是立刻处理。</p>
+</blockquote>
+<h2 id="三、流式调用的常见坑"><a href="#三、流式调用的常见坑" class="headerlink" title="三、流式调用的常见坑"></a>三、流式调用的常见坑</h2><table>
+<thead>
+<tr>
+<th>坑</th>
+<th>后果</th>
+<th>解法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>忘记 <code>CloseSend</code></td>
+<td>client streaming 永不结束</td>
+<td>用 <code>defer CloseSend()</code></td>
+</tr>
+<tr>
+<td>中途错误直接 <code>return</code></td>
+<td>错误丢给客户端成 <code>UNKNOWN</code></td>
+<td>返回 <code>status.Error(...)</code></td>
+</tr>
+<tr>
+<td>服务端不检查 <code>ctx.Done()</code></td>
+<td>客户端断了还在算</td>
+<td>长任务里定期检查</td>
+</tr>
+<tr>
+<td>服务端 <code>Send</code> 到已断的流</td>
+<td>首次报错后持续报错</td>
+<td>立即退出循环</td>
+</tr>
+<tr>
+<td>双向流用共享变量</td>
+<td>数据竞争</td>
+<td>每方向独立 goroutine</td>
+</tr>
+</tbody></table>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs go">stream, _ := client.Upload(ctx)<br><span class="hljs-keyword">defer</span> stream.CloseSend()   <span class="hljs-comment">// 少了这句，服务端永远等不到 EOF</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ **<code>Send</code> 返回 error 后不要继续 <code>Send</code>**。对端已经没了，后续调用只会不断报错。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>流中途的错误只能通过返回 error 传递</strong>。已经 <code>Send</code> 出去的消息不会撤回，客户端必须自己处理「收到部分数据后失败」的情况。</p>
+</blockquote>
+<h2 id="四、deadline-与超时传播"><a href="#四、deadline-与超时传播" class="headerlink" title="四、deadline 与超时传播"></a>四、deadline 与超时传播</h2><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-comment">// gRPC 用绝对时间点（deadline），不是本地 timeout</span><br>ctx, cancel := context.WithTimeout(context.Background(), <span class="hljs-number">3</span>*time.Second)<br><span class="hljs-keyword">defer</span> cancel()<br>resp, err := client.GetUser(ctx, req)<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>deadline</td>
+<td>绝对时间点，跨服务传播时会被换算</td>
+</tr>
+<tr>
+<td>timeout</td>
+<td>客户端本地概念，<code>WithTimeout</code> 会转成 deadline</td>
+</tr>
+<tr>
+<td>传播</td>
+<td>gRPC 把剩余时间放进 <code>grpc-timeout</code> header 传给下游</td>
+</tr>
+<tr>
+<td>超时错误</td>
+<td><code>DEADLINE_EXCEEDED</code>（码 4）</td>
+</tr>
+</tbody></table>
+<figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs css">客户端 deadline <span class="hljs-number">3s</span> ──► 服务 <span class="hljs-selector-tag">A</span>（已用 <span class="hljs-number">0.5s</span>，剩 <span class="hljs-number">2.5s</span>）<br>                          └──► 服务 <span class="hljs-selector-tag">B</span>（已用 <span class="hljs-number">1s</span>，剩 <span class="hljs-number">1.5s</span>）<br>                                 └──► 服务 C（剩 <span class="hljs-number">0.5s</span> 必须完成）<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>deadline 会逐跳递减</strong>。上游给的 3s 到了第三跳可能只剩 0.5s，下游必须尊重传入的 deadline，而不是自己重新设一个更大的。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>服务端也要主动检查 deadline</strong>。<code>ctx.Err()</code> 返回 <code>context.DeadlineExceeded</code> 时就该放弃，继续算只是浪费 CPU。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>超时不是「失败」的同义词</strong>。服务端可能已经执行成功，只是响应晚了 —— 所以写操作超时后<strong>不能盲目重试</strong>。</p>
+</blockquote>
+<h2 id="五、拦截器"><a href="#五、拦截器" class="headerlink" title="五、拦截器"></a>五、拦截器</h2><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">logging</span><span class="hljs-params">(ctx context.Context, req any, info *grpc.UnaryServerInfo,</span></span><br><span class="hljs-params"><span class="hljs-function">    handler grpc.UnaryHandler)</span></span> (any, <span class="hljs-type">error</span>) &#123;<br>    start := time.Now()<br>    resp, err := handler(ctx, req)<br>    log.Printf(<span class="hljs-string">&quot;%s took=%s err=%v&quot;</span>, info.FullMethod, time.Since(start), err)<br>    <span class="hljs-keyword">return</span> resp, err<br>&#125;<br><br>s := grpc.NewServer(<br>    grpc.ChainUnaryInterceptor(recovery, auth, metrics, logging),<br>    grpc.ChainStreamInterceptor(streamRecovery, streamAuth, streamMetrics),<br>)<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>用途</th>
+<th>Unary</th>
+<th>Stream</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>日志</td>
+<td><code>UnaryInterceptor</code></td>
+<td><code>StreamInterceptor</code></td>
+</tr>
+<tr>
+<td>鉴权 &#x2F; 指标 &#x2F; 限流</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>panic recovery</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>拦截器链是有顺序的</strong>。<code>ChainUnaryInterceptor(a, b, c)</code> 里 <code>a</code> 最先进入、最后返回（洋葱模型）。recovery 要放在最外层，否则内层 panic 逃不出去。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>Stream 拦截器只能包一层</strong>。要拦截每条消息得包装 <code>grpc.ServerStream</code> 重写 <code>SendMsg</code> &#x2F; <code>RecvMsg</code>，或者用 <code>stats.Handler</code>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>客户端也有拦截器，且必须成对注册</strong>。客户端加了鉴权拦截器、服务端没配对应校验，等于没鉴权。</p>
+</blockquote>
+<h2 id="六、metadata-与自定义头"><a href="#六、metadata-与自定义头" class="headerlink" title="六、metadata 与自定义头"></a>六、metadata 与自定义头</h2><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs go">md := metadata.Pairs(<span class="hljs-string">&quot;authorization&quot;</span>, <span class="hljs-string">&quot;Bearer &quot;</span>+token, <span class="hljs-string">&quot;x-request-id&quot;</span>, rid)<br>ctx = metadata.NewOutgoingContext(ctx, md)     <span class="hljs-comment">// 客户端发送</span><br><br>md, ok := metadata.FromIncomingContext(ctx)     <span class="hljs-comment">// 服务端读取</span><br>tokens := md.Get(<span class="hljs-string">&quot;authorization&quot;</span>)               <span class="hljs-comment">// 注意：返回的是 slice</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>规则</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>键必须小写</td>
+<td>HTTP&#x2F;2 头部规范，大写会被规范化或拒绝</td>
+</tr>
+<tr>
+<td><code>-bin</code> 后缀</td>
+<td>二进制值，自动 base64 编码</td>
+</tr>
+<tr>
+<td>大小限制</td>
+<td>默认约 8KB，超了报错</td>
+</tr>
+<tr>
+<td>保留键</td>
+<td><code>grpc-</code> 前缀由库使用，别占用</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>metadata 键一律小写</strong>。Go 里 <code>metadata.Pairs</code> 会自动转小写，但手工构造 map 时容易踩。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>别把大对象塞进 metadata</strong>。它走 HTTP&#x2F;2 头部，受 HPACK 表大小和 <code>MAX_HEADER_LIST_SIZE</code> 限制，塞几 KB 的 JSON 会直接失败。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>metadata 是逐跳的，不是端到端的</strong>。服务端调下游时不会自动转发，要显式传递。</p>
+</blockquote>
+<h2 id="七、负载均衡与服务发现"><a href="#七、负载均衡与服务发现" class="headerlink" title="七、负载均衡与服务发现"></a>七、负载均衡与服务发现</h2><table>
+<thead>
+<tr>
+<th>方案</th>
+<th>位置</th>
+<th>优点</th>
+<th>缺点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>代理侧 LB</td>
+<td>客户端前面放 Envoy&#x2F;LB</td>
+<td>客户端简单</td>
+<td>多一跳、代理成瓶颈</td>
+</tr>
+<tr>
+<td>客户端侧 LB</td>
+<td>gRPC 内建</td>
+<td>少一跳、性能高</td>
+<td>每个客户端都要解析服务列表</td>
+</tr>
+<tr>
+<td>Service Mesh</td>
+<td>Sidecar</td>
+<td>对应用透明</td>
+<td>运维复杂</td>
+</tr>
+</tbody></table>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs go">conn, _ := grpc.NewClient(<span class="hljs-string">&quot;dns:///user-svc:50051&quot;</span>,<br>    grpc.WithDefaultServiceConfig(<span class="hljs-string">`&#123;&quot;loadBalancingConfig&quot;:[&#123;&quot;round_robin&quot;:&#123;&#125;&#125;]&#125;`</span>),<br>)<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>策略</th>
+<th>行为</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>pick_first</code></td>
+<td>默认，连第一个可用地址</td>
+</tr>
+<tr>
+<td><code>round_robin</code></td>
+<td>轮询所有地址</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ **默认策略是 <code>pick_first</code>，不是 <code>round_robin</code>**。不显式配置的话，客户端只会用一个后端实例，扩缩容基本无效。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>DNS 解析需要 <code>dns:///</code> 前缀</strong>。直接写 <code>user-svc:50051</code> 走默认 resolver，某些环境下不重解析，后端 IP 变了连不上。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>round_robin</code> 需要能拿到多个地址</strong>。如果服务名解析成 ClusterIP 单地址，轮询无从谈起 —— 要用 Headless Service 或 xDS。</p>
+</blockquote>
+<h2 id="八、keepalive-与-ENHANCE-YOUR-CALM"><a href="#八、keepalive-与-ENHANCE-YOUR-CALM" class="headerlink" title="八、keepalive 与 ENHANCE_YOUR_CALM"></a>八、keepalive 与 <code>ENHANCE_YOUR_CALM</code></h2><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs go">ka := keepalive.ClientParameters&#123;<br>    Time:                <span class="hljs-number">30</span> * time.Second, <span class="hljs-comment">// 空闲多久发 ping</span><br>    Timeout:             <span class="hljs-number">10</span> * time.Second, <span class="hljs-comment">// ping 多久没回应算断</span><br>    PermitWithoutStream: <span class="hljs-literal">false</span>,            <span class="hljs-comment">// 无活跃流时是否也发</span><br>&#125;<br>conn, _ := grpc.NewClient(target, grpc.WithKeepaliveParams(ka))<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>Time</code> 设太小会被服务端用 <code>GOAWAY</code> + <code>ENHANCE_YOUR_CALM</code> 拒绝</strong>。服务端默认有最小间隔限制（常见 5 分钟），客户端 ping 太频繁会被当成攻击。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>PermitWithoutStream=true</code> 尤其危险</strong>。空闲连接上疯狂发 ping 很容易触发限流，要用就得同时调服务端的 enforcement policy。</p>
+</blockquote>
+<h2 id="九、连接复用与-WithBlock-的坑"><a href="#九、连接复用与-WithBlock-的坑" class="headerlink" title="九、连接复用与 WithBlock 的坑"></a>九、连接复用与 <code>WithBlock</code> 的坑</h2><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-comment">// ❌ 每个请求新建连接：握手 + TLS + HTTP/2 设置，开销巨大</span><br><span class="hljs-comment">// ✅ 全局复用一条 ClientConn（它内部管理连接池和负载均衡）</span><br><span class="hljs-keyword">var</span> conn *grpc.ClientConn   <span class="hljs-comment">// 进程级单例，并发安全</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>选项</th>
+<th>行为</th>
+<th>建议</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>grpc.NewClient</code></td>
+<td>惰性连接，调用时才建</td>
+<td>✅ 默认用这个</td>
+</tr>
+<tr>
+<td><code>grpc.Dial</code>（旧）</td>
+<td>语义含糊，已弃用</td>
+<td>别用</td>
+</tr>
+<tr>
+<td><code>WithBlock</code></td>
+<td>阻塞到连接就绪</td>
+<td>⚠️ 慎用</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>WithBlock</code> 会把「服务暂时不可用」变成「启动直接失败」</strong>。它在网络抖动时会卡住整个启动流程。新代码用 <code>grpc.NewClient</code> 的惰性语义。</p>
+</blockquote>
+<h2 id="十、重试与对冲"><a href="#十、重试与对冲" class="headerlink" title="十、重试与对冲"></a>十、重试与对冲</h2><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-keyword">const</span> svcConfig = <span class="hljs-string">`&#123;</span><br><span class="hljs-string">  &quot;methodConfig&quot;: [&#123;</span><br><span class="hljs-string">    &quot;name&quot;: [&#123;&quot;service&quot;: &quot;user.v1.UserService&quot;&#125;],</span><br><span class="hljs-string">    &quot;retryPolicy&quot;: &#123;</span><br><span class="hljs-string">      &quot;maxAttempts&quot;: 4,</span><br><span class="hljs-string">      &quot;initialBackoff&quot;: &quot;0.1s&quot;,</span><br><span class="hljs-string">      &quot;maxBackoff&quot;: &quot;1s&quot;,</span><br><span class="hljs-string">      &quot;backoffMultiplier&quot;: 2,</span><br><span class="hljs-string">      &quot;retryableStatusCodes&quot;: [&quot;UNAVAILABLE&quot;, &quot;DEADLINE_EXCEEDED&quot;]</span><br><span class="hljs-string">    &#125;</span><br><span class="hljs-string">  &#125;]</span><br><span class="hljs-string">&#125;`</span><br>conn, _ := grpc.NewClient(target, grpc.WithDefaultServiceConfig(svcConfig))<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>retry</td>
+<td>失败后重试同一请求</td>
+</tr>
+<tr>
+<td>hedging</td>
+<td>同时发多个副本，取最快响应</td>
+</tr>
+<tr>
+<td><code>maxAttempts</code></td>
+<td>总尝试次数上限</td>
+</tr>
+<tr>
+<td>可重试状态码</td>
+<td>通常只列 <code>UNAVAILABLE</code> &#x2F; <code>DEADLINE_EXCEEDED</code></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>只对幂等方法开重试</strong>。<code>CreateOrder</code> 重试可能创建两笔订单 —— 除非有幂等键。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>对冲会成倍放大流量</strong>。hedging 同时发 N 份请求，后端负载瞬间 ×N，只适合低 QPS 的读接口。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>重试受 deadline 约束</strong>。<code>maxAttempts=4</code> 但 deadline 只有 100ms 时，可能只来得及重试 1 次。</p>
+</blockquote>
+<h2 id="十一、暴露成-REST：grpc-gateway"><a href="#十一、暴露成-REST：grpc-gateway" class="headerlink" title="十一、暴露成 REST：grpc-gateway"></a>十一、暴露成 REST：grpc-gateway</h2><figure class="highlight proto"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs proto"><span class="hljs-keyword">service </span><span class="hljs-title class_">UserService</span> &#123;<br>  <span class="hljs-function"><span class="hljs-keyword">rpc</span> GetUser(GetUserReq) <span class="hljs-keyword">returns</span> (User) </span>&#123;<br>    <span class="hljs-keyword">option</span> (google.api.http) = &#123; get: <span class="hljs-string">&quot;/v1/users/&#123;id&#125;&quot;</span> &#125;;<br>  &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>protoc-gen-grpc-gateway</code></td>
+<td>生成反向代理 handler</td>
+</tr>
+<tr>
+<td><code>protoc-gen-openapiv2</code></td>
+<td>生成 OpenAPI&#x2F;Swagger</td>
+</tr>
+<tr>
+<td>反向代理</td>
+<td>把 REST&#x2F;JSON 翻译成 gRPC 调内部服务</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>grpc-gateway 是「翻译层」不是「转换器」</strong>。它把 HTTP&#x2F;JSON 转成 gRPC 调用，浏览器仍不直接说 gRPC。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>grpc-web 不支持客户端流和双向流</strong>（部分实现只支持 unary + server streaming）。浏览器实时通信，WebSocket 往往更省事。</p>
+</blockquote>
+<h2 id="十二、反射与调试"><a href="#十二、反射与调试" class="headerlink" title="十二、反射与调试"></a>十二、反射与调试</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash">grpcurl -plaintext localhost:50051 list        <span class="hljs-comment"># 需要服务端开启反射</span><br>grpcurl -plaintext -d <span class="hljs-string">&#x27;&#123;&quot;id&quot;:1&#125;&#x27;</span> localhost:50051 user.v1.UserService/GetUser<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-keyword">import</span> <span class="hljs-string">&quot;google.golang.org/grpc/reflection&quot;</span><br>reflection.Register(grpcServer)   <span class="hljs-comment">// 开启反射</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>反射默认关闭，生产环境要谨慎开</strong>。它会把所有服务和方法暴露给任何能连上的人，等于接口文档公开。</p>
+</blockquote>
+<h2 id="十三、可观测性与-HTTP-2-调优"><a href="#十三、可观测性与-HTTP-2-调优" class="headerlink" title="十三、可观测性与 HTTP&#x2F;2 调优"></a>十三、可观测性与 HTTP&#x2F;2 调优</h2><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-keyword">import</span> <span class="hljs-string">&quot;go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc&quot;</span><br><br>s := grpc.NewServer(grpc.StatsHandler(otelgrpc.NewServerHandler()))<br>conn, _ := grpc.NewClient(target, grpc.WithStatsHandler(otelgrpc.NewClientHandler()))<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>grpc_server_handled_total</code></td>
+<td>按方法 + 状态码计数的请求数</td>
+</tr>
+<tr>
+<td><code>grpc_server_handling_seconds</code></td>
+<td>处理耗时直方图</td>
+</tr>
+<tr>
+<td><code>grpc_client_attempt_duration_seconds</code></td>
+<td>客户端每次尝试耗时</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>状态码要进指标 label，但方法名不要拆太细</strong>。按 <code>service/method/status_code</code> 打标是常规做法；再叠加 user_id 之类就是基数爆炸。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>max_concurrent_streams</code> 和 <code>initial_window_size</code> 要一起调</strong>。只调窗口不调并发流，瓶颈会从流控转移到并发上限。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 流式调用忘记 <code>CloseSend</code>，client streaming 永不结束</li>
+<li><input disabled="" type="checkbox"> 服务端长任务里不检查 <code>ctx.Done()</code>，客户端断了还在算</li>
+<li><input disabled="" type="checkbox"> 流中途失败直接 <code>return err</code>，错误被吞成 <code>UNKNOWN</code></li>
+<li><input disabled="" type="checkbox"> 在持锁状态下 <code>Send</code>，窗口用尽时把锁也一起挂住</li>
+<li><input disabled="" type="checkbox"> 客户端不设 deadline，慢下游把上游连接池耗尽</li>
+<li><input disabled="" type="checkbox"> 服务端忽略传入 deadline，自己重设一个更大的</li>
+<li><input disabled="" type="checkbox"> 写操作超时后盲目重试，产生重复数据</li>
+<li><input disabled="" type="checkbox"> 用 <code>WithBlock</code> 让启动强依赖下游可用</li>
+<li><input disabled="" type="checkbox"> 每个请求新建 <code>ClientConn</code>，丢掉连接复用和负载均衡</li>
+<li><input disabled="" type="checkbox"> 不配置负载均衡，默认 <code>pick_first</code> 只用一个实例</li>
+<li><input disabled="" type="checkbox"> DNS 目标没写 <code>dns:///</code> 前缀，后端变更后不重解析</li>
+<li><input disabled="" type="checkbox"> keepalive <code>Time</code> 设得太小，被服务端 <code>ENHANCE_YOUR_CALM</code> 拒绝</li>
+<li><input disabled="" type="checkbox"> metadata 键用了大写，或被当成普通 header 丢掉</li>
+<li><input disabled="" type="checkbox"> 非幂等接口开启重试或对冲，放大流量与副作用</li>
+<li><input disabled="" type="checkbox"> 只注册了 Stream 拦截器，漏了 Unary（或反之）</li>
+<li><input disabled="" type="checkbox"> 生产环境开启 gRPC 反射，接口全暴露</li>
+<li><input disabled="" type="checkbox"> 用 grpc-web 做双向流，发现浏览器根本不支持</li>
+<li><input disabled="" type="checkbox"> 调大 <code>initial_window_size</code> 却不调 <code>max_concurrent_streams</code></li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://grpc.io/docs/guides/deadlines/">gRPC · Deadlines</a> · <a target="_blank" rel="noopener" href="https://grpc.io/docs/guides/interceptors/">gRPC · Interceptors</a> · <a target="_blank" rel="noopener" href="https://grpc.io/docs/guides/metadata/">gRPC · Metadata</a> · <a target="_blank" rel="noopener" href="https://grpc.io/docs/guides/keepalive/">gRPC · Keepalive</a> · <a target="_blank" rel="noopener" href="https://grpc.io/docs/guides/retry/">gRPC · Retry</a> · <a target="_blank" rel="noopener" href="https://grpc.io/docs/guides/load-balancing/">gRPC · Load Balancing</a> · <a target="_blank" rel="noopener" href="https://grpc-ecosystem.github.io/grpc-gateway/">grpc-gateway</a> · <a target="_blank" rel="noopener" href="https://github.com/grpc/grpc-web#wire-protocol">grpc-web · Limitations</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/grpc/" class="category-chain-item">grpc</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/grpc/" class="print-no-link">#grpc</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 078 · gRPC（二）：流式调用、拦截器与生产实践</div>
+      <div>https://ethan-iopasd.github.io/2026/10/08/每日技术博客078-gRPC流式拦截器与生产实践/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月8日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2077-gRPC%E4%B8%8EProtocolBuffers/" title="每日技术博客 077 · gRPC（一）：Protocol Buffers 与 gRPC 基础">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 077 · gRPC（一）：Protocol Buffers 与 gRPC 基础</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

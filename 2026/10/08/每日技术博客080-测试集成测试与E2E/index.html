@@ -1,0 +1,1180 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 080 篇 测试系列第二篇。集成测试的真实依赖、Testcontainers、契约测试、E2E 工具选型与 flaky 治理、性能测试，以及 CI 里怎么分层组织测试阶段。  📚 测试 系列目录   章节 主题 状态    一 单元测试与测试替身 已发布   二 集成测试、E2E 与测试策略 本篇    开场：一句话结论单元测试验证逻辑，集成测试">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 080 · 测试（二）：集成测试、E2E 与测试策略">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2080-%E6%B5%8B%E8%AF%95%E9%9B%86%E6%88%90%E6%B5%8B%E8%AF%95%E4%B8%8EE2E/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 080 篇 测试系列第二篇。集成测试的真实依赖、Testcontainers、契约测试、E2E 工具选型与 flaky 治理、性能测试，以及 CI 里怎么分层组织测试阶段。  📚 测试 系列目录   章节 主题 状态    一 单元测试与测试替身 已发布   二 集成测试、E2E 与测试策略 本篇    开场：一句话结论单元测试验证逻辑，集成测试">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-08T05:35:00.000Z">
+<meta property="article:modified_time" content="2026-10-08T03:07:35.189Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="testing">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 080 · 测试（二）：集成测试、E2E 与测试策略 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 080 · 测试（二）：集成测试、E2E 与测试策略"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-08 13:35" pubdate>
+          2026年10月8日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.6k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          23 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 080 · 测试（二）：集成测试、E2E 与测试策略</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-08 · 第 080 篇</p>
+<p>测试系列第二篇。集成测试的真实依赖、Testcontainers、契约测试、E2E 工具选型与 flaky 治理、性能测试，以及 CI 里怎么分层组织测试阶段。</p>
+</blockquote>
+<h2 id="📚-测试-系列目录"><a href="#📚-测试-系列目录" class="headerlink" title="📚 测试 系列目录"></a>📚 测试 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>单元测试与测试替身</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>集成测试、E2E 与测试策略</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p>单元测试验证逻辑，集成测试验证<strong>接线</strong>，E2E 验证<strong>用户旅程</strong> —— 越往上越贵越脆，所以只测<strong>关键路径</strong>。</p>
+<h2 id="一、集成测试测什么"><a href="#一、集成测试测什么" class="headerlink" title="一、集成测试测什么"></a>一、集成测试测什么</h2><p>集成测试的核心是<strong>真实依赖之间的交互</strong>：SQL 能不能跑、事务边界对不对、序列化是否匹配、消息能不能收发。</p>
+<table>
+<thead>
+<tr>
+<th>依赖</th>
+<th>单元测试里</th>
+<th>集成测试里</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>数据库</td>
+<td>Mock 仓库</td>
+<td>真实 DB（容器）</td>
+</tr>
+<tr>
+<td>缓存</td>
+<td>Mock client</td>
+<td>真实 Redis</td>
+</tr>
+<tr>
+<td>消息队列</td>
+<td>Mock producer</td>
+<td>真实 Kafka&#x2F;RabbitMQ</td>
+</tr>
+<tr>
+<td>外部 HTTP</td>
+<td>Mock server</td>
+<td>WireMock &#x2F; 沙箱</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 集成测试最容易漏的是<strong>事务与并发</strong>：<code>@Transactional</code> 没生效、连接池耗尽、死锁，只在真实 DB 下才暴露。<br>⚠️ Mock 仓库永远「成功」，因此<strong>永远测不出 ORM 映射错误、字段类型不匹配、SQL 语法问题</strong>。</p>
+</blockquote>
+<h2 id="二、用-Testcontainers-起真实依赖"><a href="#二、用-Testcontainers-起真实依赖" class="headerlink" title="二、用 Testcontainers 起真实依赖"></a>二、用 Testcontainers 起真实依赖</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-meta">@Testcontainers</span><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">OrderRepoIT</span> &#123;<br>    <span class="hljs-meta">@Container</span><br>    <span class="hljs-keyword">static</span> PostgreSQLContainer&lt;?&gt; pg = <span class="hljs-keyword">new</span> <span class="hljs-title class_">PostgreSQLContainer</span>&lt;&gt;(<span class="hljs-string">&quot;postgres:16-alpine&quot;</span>);<br><br>    <span class="hljs-meta">@DynamicPropertySource</span><br>    <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">props</span><span class="hljs-params">(DynamicPropertyRegistry r)</span> &#123;<br>        r.add(<span class="hljs-string">&quot;spring.datasource.url&quot;</span>, pg::getJdbcUrl);<br>        r.add(<span class="hljs-string">&quot;spring.datasource.username&quot;</span>, pg::getUsername);<br>        r.add(<span class="hljs-string">&quot;spring.datasource.password&quot;</span>, pg::getPassword);<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>优点</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>与生产<strong>同版本同引擎</strong></td>
+<td>需要 Docker &#x2F; 容器运行时</td>
+</tr>
+<tr>
+<td>环境一致，可复现</td>
+<td>启动慢（首次拉镜像）</td>
+</tr>
+<tr>
+<td>容器随测试销毁，天然隔离</td>
+<td>CI 上需要缓存镜像、加机器资源</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ Testcontainers 依赖 <strong>Docker daemon</strong>；CI 里没有容器运行时就直接失败，要提前确认 runner 支持。<br>⚠️ 镜像别写 <code>latest</code>，用<strong>固定 tag</strong>（如 <code>postgres:16-alpine</code>），否则某天拉到的版本变了，测试随机挂。<br>⚠️ 容器是<strong>静态单例</strong>（<code>static</code>）时复用可提速，但<strong>测试间数据要自己清理</strong>；否则测试互相污染。</p>
+</blockquote>
+<h2 id="三、内存替代品的取舍（H2-SQLite-≠-PostgreSQL）"><a href="#三、内存替代品的取舍（H2-SQLite-≠-PostgreSQL）" class="headerlink" title="三、内存替代品的取舍（H2 &#x2F; SQLite ≠ PostgreSQL）"></a>三、内存替代品的取舍（H2 &#x2F; SQLite ≠ PostgreSQL）</h2><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>真实 PostgreSQL</th>
+<th>H2 兼容模式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>类型系统</td>
+<td><code>jsonb</code>、<code>array</code>、<code>uuid</code>、<code>interval</code></td>
+<td>部分缺失或语义不同</td>
+</tr>
+<tr>
+<td>SQL 方言</td>
+<td><code>ILIKE</code>、<code>ON CONFLICT</code>、窗口函数</td>
+<td>常不支持或行为不同</td>
+</tr>
+<tr>
+<td>并发&#x2F;锁</td>
+<td>真实 MVCC 语义</td>
+<td>完全不同</td>
+</tr>
+<tr>
+<td>约束&#x2F;触发器</td>
+<td>完整</td>
+<td>支持有限</td>
+</tr>
+</tbody></table>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs sql"><span class="hljs-comment">-- PostgreSQL 专有，H2 上直接报错</span><br><span class="hljs-keyword">INSERT INTO</span> t (id) <span class="hljs-keyword">VALUES</span> (<span class="hljs-number">1</span>) <span class="hljs-keyword">ON</span> CONFLICT (id) DO NOTHING;<br><span class="hljs-keyword">SELECT</span> <span class="hljs-operator">*</span> <span class="hljs-keyword">FROM</span> t <span class="hljs-keyword">WHERE</span> name ILIKE <span class="hljs-string">&#x27;%ab%&#x27;</span>;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>别拿 H2 测 PostgreSQL 特有语法</strong>：测试全绿、上线全红是最典型的事故。<br>⚠️ 内存库跑得快，但它的<strong>价值上限</strong>就是「SQL 语法大致能过」—— 涉及类型、并发、方言就必须用真库。<br>⚠️ SQLite 与 PostgreSQL 的<strong>类型亲和性、事务隔离、<code>NULL</code> 排序</strong>都不同，跨库替代风险更高。</p>
+</blockquote>
+<h2 id="四、数据库测试的隔离策略"><a href="#四、数据库测试的隔离策略" class="headerlink" title="四、数据库测试的隔离策略"></a>四、数据库测试的隔离策略</h2><table>
+<thead>
+<tr>
+<th>策略</th>
+<th>做法</th>
+<th>速度</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>事务回滚</td>
+<td>每个测试包在事务里，结束回滚</td>
+<td>快</td>
+<td>测不了跨事务提交、异步写</td>
+</tr>
+<tr>
+<td>重建 Schema</td>
+<td>每个测试前清库&#x2F;重建</td>
+<td>慢</td>
+<td>最干净，适合小库</td>
+</tr>
+<tr>
+<td>随机 Schema 名</td>
+<td>每个测试用独立 schema</td>
+<td>中</td>
+<td>连接与迁移管理复杂</td>
+</tr>
+<tr>
+<td>容器&#x2F;快照复用</td>
+<td>起一次容器 + 快照回滚</td>
+<td>快</td>
+<td>依赖容器能力</td>
+</tr>
+</tbody></table>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-meta">@Transactional</span>   <span class="hljs-comment">// 测试结束自动回滚</span><br><span class="hljs-meta">@Test</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">should_save_order</span><span class="hljs-params">()</span> &#123; ... &#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>@Transactional</code> 回滚会让<strong>异步任务、消息发送、缓存写入</strong>看不到未提交数据 —— 这类测试必须用重建或随机 schema。<br>⚠️ 回滚方案下<strong>自增 ID 不重置</strong>，依赖固定 ID 的断言会随执行顺序变化。</p>
+</blockquote>
+<h2 id="五、契约测试（Consumer-Driven-Contract）"><a href="#五、契约测试（Consumer-Driven-Contract）" class="headerlink" title="五、契约测试（Consumer-Driven Contract）"></a>五、契约测试（Consumer-Driven Contract）</h2><p>微服务里用<strong>契约</strong>替代部分 E2E：消费者定义期望，提供者验证实现。</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs text">消费者测试 → 生成 pact 契约文件 → 上传 Pact Broker<br>提供者测试 → 拉取契约 → 验证自己的实现是否满足 → 发布验证结果<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>E2E</th>
+<th>契约测试</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>覆盖</td>
+<td>全链路真实调用</td>
+<td>单条接口契约</td>
+</tr>
+<tr>
+<td>速度</td>
+<td>分钟级</td>
+<td>秒级</td>
+</tr>
+<tr>
+<td>环境</td>
+<td>需要全套服务在线</td>
+<td>只需提供者自身</td>
+</tr>
+<tr>
+<td>定位</td>
+<td>集成回归</td>
+<td>接口不兼容</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 契约测试<strong>不验证业务正确性</strong>，只验证「接口字段&#x2F;格式是否满足消费者期望」。<br>⚠️ 契约要<strong>版本化并绑定分支</strong>，否则提供者验证的是过期的旧契约。</p>
+</blockquote>
+<h2 id="六、E2E-UI-测试工具对比"><a href="#六、E2E-UI-测试工具对比" class="headerlink" title="六、E2E &#x2F; UI 测试工具对比"></a>六、E2E &#x2F; UI 测试工具对比</h2><table>
+<thead>
+<tr>
+<th>工具</th>
+<th>语言&#x2F;生态</th>
+<th>特点</th>
+<th>主要短板</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Playwright</strong></td>
+<td>多语言（TS&#x2F;Java&#x2F;Python&#x2F;.NET）</td>
+<td>多浏览器、自动等待、并行、trace 回放</td>
+<td>生态较新</td>
+</tr>
+<tr>
+<td><strong>Cypress</strong></td>
+<td>JS&#x2F;TS</td>
+<td>开发者体验好、调试强</td>
+<td>早期仅 Chromium 系，多标签&#x2F;跨域受限</td>
+</tr>
+<tr>
+<td><strong>Selenium</strong></td>
+<td>多语言</td>
+<td>最老、W3C WebDriver 标准、生态最广</td>
+<td>需自建等待与重试，易写 flaky</td>
+</tr>
+</tbody></table>
+<p><strong>选择器策略</strong>（从稳到脆）：</p>
+<table>
+<thead>
+<tr>
+<th>选择器</th>
+<th>稳定性</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>data-testid</code></td>
+<td>✅ 最稳，与样式&#x2F;结构解耦</td>
+</tr>
+<tr>
+<td>ARIA role &#x2F; label</td>
+<td>✅ 兼顾可访问性</td>
+</tr>
+<tr>
+<td>文本内容</td>
+<td>⚠️ 文案改动即挂</td>
+</tr>
+<tr>
+<td>CSS class &#x2F; 层级路径</td>
+<td>⚠️ 样式重构即挂</td>
+</tr>
+<tr>
+<td>XPath 绝对路径</td>
+<td>❌ 最脆</td>
+</tr>
+</tbody></table>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-comment">// Playwright：优先 testid，天然自动等待</span><br><span class="hljs-keyword">await</span> page.<span class="hljs-title function_">getByTestId</span>(<span class="hljs-string">&#x27;submit-order&#x27;</span>).<span class="hljs-title function_">click</span>();<br><span class="hljs-keyword">await</span> <span class="hljs-title function_">expect</span>(page.<span class="hljs-title function_">getByText</span>(<span class="hljs-string">&#x27;下单成功&#x27;</span>)).<span class="hljs-title function_">toBeVisible</span>();<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>不要用 <code>sleep</code> 等元素出现</strong>。Playwright 的 auto-waiting 与 Cypress 的重试机制会在断言前自动轮询。<br>⚠️ 用 CSS class 当选择器，等于把测试绑死在样式实现上 —— 换皮肤就全线飘红。</p>
+</blockquote>
+<h2 id="七、flaky-的成因与治理"><a href="#七、flaky-的成因与治理" class="headerlink" title="七、flaky 的成因与治理"></a>七、flaky 的成因与治理</h2><table>
+<thead>
+<tr>
+<th>成因</th>
+<th>表现</th>
+<th>治理</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>硬编码等待</td>
+<td>有时快有时慢</td>
+<td>用自动等待 &#x2F; 显式等待条件</td>
+</tr>
+<tr>
+<td>共享测试数据</td>
+<td>并行时互相踩</td>
+<td>每个测试独立数据</td>
+</tr>
+<tr>
+<td>测试顺序依赖</td>
+<td>单独跑绿、一起跑红</td>
+<td>消除共享状态</td>
+</tr>
+<tr>
+<td>动画&#x2F;过渡</td>
+<td>元素未稳定就点</td>
+<td>禁用动画、等待稳定</td>
+</tr>
+<tr>
+<td>时间&#x2F;时区</td>
+<td>跨天、跨时区失败</td>
+<td>固定时钟与时区</td>
+</tr>
+<tr>
+<td>网络抖动</td>
+<td>偶发超时</td>
+<td>重试 + 合理的超时配置</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>retry</code> 是止痛药，不是解药</strong>。CI 里开 3 次重试会把真 bug 也一起吞掉。<br>⚠️ flaky 测试要<strong>登记并限期修复</strong>，长期挂着会让团队对红色失去敏感度。</p>
+</blockquote>
+<h2 id="八、Page-Object-与它的反模式"><a href="#八、Page-Object-与它的反模式" class="headerlink" title="八、Page Object 与它的反模式"></a>八、Page Object 与它的反模式</h2><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-keyword">class</span> <span class="hljs-title class_">LoginPage</span> &#123;<br>  <span class="hljs-title function_">constructor</span>(<span class="hljs-params">page</span>) &#123; <span class="hljs-variable language_">this</span>.<span class="hljs-property">page</span> = page; &#125;<br>  <span class="hljs-keyword">async</span> <span class="hljs-title function_">login</span>(<span class="hljs-params">user, pass</span>) &#123;<br>    <span class="hljs-keyword">await</span> <span class="hljs-variable language_">this</span>.<span class="hljs-property">page</span>.<span class="hljs-title function_">getByTestId</span>(<span class="hljs-string">&#x27;user&#x27;</span>).<span class="hljs-title function_">fill</span>(user);<br>    <span class="hljs-keyword">await</span> <span class="hljs-variable language_">this</span>.<span class="hljs-property">page</span>.<span class="hljs-title function_">getByTestId</span>(<span class="hljs-string">&#x27;pass&#x27;</span>).<span class="hljs-title function_">fill</span>(pass);<br>    <span class="hljs-keyword">await</span> <span class="hljs-variable language_">this</span>.<span class="hljs-property">page</span>.<span class="hljs-title function_">getByTestId</span>(<span class="hljs-string">&#x27;submit&#x27;</span>).<span class="hljs-title function_">click</span>();<br>  &#125;<br>&#125;<br><span class="hljs-comment">// 测试里只表达意图</span><br><span class="hljs-keyword">await</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">LoginPage</span>(page).<span class="hljs-title function_">login</span>(<span class="hljs-string">&#x27;a&#x27;</span>, <span class="hljs-string">&#x27;b&#x27;</span>);<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>正确用法</th>
+<th>反模式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>封装<strong>页面操作</strong></td>
+<td>封装<strong>断言</strong>（测试失去表达力）</td>
+</tr>
+<tr>
+<td>返回下一个 Page Object</td>
+<td>塞入业务逻辑</td>
+</tr>
+<tr>
+<td>只暴露用户可见行为</td>
+<td>暴露内部 DOM 细节</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ Page Object 里写断言，测试就读不出「在验证什么」。<br>⚠️ 过度抽象成「上帝 Page Object」后，改一个选择器要动半个测试套件。</p>
+</blockquote>
+<h2 id="九、E2E-成本与「该测多少」"><a href="#九、E2E-成本与「该测多少」" class="headerlink" title="九、E2E 成本与「该测多少」"></a>九、E2E 成本与「该测多少」</h2><table>
+<thead>
+<tr>
+<th>成本项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>时长</td>
+<td>分钟级，串行会拖垮 CI</td>
+</tr>
+<tr>
+<td>环境</td>
+<td>需要完整部署 + 种子数据</td>
+</tr>
+<tr>
+<td>维护</td>
+<td>UI 一变就要改，脆</td>
+</tr>
+</tbody></table>
+<p><strong>只测关键用户旅程</strong>：登录、下单、支付、注册 —— 这些路径挂了业务就挂了。</p>
+<blockquote>
+<p>⚠️ 不要用 E2E 覆盖<strong>所有</strong>表单校验与边界值 —— 那是单元&#x2F;集成测试的活。<br>⚠️ E2E 数量应以「覆盖关键旅程」为准，而不是「覆盖率」。</p>
+</blockquote>
+<h2 id="十、测试环境与数据"><a href="#十、测试环境与数据" class="headerlink" title="十、测试环境与数据"></a>十、测试环境与数据</h2><table>
+<thead>
+<tr>
+<th>问题</th>
+<th>做法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>种子数据</td>
+<td>版本化脚本 + 幂等，测试前重建</td>
+</tr>
+<tr>
+<td>环境漂移</td>
+<td>用 IaC 管理环境，禁止手改</td>
+</tr>
+<tr>
+<td>生产数据</td>
+<td><strong>脱敏</strong>后再用，禁止明文导入</td>
+</tr>
+<tr>
+<td>数据隔离</td>
+<td>每套测试独立租户&#x2F;命名空间</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 直接拿生产数据做测试，等于把 PII 泄漏到测试环境 —— 合规红线。<br>⚠️ 环境「手工改过一次」是漂移的源头，之后所有「本地能过、CI 不能过」都源于此。</p>
+</blockquote>
+<h2 id="十一、测试分层组合策略"><a href="#十一、测试分层组合策略" class="headerlink" title="十一、测试分层组合策略"></a>十一、测试分层组合策略</h2><table>
+<thead>
+<tr>
+<th>层级</th>
+<th>占比（参考）</th>
+<th>关注</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>单元</td>
+<td>多</td>
+<td>逻辑、边界、算法</td>
+</tr>
+<tr>
+<td>集成</td>
+<td>中</td>
+<td>DB &#x2F; 缓存 &#x2F; 消息 &#x2F; HTTP</td>
+</tr>
+<tr>
+<td>契约</td>
+<td>少量</td>
+<td>服务间接口兼容</td>
+</tr>
+<tr>
+<td>E2E</td>
+<td>极少</td>
+<td>关键旅程</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 占比没有标准答案，取决于<strong>架构与业务风险</strong>，不要照抄别人的数字。<br>⚠️ 判定标准是「哪一层能最快发现这类 bug」，而不是「哪一层看起来更高级」。</p>
+</blockquote>
+<h2 id="十二、性能测试"><a href="#十二、性能测试" class="headerlink" title="十二、性能测试"></a>十二、性能测试</h2><table>
+<thead>
+<tr>
+<th>工具</th>
+<th>特点</th>
+<th>脚本形态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>k6</td>
+<td>Go 实现，JS 写脚本，CI 友好</td>
+<td>JS</td>
+</tr>
+<tr>
+<td>JMeter</td>
+<td>老牌，GUI + 分布式压测</td>
+<td>XML</td>
+</tr>
+<tr>
+<td>Locust</td>
+<td>Python 写用户行为，易扩展</td>
+<td>Python</td>
+</tr>
+</tbody></table>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>RPS &#x2F; QPS</td>
+<td>每秒请求数</td>
+</tr>
+<tr>
+<td>p95 &#x2F; p99</td>
+<td>95% &#x2F; 99% 请求的耗时上界（<strong>别只看平均值</strong>）</td>
+</tr>
+<tr>
+<td>错误率</td>
+<td>非 2xx &#x2F; 超时占比</td>
+</tr>
+<tr>
+<td>并发数</td>
+<td>同时压的虚拟用户</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>平均值会掩盖长尾</strong>：p99 飙到 2s、平均仍是 50ms 是常见现象。<br>⚠️ 压测必须在<strong>接近生产的配置</strong>下做，否则结论没有参考价值。</p>
+</blockquote>
+<h2 id="十三、混沌测试与-CI-里的测试阶段"><a href="#十三、混沌测试与-CI-里的测试阶段" class="headerlink" title="十三、混沌测试与 CI 里的测试阶段"></a>十三、混沌测试与 CI 里的测试阶段</h2><p>混沌测试：主动注入故障（杀进程、断网、延迟），验证系统的<strong>韧性</strong>而非正确性。</p>
+<table>
+<thead>
+<tr>
+<th>手段</th>
+<th>验证目标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>杀 Pod</td>
+<td>自愈与重启策略</td>
+</tr>
+<tr>
+<td>注入网络延迟&#x2F;丢包</td>
+<td>超时与重试</td>
+</tr>
+<tr>
+<td>依赖不可用</td>
+<td>降级与熔断</td>
+</tr>
+</tbody></table>
+<p>CI 组织原则：</p>
+<ul>
+<li><strong>快慢分离</strong>：单元测试先跑（秒级），集成&#x2F;E2E 后跑</li>
+<li><strong>失败即停</strong>：单元挂了不必再跑 E2E</li>
+<li><strong>并行分片</strong>：E2E 按文件&#x2F;旅程分片并行</li>
+<li><strong>重试 flaky</strong>：只对已知 flaky 用例，且登记追踪</li>
+</ul>
+<blockquote>
+<p>⚠️ 混沌测试<strong>不要在未做可观测性的系统上做</strong> —— 出了故障你也看不出原因。<br>⚠️ 无脑重试所有失败用例，会把真实的回归掩盖成「重试后通过」。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 用 Mock 仓库做集成测试，永远测不出 SQL&#x2F;ORM 问题</li>
+<li><input disabled="" type="checkbox"> 集成测试忽略事务边界与连接池耗尽</li>
+<li><input disabled="" type="checkbox"> Testcontainers 在无 Docker 的 CI runner 上直接失败</li>
+<li><input disabled="" type="checkbox"> 容器镜像用 <code>latest</code>，版本漂移导致随机挂</li>
+<li><input disabled="" type="checkbox"> 静态容器复用但不清数据，测试互相污染</li>
+<li><input disabled="" type="checkbox"> 拿 H2 测 PostgreSQL 专有语法（<code>ON CONFLICT</code>、<code>jsonb</code>）</li>
+<li><input disabled="" type="checkbox"> 用 SQLite 替代 PostgreSQL，忽略隔离级别与类型差异</li>
+<li><input disabled="" type="checkbox"> <code>@Transactional</code> 回滚下测异步&#x2F;消息，看不到未提交数据</li>
+<li><input disabled="" type="checkbox"> 回滚方案下依赖固定自增 ID 做断言</li>
+<li><input disabled="" type="checkbox"> 契约不版本化，提供者验证的是过期契约</li>
+<li><input disabled="" type="checkbox"> 把契约测试当成业务正确性测试</li>
+<li><input disabled="" type="checkbox"> E2E 用 CSS class &#x2F; XPath 绝对路径当选择器</li>
+<li><input disabled="" type="checkbox"> 用 <code>sleep</code> 等待元素出现</li>
+<li><input disabled="" type="checkbox"> flaky 用例只靠 retry 掩盖，从不修复</li>
+<li><input disabled="" type="checkbox"> Page Object 里写断言或业务逻辑</li>
+<li><input disabled="" type="checkbox"> 用 E2E 覆盖所有表单校验与边界值</li>
+<li><input disabled="" type="checkbox"> 测试环境手工改动，造成环境漂移</li>
+<li><input disabled="" type="checkbox"> 生产数据不脱敏直接导入测试环境</li>
+<li><input disabled="" type="checkbox"> 性能测试只看平均耗时，忽略 p95&#x2F;p99</li>
+<li><input disabled="" type="checkbox"> 在无观测能力的系统上做混沌测试</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://java.testcontainers.org/">Testcontainers for Java</a> · <a target="_blank" rel="noopener" href="https://java.testcontainers.org/test_framework_integration/junit_5/">Testcontainers · JUnit 5</a> · <a target="_blank" rel="noopener" href="https://docs.pact.io/">Pact · Documentation</a> · <a target="_blank" rel="noopener" href="https://docs.pact.io/pact_broker">Pact · Broker</a> · <a target="_blank" rel="noopener" href="https://playwright.dev/docs/actionability">Playwright · Auto-waiting</a> · <a target="_blank" rel="noopener" href="https://docs.cypress.io/app/core-concepts/retry-ability">Cypress · Retry-ability</a> · <a target="_blank" rel="noopener" href="https://www.selenium.dev/documentation/webdriver/">Selenium · WebDriver</a> · <a target="_blank" rel="noopener" href="https://grafana.com/docs/k6/latest/">k6 · Documentation</a> · <a target="_blank" rel="noopener" href="https://docs.locust.io/en/stable/">Locust · Documentation</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/testing/" class="category-chain-item">testing</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/testing/" class="print-no-link">#testing</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 080 · 测试（二）：集成测试、E2E 与测试策略</div>
+      <div>https://ethan-iopasd.github.io/2026/10/08/每日技术博客080-测试集成测试与E2E/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月8日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2079-%E6%B5%8B%E8%AF%95%E5%8D%95%E5%85%83%E6%B5%8B%E8%AF%95%E4%B8%8E%E6%B5%8B%E8%AF%95%E6%9B%BF%E8%BA%AB/" title="每日技术博客 079 · 测试（一）：单元测试与测试替身">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 079 · 测试（一）：单元测试与测试替身</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

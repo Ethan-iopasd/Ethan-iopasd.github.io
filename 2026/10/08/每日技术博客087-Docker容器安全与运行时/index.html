@@ -1,0 +1,1071 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 087 篇 容器共享宿主内核，隔离的是「看到什么」和「用多少」，不是安全边界。这一篇讲 Capabilities、seccomp、root 用户、镜像供应链和运行时加固。  📚 Docker 系列目录   章节 主题 状态    一 镜像分层与 Dockerfile 已发布   二 Compose、网络与数据卷 已发布   三 镜像瘦身与构建优化">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 087 · Docker（五）：容器安全与运行时">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2087-Docker%E5%AE%B9%E5%99%A8%E5%AE%89%E5%85%A8%E4%B8%8E%E8%BF%90%E8%A1%8C%E6%97%B6/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 087 篇 容器共享宿主内核，隔离的是「看到什么」和「用多少」，不是安全边界。这一篇讲 Capabilities、seccomp、root 用户、镜像供应链和运行时加固。  📚 Docker 系列目录   章节 主题 状态    一 镜像分层与 Dockerfile 已发布   二 Compose、网络与数据卷 已发布   三 镜像瘦身与构建优化">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-08T06:10:00.000Z">
+<meta property="article:modified_time" content="2026-10-08T03:04:49.821Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="docker">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 087 · Docker（五）：容器安全与运行时 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 087 · Docker（五）：容器安全与运行时"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-08 14:10" pubdate>
+          2026年10月8日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.7k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          23 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 087 · Docker（五）：容器安全与运行时</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-08 · 第 087 篇</p>
+<p>容器共享宿主内核，隔离的是「看到什么」和「用多少」，不是安全边界。这一篇讲 Capabilities、seccomp、root 用户、镜像供应链和运行时加固。</p>
+</blockquote>
+<h2 id="📚-Docker-系列目录"><a href="#📚-Docker-系列目录" class="headerlink" title="📚 Docker 系列目录"></a>📚 Docker 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>镜像分层与 Dockerfile</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>Compose、网络与数据卷</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>镜像瘦身与构建优化</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td>网络模式与存储驱动</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>五</td>
+<td>容器安全与运行时</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>容器不是虚拟机。</strong> 它和宿主共享同一个 Linux 内核，namespace 只改变「进程能看见什么」，cgroups 只限制「进程能用多少」，<strong>两者都不阻止进程攻击内核</strong>。所以容器的安全 &#x3D; 默认收紧 + 显式授权 + 镜像可信，缺一不可。</p>
+<h2 id="一、隔离的三层与它的边界"><a href="#一、隔离的三层与它的边界" class="headerlink" title="一、隔离的三层与它的边界"></a>一、隔离的三层与它的边界</h2><table>
+<thead>
+<tr>
+<th>机制</th>
+<th>管什么</th>
+<th>不管什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>namespace</td>
+<td>可见性：PID &#x2F; NET &#x2F; MNT &#x2F; UTS &#x2F; IPC &#x2F; USER</td>
+<td>看不到 ≠ 打不到</td>
+</tr>
+<tr>
+<td>cgroups</td>
+<td>资源量：CPU &#x2F; 内存 &#x2F; PID 数 &#x2F; IO</td>
+<td>不限制系统调用</td>
+</tr>
+<tr>
+<td>Capabilities</td>
+<td>特权粒度：把 root 拆成 40+ 个开关</td>
+<td>不限制已授予的能力</td>
+</tr>
+<tr>
+<td>seccomp</td>
+<td>系统调用白名单</td>
+<td>默认 profile 只挡约 44 个</td>
+</tr>
+<tr>
+<td>LSM（AppArmor&#x2F;SELinux）</td>
+<td>强制访问控制</td>
+<td>依赖宿主内核启用</td>
+</tr>
+</tbody></table>
+<p>关键差别：</p>
+<figure class="highlight abnf"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs abnf">虚拟机：Guest 内核 ← 硬件虚拟化边界 → Host 内核   逃逸要打穿 hypervisor<br>容器：  进程       ← 共享同一个内核 →           逃逸 <span class="hljs-operator">=</span> 打内核漏洞<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>共享内核是容器的性能来源，也是它的安全天花板。</strong> 内核里任何一个提权漏洞，都可能变成容器逃逸。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 内核版本要跟着宿主更新。容器里跑的应用补丁再勤，宿主内核不打补丁照样被 <code>Dirty Pipe</code>、<code>OverlayFS</code> 这类漏洞打穿。</p>
+</blockquote>
+<h2 id="二、Capabilities：默认给了你什么"><a href="#二、Capabilities：默认给了你什么" class="headerlink" title="二、Capabilities：默认给了你什么"></a>二、Capabilities：默认给了你什么</h2><p>Docker 默认<strong>以 root 身份运行容器主进程</strong>，但把 root 的传统特权拆掉，只留一份白名单：</p>
+<figure class="highlight asciidoc"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs asciidoc">CHOWN  DAC<span class="hljs-emphasis">_OVERRIDE  FOWNER  FSETID  KILL  SETGID  SETUID  SETPCAP</span><br><span class="hljs-emphasis">NET_BIND_SERVICE  NET_RAW  SYS_CHROOT  MKNOD  AUDIT_</span>WRITE  SETFCAP<br></code></pre></td></tr></table></figure>
+
+<p>不在这个列表里的（<code>SYS_ADMIN</code>、<code>SYS_PTRACE</code>、<code>NET_ADMIN</code>、<code>SYS_MODULE</code>、<code>SYS_TIME</code>……）默认拿不到。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash">docker run --<span class="hljs-built_in">rm</span> alpine sh -c <span class="hljs-string">&#x27;cat /proc/1/status | grep Cap&#x27;</span>   <span class="hljs-comment"># CapEff 十六进制位掩码</span><br>docker run --<span class="hljs-built_in">rm</span> alpine sh -c <span class="hljs-string">&#x27;apk add -q libcap &amp;&amp; capsh --print&#x27;</span><br></code></pre></td></tr></table></figure>
+
+<h3 id="最小权限的做法"><a href="#最小权限的做法" class="headerlink" title="最小权限的做法"></a>最小权限的做法</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs bash">docker run --<span class="hljs-built_in">rm</span> \<br>  --cap-drop=ALL \<br>  --cap-add=NET_BIND_SERVICE \<br>  nginx:1.27-alpine<br></code></pre></td></tr></table></figure>
+
+<p>先全丢，再按需加。非 root 进程绑定 80&#x2F;443 需要 <code>NET_BIND_SERVICE</code>（内核 4.3+ 起 <code>net.ipv4.ip_unprivileged_port_start</code> 可调整，低端口不一定非要它）。</p>
+<table>
+<thead>
+<tr>
+<th>能力</th>
+<th>能干什么</th>
+<th>危险度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>SYS_ADMIN</code></td>
+<td>mount、<code>setns</code>、改 cgroup、加载 eBPF……</td>
+<td>⚠️ 等价半个 root，逃逸常用</td>
+</tr>
+<tr>
+<td><code>SYS_PTRACE</code></td>
+<td>ptrace 其他进程，注入代码</td>
+<td>⚠️ 可读宿主进程内存</td>
+</tr>
+<tr>
+<td><code>NET_ADMIN</code></td>
+<td>改路由、iptables、网卡</td>
+<td>⚠️ 可做 MITM</td>
+</tr>
+<tr>
+<td><code>SYS_MODULE</code></td>
+<td>加载内核模块</td>
+<td>⚠️ 直接内核代码执行</td>
+</tr>
+<tr>
+<td><code>DAC_READ_SEARCH</code></td>
+<td>绕过文件读权限检查</td>
+<td>⚠️ 可读宿主敏感文件</td>
+</tr>
+<tr>
+<td><code>NET_RAW</code></td>
+<td>原始套接字（ping、ARP）</td>
+<td>中，可构造欺骗包</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>SYS_ADMIN</code> 是被滥用最多的能力。</strong> 很多教程为了「让容器能挂载&#x2F;调试」直接 <code>--cap-add=SYS_ADMIN</code>，这基本等于放弃了 Capabilities 防线。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>--cap-add</code> 只对 root 用户生效的能力，一旦进程用 <code>USER</code> 切成非 root，能力会按 <code>CapBnd</code>&#x2F;<code>CapPrm</code> 规则被丢弃。别指望「非 root + cap-add」还能 mount。</p>
+</blockquote>
+<h2 id="三、-privileged-等于放弃隔离"><a href="#三、-privileged-等于放弃隔离" class="headerlink" title="三、--privileged 等于放弃隔离"></a>三、<code>--privileged</code> 等于放弃隔离</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">docker run --privileged ...      <span class="hljs-comment"># 不要在生产用</span><br></code></pre></td></tr></table></figure>
+
+<p><code>--privileged</code> 一次性做了三件事：</p>
+<ol>
+<li>授予<strong>全部</strong> Capabilities（含 <code>SYS_ADMIN</code>、<code>SYS_MODULE</code>）</li>
+<li>关闭默认 seccomp 与 AppArmor 限制</li>
+<li>放开对宿主设备的访问（<code>/dev</code> 全给）</li>
+</ol>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 等价于 --privileged 的部分效果</span><br>docker run --cap-add=ALL --security-opt seccomp=unconfined \<br>  --security-opt apparmor=unconfined --device=/dev/... image<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 特权容器里 <code>mount /dev/sda1 /mnt</code> 就能读宿主磁盘，这是教科书级的逃逸。<strong>任何写 <code>--privileged</code> 的 CI 配置都要被 review 拦下。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ 需要「用 docker 跑 docker」时不要 <code>--privileged</code>，用 rootless 或 <code>docker:dind</code> 的专用方案；实在要用就只加必要的 <code>--device</code> + 能力。</p>
+</blockquote>
+<h2 id="四、seccomp-AppArmor-SELinux"><a href="#四、seccomp-AppArmor-SELinux" class="headerlink" title="四、seccomp &#x2F; AppArmor &#x2F; SELinux"></a>四、seccomp &#x2F; AppArmor &#x2F; SELinux</h2><table>
+<thead>
+<tr>
+<th>机制</th>
+<th>作用层</th>
+<th>默认行为</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>seccomp</td>
+<td>系统调用</td>
+<td>Docker 自带默认 profile，允许列表，挡约 44 个调用</td>
+</tr>
+<tr>
+<td>AppArmor</td>
+<td>文件路径 &#x2F; 网络 &#x2F; 能力</td>
+<td>Ubuntu&#x2F;Debian 系默认 <code>docker-default</code> profile</td>
+</tr>
+<tr>
+<td>SELinux</td>
+<td>标签 &#x2F; 类型强制</td>
+<td>RHEL&#x2F;CentOS 系，容器进程打 <code>container_t</code> 标签</td>
+</tr>
+</tbody></table>
+<p>seccomp 默认 profile 挡掉的高危调用（节选）：<code>mount</code>、<code>umount</code>、<code>pivot_root</code>、<code>setns</code>、<code>unshare</code>、<code>ptrace</code>、<code>bpf</code>、<code>kexec_load</code>、<code>init_module</code>、<code>open_by_handle_at</code>、<code>io_uring_*</code>（后者因逃逸漏洞被加进黑名单）。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 关掉默认 profile —— 除非明确知道在干什么</span><br>docker run --security-opt seccomp=unconfined image<br><br><span class="hljs-comment"># 用自定义 profile</span><br>docker run --security-opt seccomp=/path/to/profile.json image<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs json"><span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;defaultAction&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;SCMP_ACT_ERRNO&quot;</span><span class="hljs-punctuation">,</span><br>  <span class="hljs-attr">&quot;syscalls&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;names&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-string">&quot;read&quot;</span><span class="hljs-punctuation">,</span><span class="hljs-string">&quot;write&quot;</span><span class="hljs-punctuation">,</span><span class="hljs-string">&quot;openat&quot;</span><span class="hljs-punctuation">,</span><span class="hljs-string">&quot;mmap&quot;</span><span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;action&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;SCMP_ACT_ALLOW&quot;</span> <span class="hljs-punctuation">&#125;</span><span class="hljs-punctuation">]</span> <span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>不要为了排错直接 <code>seccomp=unconfined</code> 就上线。</strong> 它把内核攻击面完整暴露，比 <code>--privileged</code> 只差在能力上。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ AppArmor 与 SELinux 只能二选一，取决于宿主发行版。跨平台镜像别写死某一种的 profile 路径。</p>
+</blockquote>
+<h2 id="五、root-用户与文件系统"><a href="#五、root-用户与文件系统" class="headerlink" title="五、root 用户与文件系统"></a>五、root 用户与文件系统</h2><p>容器内默认 <code>uid=0</code>。<strong>一旦逃逸，你就是宿主的 root。</strong></p>
+<figure class="highlight dockerfile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs dockerfile"><span class="hljs-comment"># ❌ 默认 root</span><br><span class="hljs-keyword">FROM</span> node:<span class="hljs-number">22</span>-alpine<br><span class="hljs-keyword">COPY</span><span class="language-bash"> . /app</span><br><span class="hljs-keyword">CMD</span><span class="language-bash"> [<span class="hljs-string">&quot;node&quot;</span>, <span class="hljs-string">&quot;/app/index.js&quot;</span>]</span><br><br><span class="hljs-comment"># ✅ 切非 root</span><br><span class="hljs-keyword">FROM</span> node:<span class="hljs-number">22</span>-alpine<br><span class="hljs-keyword">COPY</span><span class="language-bash"> --<span class="hljs-built_in">chown</span>=node:node . /app</span><br><span class="hljs-keyword">WORKDIR</span><span class="language-bash"> /app</span><br><span class="hljs-keyword">USER</span> node<br><span class="hljs-keyword">CMD</span><span class="language-bash"> [<span class="hljs-string">&quot;node&quot;</span>, <span class="hljs-string">&quot;index.js&quot;</span>]</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 运行时强制指定 uid:gid</span><br>docker run --user 1000:1000 image<br>docker run --user 65534:65534 image      <span class="hljs-comment"># nobody</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>做法</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>USER</code> 指令</td>
+<td>镜像层固化，推荐</td>
+</tr>
+<tr>
+<td><code>--user uid:gid</code></td>
+<td>运行时可覆盖，优先级更高</td>
+</tr>
+<tr>
+<td><code>--read-only</code></td>
+<td>根文件系统只读，防篡改</td>
+</tr>
+<tr>
+<td><code>--tmpfs /tmp</code></td>
+<td>只读根下给临时可写目录</td>
+</tr>
+<tr>
+<td><code>--userns=host/private</code></td>
+<td>用户命名空间重映射</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs bash">docker run --read-only \<br>  --tmpfs /tmp:rw,noexec,nosuid,size=64m \<br>  --tmpfs /run \<br>  --user 1000:1000 \<br>  myapp:1.0<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>/etc/passwd</code> 里的用户名不等于宿主用户。</strong> 容器内的 <code>node</code> 默认是 uid 1000，宿主的 1000 可能是你的登录账号。写文件到挂载卷时，权限问题十有八九出在这里。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>--read-only</code> 会让很多程序直接崩（写日志、写 PID 文件、JIT 缓存）。<strong>先 <code>--tmpfs</code> 补齐需要写的路径，再开只读。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ 非 root 用户无法绑定 &lt;1024 端口，除非给 <code>NET_BIND_SERVICE</code> 或调 <code>ip_unprivileged_port_start</code>。换端口往往比加能力更省事。</p>
+</blockquote>
+<h2 id="六、rootless-与-userns-remap"><a href="#六、rootless-与-userns-remap" class="headerlink" title="六、rootless 与 userns-remap"></a>六、rootless 与 userns-remap</h2><table>
+<thead>
+<tr>
+<th>方案</th>
+<th>原理</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>rootless Docker</td>
+<td>整个 daemon 跑在非特权用户 + user namespace</td>
+<td>不支持部分功能（如 <code>--net=host</code> 受限）</td>
+</tr>
+<tr>
+<td><code>userns-remap</code></td>
+<td>容器内 root 映射为宿主非特权 uid</td>
+<td>卷权限、镜像层会变复杂</td>
+</tr>
+<tr>
+<td>直接 <code>--user</code></td>
+<td>只改进程 uid</td>
+<td>最简单，但不隔离能力</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># daemon.json 开启 userns-remap: &#123;&quot;userns-remap&quot;: &quot;default&quot;&#125;，然后重启 daemon</span><br><span class="hljs-comment"># rootless 安装：dockerd-rootless-setuptool.sh install &amp;&amp; systemctl --user status docker</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>user namespace 让「容器内 root」映射到宿主的一个普通 uid。</strong> 逃逸出来也只是普通用户，这是纵深防御里性价比很高的一层。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>userns-remap</code> 开启后，之前直接写宿主目录的卷会突然没权限。<strong>已有环境上线前先在小范围验证。</strong></p>
+</blockquote>
+<h2 id="七、镜像供应链安全"><a href="#七、镜像供应链安全" class="headerlink" title="七、镜像供应链安全"></a>七、镜像供应链安全</h2><p>基础镜像的取舍：</p>
+<table>
+<thead>
+<tr>
+<th>基础镜像</th>
+<th>体积</th>
+<th>有 shell 吗</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>debian:bookworm-slim</code></td>
+<td>~75MB</td>
+<td>✅</td>
+<td>需要 apt&#x2F;调试</td>
+</tr>
+<tr>
+<td><code>alpine:3.20</code></td>
+<td>~7MB</td>
+<td>✅（busybox sh）</td>
+<td>体积敏感，注意 musl</td>
+</tr>
+<tr>
+<td><code>gcr.io/distroless/*</code></td>
+<td>~20MB</td>
+<td>❌</td>
+<td>生产运行，无包管理器</td>
+</tr>
+<tr>
+<td><code>scratch</code></td>
+<td>0</td>
+<td>❌</td>
+<td>静态编译的 Go&#x2F;Rust</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>alpine 用 musl libc，不是 glibc。</strong> 预编译的 native 扩展（<code>node-gyp</code> 产物、某些 Python wheel）会直接报 <code>not found</code> 或段错误，需要重编译。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>distroless 没有 shell，<code>kubectl exec</code> 进去什么都干不了。</strong> 排查问题只能靠日志和 metrics —— 这是它安全的原因，也是它的痛点。</p>
+</blockquote>
+<h3 id="固定-digest-而非-tag"><a href="#固定-digest-而非-tag" class="headerlink" title="固定 digest 而非 tag"></a>固定 digest 而非 tag</h3><figure class="highlight dockerfile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs dockerfile"><span class="hljs-comment"># ❌ tag 可变，今天和明天的 nginx:latest 可能是两个东西</span><br><span class="hljs-keyword">FROM</span> nginx:latest<br><span class="hljs-comment"># ✅ digest 不可变，内容寻址；取 digest：docker buildx imagetools inspect nginx:1.27-alpine</span><br><span class="hljs-keyword">FROM</span> nginx:<span class="hljs-number">1.27</span>-alpine@sha256:<span class="hljs-number">5</span>f3c1c0b1e0f...<br></code></pre></td></tr></table></figure>
+
+<h3 id="扫描与签名"><a href="#扫描与签名" class="headerlink" title="扫描与签名"></a>扫描与签名</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># Trivy</span><br>trivy image --severity HIGH,CRITICAL myapp:1.0<br>trivy fs --scanners vuln,secret,misconfig .<br><br><span class="hljs-comment"># Grype</span><br>grype myapp:1.0<br><br><span class="hljs-comment"># cosign 签名（Sigstore）</span><br>cosign sign --key cosign.key myrepo/myapp@sha256:...<br>cosign verify --key cosign.pub myrepo/myapp@sha256:...<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>curl ... | sh</code> 装东西等于把执行权交给对方 CDN。</strong> 构建镜像时尤其危险 —— 请用带校验的包管理器或固定版本的二进制 + SHA256 校验。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 扫描器报的 CVE 里大量是「基础镜像自带的、你根本没用到的包」。<strong>先看有没有可利用路径，再决定是否阻塞发布</strong>，否则会陷入无休止的升级。</p>
+</blockquote>
+<h2 id="八、Dockerfile-里的密钥与层历史"><a href="#八、Dockerfile-里的密钥与层历史" class="headerlink" title="八、Dockerfile 里的密钥与层历史"></a>八、Dockerfile 里的密钥与层历史</h2><figure class="highlight dockerfile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs dockerfile"><span class="hljs-comment"># ❌ 密钥写进层，docker history / 镜像 tar 里都能翻出来</span><br><span class="hljs-keyword">ARG</span> NPM_TOKEN<br><span class="hljs-keyword">RUN</span><span class="language-bash"> <span class="hljs-built_in">echo</span> <span class="hljs-string">&quot;//registry.npmjs.org/:_authToken=<span class="hljs-variable">$NPM_TOKEN</span>&quot;</span> &gt; ~/.npmrc &amp;&amp; npm ci</span><br></code></pre></td></tr></table></figure>
+
+<p><code>ARG</code> 的值会留在镜像历史（<code>docker history --no-trunc</code>）里，<code>ENV</code> 也会进 <code>docker inspect</code>。删除文件的 <code>RUN rm</code> 也不删层。</p>
+<figure class="highlight dockerfile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs dockerfile"><span class="hljs-comment"># ✅ BuildKit secret，不进层、不进历史</span><br><span class="hljs-comment"># syntax=docker/dockerfile:1.7</span><br><span class="hljs-keyword">RUN</span><span class="language-bash"> --mount=<span class="hljs-built_in">type</span>=secret,<span class="hljs-built_in">id</span>=npmrc,target=/root/.npmrc npm ci</span><br><span class="hljs-keyword">RUN</span><span class="language-bash"> --mount=<span class="hljs-built_in">type</span>=ssh go mod download   <span class="hljs-comment"># SSH 转发拉私有依赖</span></span><br><span class="hljs-comment"># 构建：DOCKER_BUILDKIT=1 docker build --secret id=npmrc,src=$HOME/.npmrc -t myapp .</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>docker inspect</code> 能看到所有 <code>ENV</code>、<code>CMD</code>、挂载、网络配置。</strong> 别把密码放环境变量，用 secret 挂载或运行时注入。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>.dockerignore</code> 忘了写，<code>.env</code>、<code>.git</code>、<code>node_modules</code> 会一起被 <code>COPY . .</code> 打进镜像。<strong>上线前 <code>docker history</code> 和 <code>docker save | tar -t</code> 自查一遍。</strong></p>
+</blockquote>
+<h2 id="九、运行时：PID-1、信号与资源限制"><a href="#九、运行时：PID-1、信号与资源限制" class="headerlink" title="九、运行时：PID 1、信号与资源限制"></a>九、运行时：PID 1、信号与资源限制</h2><p>容器里的 PID 1 和普通进程不一样：<strong>不注册 handler 的 SIGTERM 会被忽略，且 PID 1 不自动回收僵尸进程。</strong></p>
+<figure class="highlight dockerfile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs dockerfile"><span class="hljs-comment"># ✅ exec 形式，进程直接是 PID 1，能收到信号</span><br><span class="hljs-keyword">CMD</span><span class="language-bash"> [<span class="hljs-string">&quot;node&quot;</span>, <span class="hljs-string">&quot;server.js&quot;</span>]</span><br><br><span class="hljs-comment"># ❌ shell 形式，包了一层 /bin/sh，信号给不到 node</span><br><span class="hljs-keyword">CMD</span><span class="language-bash"> node server.js</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 用 tini 做 init，回收僵尸、转发信号</span><br>docker run --init myapp:1.0<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>作用</th>
+<th>注意</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>--memory=512m</code></td>
+<td>硬限制，超了 OOM Kill</td>
+<td>容器内看到的总内存会变</td>
+</tr>
+<tr>
+<td><code>--memory-swap</code></td>
+<td>内存+交换总量</td>
+<td>设置不当会掩盖泄漏</td>
+</tr>
+<tr>
+<td><code>--cpus=1.5</code></td>
+<td>CPU 配额</td>
+<td>等价 <code>--cpu-quota</code>&#x2F;<code>--cpu-period</code></td>
+</tr>
+<tr>
+<td><code>--cpu-shares=512</code></td>
+<td>相对权重，不是上限</td>
+<td>只在争抢时生效</td>
+</tr>
+<tr>
+<td><code>--pids-limit=200</code></td>
+<td>限制进程数</td>
+<td>防 fork 炸弹</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash">docker run --memory=512m --memory-swap=512m \<br>  --cpus=1.5 --pids-limit=256 --init myapp:1.0<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>--cpu-shares</code> 不是限制，是权重。</strong> 宿主空闲时它照样能用满所有核。要硬上限用 <code>--cpus</code> 或 cpuset。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ JVM、Node、Python 默认按<strong>宿主</strong>内存算堆大小，容器里不设 <code>--memory</code> 之外的 <code>-Xmx</code>&#x2F;<code>--max-old-space-size</code>，很容易被 OOM Kill。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 被 OOM Kill 的容器退出码是 <strong>137</strong>（128+9）。看到 137 先查内存，不要先怀疑代码。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 以为容器 &#x3D; 虚拟机，把它当安全边界用</li>
+<li><input disabled="" type="checkbox"> 生产用 <code>--privileged</code>，或图省事 <code>--cap-add=SYS_ADMIN</code></li>
+<li><input disabled="" type="checkbox"> 排错时 <code>--security-opt seccomp=unconfined</code> 之后忘了改回来</li>
+<li><input disabled="" type="checkbox"> 镜像里默认 root，且没有任何 <code>USER</code> 指令</li>
+<li><input disabled="" type="checkbox"> 密码写进 <code>ENV</code> &#x2F; <code>ARG</code> &#x2F; <code>RUN</code>，留在镜像历史里</li>
+<li><input disabled="" type="checkbox"> 用 <code>ARG</code> 传 token 并在 <code>RUN</code> 里用，以为删除就没事</li>
+<li><input disabled="" type="checkbox"> 忘了 <code>.dockerignore</code>，把 <code>.env</code>、<code>.git</code> 打进镜像</li>
+<li><input disabled="" type="checkbox"> 用 <code>nginx:latest</code> 这类可变 tag，没有固定 digest</li>
+<li><input disabled="" type="checkbox"> 构建时 <code>curl ... | sh</code> 装工具，没校验</li>
+<li><input disabled="" type="checkbox"> 容器不写 <code>--read-only</code>，应用被篡改也没察觉</li>
+<li><input disabled="" type="checkbox"> 挂了宿主目录，权限对不上就 <code>chmod 777</code></li>
+<li><input disabled="" type="checkbox"> <code>CMD</code> 用 shell 形式，SIGTERM 收不到，只能被 <code>kill -9</code></li>
+<li><input disabled="" type="checkbox"> 没开 <code>--init</code>，进程池里全是僵尸进程</li>
+<li><input disabled="" type="checkbox"> 只设 <code>--cpu-shares</code> 当限流，以为能限死 CPU</li>
+<li><input disabled="" type="checkbox"> 不设 <code>--pids-limit</code>，一个 fork 炸弹拖垮宿主</li>
+<li><input disabled="" type="checkbox"> JVM &#x2F; Node 不调堆参数，容器被 OOM Kill 报 137</li>
+<li><input disabled="" type="checkbox"> 从不扫描镜像，基础镜像的 CVE 长期不修</li>
+<li><input disabled="" type="checkbox"> 宿主内核长期不打补丁，容器内应用再新也没用</li>
+<li><input disabled="" type="checkbox"> 把宿主 <code>docker.sock</code> 挂进容器（等于给容器宿主 root）</li>
+<li><input disabled="" type="checkbox"> 没有审计基线，不知道容器实际跑了哪些特权配置</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://docs.docker.com/engine/security/seccomp/">Docker · Seccomp security profiles</a> · <a target="_blank" rel="noopener" href="https://docs.docker.com/engine/containers/run/#runtime-privilege-and-linux-capabilities">Docker · Runtime privilege and Linux capabilities</a> · <a target="_blank" rel="noopener" href="https://docs.docker.com/engine/security/rootless/">Docker · Rootless mode</a> · <a target="_blank" rel="noopener" href="https://docs.docker.com/engine/security/userns-remap/">Docker · Isolate containers with a user namespace</a> · <a target="_blank" rel="noopener" href="https://cheatsheetseries.owasp.org/cheatsheets/Docker_Security_Cheat_Sheet.html">OWASP Docker Security Cheat Sheet</a> · <a target="_blank" rel="noopener" href="https://csrc.nist.gov/pubs/sp/800/190/final">NIST SP 800-190 容器安全指南</a> · <a target="_blank" rel="noopener" href="https://www.cisecurity.org/benchmark/docker">CIS Docker Benchmark</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/docker/" class="category-chain-item">docker</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/docker/" class="print-no-link">#docker</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 087 · Docker（五）：容器安全与运行时</div>
+      <div>https://ethan-iopasd.github.io/2026/10/08/每日技术博客087-Docker容器安全与运行时/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月8日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2069-Docker%E7%BD%91%E7%BB%9C%E4%B8%8E%E5%AD%98%E5%82%A8%E9%A9%B1%E5%8A%A8/" title="每日技术博客 069 · Docker（四）：网络模式与存储驱动">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 069 · Docker（四）：网络模式与存储驱动</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

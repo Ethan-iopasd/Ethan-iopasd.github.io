@@ -1,0 +1,1093 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 090 篇 CommonJS 是运行时同步加载的值拷贝，ESM 是编译期静态分析的引用绑定。这一篇讲两者的硬差异、exports 字段解析、Tree-shaking 条件和打包器到底做了什么。  📚 JavaScript 系列目录   章节 主题 状态    一 事件循环与异步模型 已发布   二 原型链、this 与闭包 已发布   三 Pro">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 090 · JavaScript（四）：模块化与打包原理">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2090-JavaScript%E6%A8%A1%E5%9D%97%E5%8C%96%E4%B8%8E%E6%89%93%E5%8C%85/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 090 篇 CommonJS 是运行时同步加载的值拷贝，ESM 是编译期静态分析的引用绑定。这一篇讲两者的硬差异、exports 字段解析、Tree-shaking 条件和打包器到底做了什么。  📚 JavaScript 系列目录   章节 主题 状态    一 事件循环与异步模型 已发布   二 原型链、this 与闭包 已发布   三 Pro">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-08T06:25:00.000Z">
+<meta property="article:modified_time" content="2026-10-08T03:05:45.476Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="javascript">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 090 · JavaScript（四）：模块化与打包原理 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 090 · JavaScript（四）：模块化与打包原理"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-08 14:25" pubdate>
+          2026年10月8日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.6k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          22 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 090 · JavaScript（四）：模块化与打包原理</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-08 · 第 090 篇</p>
+<p>CommonJS 是运行时同步加载的值拷贝，ESM 是编译期静态分析的引用绑定。这一篇讲两者的硬差异、<code>exports</code> 字段解析、Tree-shaking 条件和打包器到底做了什么。</p>
+</blockquote>
+<h2 id="📚-JavaScript-系列目录"><a href="#📚-JavaScript-系列目录" class="headerlink" title="📚 JavaScript 系列目录"></a>📚 JavaScript 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>事件循环与异步模型</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>原型链、this 与闭包</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>Promise 与 async&#x2F;await</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td>模块化与打包原理</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>CommonJS 导出的是值的快照，ESM 导出的是活的绑定</strong>——这是所有差异的根源。<code>import</code> 必须在顶层静态出现，打包器才能在编译期画依赖图、做 Tree-shaking；<code>require</code> 是运行时的函数调用，打包器只能整个打进去。</p>
+<h2 id="一、模块化演进史"><a href="#一、模块化演进史" class="headerlink" title="一、模块化演进史"></a>一、模块化演进史</h2><table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>形态</th>
+<th>解决的问题</th>
+<th>遗留问题</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>全局函数</td>
+<td><code>window.foo = ...</code></td>
+<td>无</td>
+<td>命名冲突、污染全局</td>
+</tr>
+<tr>
+<td>IIFE &#x2F; 命名空间</td>
+<td><code>(function()&#123;...&#125;)()</code></td>
+<td>私有作用域</td>
+<td>依赖顺序靠人肉维护</td>
+</tr>
+<tr>
+<td>CommonJS</td>
+<td><code>require</code> &#x2F; <code>module.exports</code></td>
+<td>Node 服务端模块化</td>
+<td>同步、无法静态分析</td>
+</tr>
+<tr>
+<td>AMD</td>
+<td><code>define([...], fn)</code></td>
+<td>浏览器异步加载</td>
+<td>回调地狱、语法啰嗦</td>
+</tr>
+<tr>
+<td>UMD</td>
+<td>兼容 CJS&#x2F;AMD&#x2F;全局</td>
+<td>一套代码多环境</td>
+<td>体积大、依然非静态</td>
+</tr>
+<tr>
+<td>ESM</td>
+<td><code>import</code> &#x2F; <code>export</code></td>
+<td>语言级静态模块</td>
+<td>生态迁移期长</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>UMD 是过渡产物</strong>，现代库若仍只发 UMD，你的 Tree-shaking 基本为零。优先选 <code>&quot;type&quot;:&quot;module&quot;</code> 或带 <code>exports</code> 条件导出的包。</p>
+</blockquote>
+<h2 id="二、CommonJS-vs-ESM：硬差异对照"><a href="#二、CommonJS-vs-ESM：硬差异对照" class="headerlink" title="二、CommonJS vs ESM：硬差异对照"></a>二、CommonJS vs ESM：硬差异对照</h2><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>CommonJS</th>
+<th>ESM</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>加载时机</td>
+<td>运行时、同步</td>
+<td>编译期解析，静态</td>
+</tr>
+<tr>
+<td>解析前提</td>
+<td>任何位置都能 <code>require</code></td>
+<td><code>import</code> 必须在顶层</td>
+</tr>
+<tr>
+<td>导出语义</td>
+<td><strong>值拷贝</strong></td>
+<td><strong>实时绑定（live binding）</strong></td>
+</tr>
+<tr>
+<td>循环依赖</td>
+<td>拿到「半成品」对象，可能 <code>undefined</code></td>
+<td>提升后可能暂时处于 TDZ</td>
+</tr>
+<tr>
+<td><code>this</code></td>
+<td><code>module.exports</code></td>
+<td><code>undefined</code>（模块顶层）</td>
+</tr>
+<tr>
+<td>顶层 <code>await</code></td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Tree-shaking</td>
+<td>❌ 基本无效</td>
+<td>✅ 有效</td>
+</tr>
+<tr>
+<td>动态加载</td>
+<td><code>require(变量)</code> 天然支持</td>
+<td>只能用 <code>import()</code> 返回 Promise</td>
+</tr>
+</tbody></table>
+<p><strong>值拷贝 vs 实时绑定</strong>——最常踩的坑：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-comment">// counter.cjs (CommonJS)</span><br><span class="hljs-keyword">let</span> n = <span class="hljs-number">0</span>;<br><span class="hljs-variable language_">module</span>.<span class="hljs-property">exports</span> = &#123; n, <span class="hljs-attr">inc</span>: <span class="hljs-function">() =&gt;</span> n++ &#125;;<br><br><span class="hljs-comment">// main.cjs</span><br><span class="hljs-keyword">const</span> &#123; n, inc &#125; = <span class="hljs-built_in">require</span>(<span class="hljs-string">&#x27;./counter.cjs&#x27;</span>);<br><span class="hljs-title function_">inc</span>();<br><span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(n);      <span class="hljs-comment">// 0 —— 导出的是快照，永远不变</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-comment">// counter.mjs (ESM)</span><br><span class="hljs-keyword">export</span> <span class="hljs-keyword">let</span> n = <span class="hljs-number">0</span>;<br><span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> <span class="hljs-title function_">inc</span> = (<span class="hljs-params"></span>) =&gt; n++;<br><br><span class="hljs-comment">// main.mjs</span><br><span class="hljs-keyword">import</span> &#123; n, inc &#125; <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;./counter.mjs&#x27;</span>;<br><span class="hljs-title function_">inc</span>();<br><span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(n);      <span class="hljs-comment">// 1 —— 实时绑定，读到的永远是最新值</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>CJS 里 <code>module.exports = &#123;...&#125;</code> 之后再改内部变量，导出对象不会更新。</strong> 这是「为什么我改了配置模块没生效」的头号原因。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ ESM 的导入是只读绑定，<code>import &#123; n &#125; from ...; n = 5</code> 直接抛 <code>TypeError</code>（严格模式下赋值给常量）。</p>
+</blockquote>
+<h3 id="循环依赖的行为差异"><a href="#循环依赖的行为差异" class="headerlink" title="循环依赖的行为差异"></a>循环依赖的行为差异</h3><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-comment">// a.cjs</span><br><span class="hljs-built_in">exports</span>.<span class="hljs-property">done</span> = <span class="hljs-literal">false</span>;<br><span class="hljs-keyword">const</span> b = <span class="hljs-built_in">require</span>(<span class="hljs-string">&#x27;./b.cjs&#x27;</span>);<br><span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;a sees b.done =&#x27;</span>, b.<span class="hljs-property">done</span>);<br><br><span class="hljs-comment">// b.cjs</span><br><span class="hljs-keyword">const</span> a = <span class="hljs-built_in">require</span>(<span class="hljs-string">&#x27;./a.cjs&#x27;</span>);<br><span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;b sees a.done =&#x27;</span>, a.<span class="hljs-property">done</span>);   <span class="hljs-comment">// false —— a 还没执行完</span><br><span class="hljs-built_in">exports</span>.<span class="hljs-property">done</span> = <span class="hljs-literal">true</span>;<br></code></pre></td></tr></table></figure>
+
+<p>CJS 里循环依赖返回<strong>已执行部分</strong>的 <code>module.exports</code>，拿到的字段可能是 <code>undefined</code>；ESM 因为先做「实例化」再「求值」，变量存在但可能处于未初始化状态（访问抛 <code>ReferenceError</code>）。</p>
+<blockquote>
+<p>⚠️ 循环依赖能跑不代表对。<strong>它让执行顺序变成隐式契约</strong>，重构一下就崩。看到循环依赖先想怎么拆。</p>
+</blockquote>
+<h2 id="三、package-json-的入口字段"><a href="#三、package-json-的入口字段" class="headerlink" title="三、package.json 的入口字段"></a>三、<code>package.json</code> 的入口字段</h2><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>作用</th>
+<th>优先级</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>type</code></td>
+<td><code>&quot;module&quot;</code> 或 <code>&quot;commonjs&quot;</code>，决定 <code>.js</code> 按哪种解析</td>
+<td>基础开关</td>
+</tr>
+<tr>
+<td><code>main</code></td>
+<td>CJS 入口（老字段）</td>
+<td>低</td>
+</tr>
+<tr>
+<td><code>module</code></td>
+<td>ESM 入口（打包器约定，Node 不认）</td>
+<td>中</td>
+</tr>
+<tr>
+<td><code>exports</code></td>
+<td>官方条件导出，<strong>存在时覆盖 main&#x2F;module</strong></td>
+<td><strong>最高</strong></td>
+</tr>
+<tr>
+<td><code>imports</code></td>
+<td>以 <code>#</code> 开头的内部子路径映射</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>browser</code></td>
+<td>浏览器端替换（打包器约定）</td>
+<td>中</td>
+</tr>
+</tbody></table>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs json"><span class="hljs-punctuation">&#123;</span><br>  <span class="hljs-attr">&quot;name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;mylib&quot;</span><span class="hljs-punctuation">,</span><br>  <span class="hljs-attr">&quot;type&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;module&quot;</span><span class="hljs-punctuation">,</span><br>  <span class="hljs-attr">&quot;exports&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span><br>    <span class="hljs-attr">&quot;.&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span><br>      <span class="hljs-attr">&quot;types&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;./dist/index.d.ts&quot;</span><span class="hljs-punctuation">,</span><br>      <span class="hljs-attr">&quot;import&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;./dist/index.mjs&quot;</span><span class="hljs-punctuation">,</span><br>      <span class="hljs-attr">&quot;require&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;./dist/index.cjs&quot;</span><span class="hljs-punctuation">,</span><br>      <span class="hljs-attr">&quot;default&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;./dist/index.mjs&quot;</span><br>    <span class="hljs-punctuation">&#125;</span><span class="hljs-punctuation">,</span><br>    <span class="hljs-attr">&quot;./package.json&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;./package.json&quot;</span><br>  <span class="hljs-punctuation">&#125;</span><br><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>exports</code> 一旦出现，未被列出的子路径全部禁止访问。</strong> 以前能 <code>require(&#39;mylib/internal/util&#39;)</code>，加了 <code>exports</code> 就报 <code>ERR_PACKAGE_PATH_NOT_EXPORTED</code>——这是最常见的破坏性升级。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 条件顺序有讲究：**<code>types</code> 必须放最前**，<code>default</code> 放最后。Node 按对象键顺序匹配第一个命中的条件。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 只写了 <code>main</code> 没写 <code>exports</code> 的包，在 Node 里<strong>没有子路径导出保护</strong>，任何人都能 import 内部文件。库作者请补 <code>exports</code>。</p>
+</blockquote>
+<h3 id="双包陷阱（dual-package-hazard）"><a href="#双包陷阱（dual-package-hazard）" class="headerlink" title="双包陷阱（dual package hazard）"></a>双包陷阱（dual package hazard）</h3><p>一个包同时发 CJS 和 ESM，如果两边的状态各自独立，同一个模块会被加载两份：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-comment">// 应用里同时存在</span><br><span class="hljs-keyword">import</span> &#123; store &#125; <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;mylib&#x27;</span>;            <span class="hljs-comment">// 走 ESM 分支</span><br><span class="hljs-keyword">const</span> &#123; store &#125; = <span class="hljs-built_in">require</span>(<span class="hljs-string">&#x27;mylib&#x27;</span>);       <span class="hljs-comment">// 走 CJS 分支</span><br><span class="hljs-comment">// store !== store —— 两份单例，状态不同步</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>避免双包陷阱的官方建议</strong>：要么只发 ESM，要么让 CJS 入口用「包装 ESM」的方式（Node 22.12+ 的 <code>require(esm)</code> 让这条路径可行），要么把状态隔离到显式传入的实例。</p>
+</blockquote>
+<h2 id="四、Node-的-ESM-加载规则"><a href="#四、Node-的-ESM-加载规则" class="headerlink" title="四、Node 的 ESM 加载规则"></a>四、Node 的 ESM 加载规则</h2><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>解析方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>.mjs</code></td>
+<td>永远 ESM</td>
+</tr>
+<tr>
+<td><code>.cjs</code></td>
+<td>永远 CommonJS</td>
+</tr>
+<tr>
+<td><code>.js</code></td>
+<td>取决于最近的 <code>package.json</code> 的 <code>type</code></td>
+</tr>
+<tr>
+<td><code>&quot;type&quot;: &quot;module&quot;</code> 下的 <code>.js</code></td>
+<td>ESM</td>
+</tr>
+<tr>
+<td>无 <code>type</code> 或 <code>&quot;type&quot;:&quot;commonjs&quot;</code> 下的 <code>.js</code></td>
+<td>CommonJS</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">node --experimental-require-module app.cjs   <span class="hljs-comment"># 旧版本手动开启</span><br></code></pre></td></tr></table></figure>
+
+<ul>
+<li>Node <strong>20.19+ &#x2F; 22.12+</strong> 默认启用 <code>require(esm)</code>，可以在 CJS 里 <code>require()</code> 一个<strong>同步</strong> ESM 模块（含顶层 <code>await</code> 的会报错）。</li>
+<li>更早版本需要 <code>--experimental-require-module</code>。</li>
+</ul>
+<blockquote>
+<p>⚠️ <code>require(esm)</code> 只支持<strong>同步</strong>的 ESM 图。模块里若有顶层 <code>await</code>，<code>require</code> 会抛 <code>ERR_REQUIRE_ASYNC_MODULE</code>，只能改用 <code>import()</code>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ ESM 里没有 <code>__dirname</code> &#x2F; <code>__filename</code> &#x2F; <code>require</code>。要用 <code>import.meta.url</code> + <code>fileURLToPath</code> 自己拼。</p>
+</blockquote>
+<h2 id="五、浏览器里的-ESM"><a href="#五、浏览器里的-ESM" class="headerlink" title="五、浏览器里的 ESM"></a>五、浏览器里的 ESM</h2><figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs html"><span class="hljs-tag">&lt;<span class="hljs-name">script</span> <span class="hljs-attr">type</span>=<span class="hljs-string">&quot;module&quot;</span> <span class="hljs-attr">src</span>=<span class="hljs-string">&quot;/main.js&quot;</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">script</span>&gt;</span><br><span class="hljs-tag">&lt;<span class="hljs-name">script</span> <span class="hljs-attr">type</span>=<span class="hljs-string">&quot;importmap&quot;</span>&gt;</span><span class="language-javascript"></span><br><span class="language-javascript">&#123; <span class="hljs-string">&quot;imports&quot;</span>: &#123; <span class="hljs-string">&quot;lodash-es&quot;</span>: <span class="hljs-string">&quot;https://cdn.example.com/lodash-es@4.17.21/lodash.js&quot;</span> &#125; &#125;</span><br><span class="language-javascript"></span><span class="hljs-tag">&lt;/<span class="hljs-name">script</span>&gt;</span><br></code></pre></td></tr></table></figure>
+
+<p>浏览器原生 ESM 的三条硬约束：</p>
+<ol>
+<li>必须 <code>type=&quot;module&quot;</code>，且<strong>延迟执行</strong>（等价 <code>defer</code>）</li>
+<li>必须带<strong>正确的 MIME</strong>（<code>text/javascript</code>），否则拒绝执行</li>
+<li>跨源必须 <strong>CORS</strong>，<code>file://</code> 协议下直接失败</li>
+</ol>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-comment">// 动态导入：返回 Promise，天然支持代码分割</span><br><span class="hljs-keyword">const</span> &#123; <span class="hljs-attr">default</span>: chart &#125; = <span class="hljs-keyword">await</span> <span class="hljs-keyword">import</span>(<span class="hljs-string">&#x27;./chart.js&#x27;</span>);<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>type=&quot;module&quot;</code> 的脚本是严格模式</strong>，且模块作用域内顶层 <code>this</code> 是 <code>undefined</code>。把老脚本直接改成 module 会踩一堆坑。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 原生 ESM 下每个 <code>import</code> 都是一次网络请求，<strong>深层依赖树会产生瀑布式请求</strong>。生产环境仍然要打包或走 HTTP&#x2F;2。</p>
+</blockquote>
+<h2 id="六、打包器在做什么"><a href="#六、打包器在做什么" class="headerlink" title="六、打包器在做什么"></a>六、打包器在做什么</h2><figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs gradle">入口 → 解析 <span class="hljs-keyword">import</span> → 递归建依赖图 → 每个模块做转换（TS<span class="hljs-regexp">/JSX/</span>降级）<br>     → 作用域提升（scope hoisting）→ 按规则拆 chunk → 生成代码 + <span class="hljs-keyword">source</span> map<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>产物</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>依赖图</td>
+<td>模块间的引用关系</td>
+</tr>
+<tr>
+<td>转换</td>
+<td>AST 改写（Babel&#x2F;SWC&#x2F;esbuild）</td>
+</tr>
+<tr>
+<td>Scope hoisting</td>
+<td>多个模块合并进同一作用域，减少闭包包装</td>
+</tr>
+<tr>
+<td>Chunk 拆分</td>
+<td><code>vendor</code> &#x2F; <code>runtime</code> &#x2F; 路由级 chunk</td>
+</tr>
+<tr>
+<td>代码生成</td>
+<td>最终 JS + 映射</td>
+</tr>
+</tbody></table>
+<h3 id="Tree-shaking-生效的三个条件"><a href="#Tree-shaking-生效的三个条件" class="headerlink" title="Tree-shaking 生效的三个条件"></a>Tree-shaking 生效的三个条件</h3><table>
+<thead>
+<tr>
+<th>条件</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>源码是 ESM</td>
+<td>CJS 的 <code>module.exports</code> 无法静态分析</td>
+</tr>
+<tr>
+<td>无副作用</td>
+<td>被删的代码不能有可观测的副作用</td>
+</tr>
+<tr>
+<td>正确标注 <code>sideEffects</code></td>
+<td>包的 <code>package.json</code> 里声明</td>
+</tr>
+</tbody></table>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-comment">// ❌ 整个 lodash 进来，摇不掉（lodash 是 CJS）</span><br><span class="hljs-keyword">import</span> _ <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;lodash&#x27;</span>;<br><br><span class="hljs-comment">// ✅ 按需路径导入</span><br><span class="hljs-keyword">import</span> debounce <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;lodash/debounce&#x27;</span>;<br><br><span class="hljs-comment">// ✅ 或直接用 ESM 版</span><br><span class="hljs-keyword">import</span> &#123; debounce &#125; <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;lodash-es&#x27;</span>;<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs json"><span class="hljs-comment">// 库的 package.json</span><br><span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;sideEffects&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">false</span></span> <span class="hljs-punctuation">&#125;</span><br><span class="hljs-comment">// 或只声明有副作用的文件</span><br><span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;sideEffects&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-string">&quot;*.css&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-string">&quot;./src/polyfill.js&quot;</span><span class="hljs-punctuation">]</span> <span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>sideEffects: false</code> 标错会删掉样式文件。</strong> CSS 导入是典型副作用，忘了在数组里列出 <code>*.css</code>，打包后样式直接消失——这是 Tree-shaking 最经典的翻车现场。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ Tree-shaking 只删「未被引用的导出」。**<code>import</code> 了但只在运行时用到的、或依赖动态属性的代码，摇不掉。**</p>
+</blockquote>
+<h2 id="七、代码分割、source-map-与体积"><a href="#七、代码分割、source-map-与体积" class="headerlink" title="七、代码分割、source map 与体积"></a>七、代码分割、source map 与体积</h2><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-comment">// 路由级懒加载</span><br><span class="hljs-keyword">const</span> routes = [&#123; <span class="hljs-attr">path</span>: <span class="hljs-string">&#x27;/dash&#x27;</span>, <span class="hljs-attr">component</span>: <span class="hljs-function">() =&gt;</span> <span class="hljs-keyword">import</span>(<span class="hljs-string">&#x27;./Dash.vue&#x27;</span>) &#125;];<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-comment">// webpack 魔法注释</span><br><span class="hljs-keyword">import</span>(<span class="hljs-comment">/* webpackChunkName: &quot;chart&quot; */</span> <span class="hljs-string">&#x27;./chart.js&#x27;</span>);<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>source map 类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>eval</code></td>
+<td>最快，map 内联在 eval 里，dev 默认</td>
+</tr>
+<tr>
+<td><code>inline</code></td>
+<td>map 以 base64 塞进产物，产物变大</td>
+</tr>
+<tr>
+<td><code>hidden</code></td>
+<td>生成 map 但不写 <code>sourceMappingURL</code>，供错误平台用</td>
+</tr>
+<tr>
+<td><code>nosources-source-map</code></td>
+<td>不含源码，只保留位置</td>
+</tr>
+<tr>
+<td><code>cheap-*</code></td>
+<td>只精确到行，构建更快</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>生产环境该不该上传 source map</strong>：上传到错误监控平台（如 Sentry）能定位堆栈，但<strong>别把 <code>.map</code> 公开部署</strong>，否则源码等于开源。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>看体积要看 gzip &#x2F; brotli 后的大小，不是原始大小。</strong> 原始 1MB 的文本压缩后可能只剩 200KB，<code>stats</code> 面板里那个「raw size」参考价值有限。</p>
+</blockquote>
+<h3 id="HMR-的基本原理"><a href="#HMR-的基本原理" class="headerlink" title="HMR 的基本原理"></a>HMR 的基本原理</h3><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-keyword">if</span> (<span class="hljs-keyword">import</span>.<span class="hljs-property">meta</span>.<span class="hljs-property">hot</span>) &#123;<br>  <span class="hljs-keyword">import</span>.<span class="hljs-property">meta</span>.<span class="hljs-property">hot</span>.<span class="hljs-title function_">accept</span>(<span class="hljs-function">(<span class="hljs-params">newModule</span>) =&gt;</span> &#123;<br>    <span class="hljs-title function_">render</span>(newModule.<span class="hljs-property">default</span>);<br>  &#125;);<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>HMR 从「接受的模块边界」开始替换，边界内的模块被重新执行，<strong>不会刷新整个页面</strong>。没有 <code>accept</code> 的模块会一路冒泡到入口，冒泡到顶就退化成整页刷新。</p>
+<blockquote>
+<p>⚠️ 模块里如果保存了闭包状态（定时器、WebSocket、事件监听），<strong>HMR 替换后旧状态可能泄漏</strong>。要么在 <code>dispose</code> 里清理，要么接受整页刷新。</p>
+</blockquote>
+<h2 id="八、Vite-的-dev-为什么快"><a href="#八、Vite-的-dev-为什么快" class="headerlink" title="八、Vite 的 dev 为什么快"></a>八、Vite 的 dev 为什么快</h2><table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>Vite</th>
+<th>传统打包器</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>dev 启动</td>
+<td>不打包，直接用浏览器原生 ESM</td>
+<td>全量打包，依赖越多越慢</td>
+</tr>
+<tr>
+<td>依赖预构建</td>
+<td>esbuild 把 CJS&#x2F;多文件依赖打成单个 ESM</td>
+<td>无</td>
+</tr>
+<tr>
+<td>模块更新</td>
+<td>只重新编译单个模块</td>
+<td>重建受影响 chunk</td>
+</tr>
+<tr>
+<td>生产构建</td>
+<td>Rollup</td>
+<td>webpack &#x2F; Rollup</td>
+</tr>
+</tbody></table>
+<p>关键点：<strong>dev 阶段不打包</strong>，浏览器按需请求模块；esbuild 用 Go 写，预构建比 JS 打包器快一到两个数量级。生产环境为了产物体积和兼容性，仍然走完整打包。</p>
+<blockquote>
+<p>⚠️ Vite dev 和 build 走<strong>两套解析逻辑</strong>（dev 用原生 ESM + esbuild，build 用 Rollup），所以「dev 正常、build 报错」很常见，尤其是依赖的 <code>exports</code> 条件或 CJS 互操作问题。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 常见优化：<code>optimizeDeps.include</code> 预构建大依赖、<code>external</code> 把 React&#x2F;Vue 走 CDN、<code>browserslist</code> 决定降级语法、按需引入组件库。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 以为 CJS 导出是引用，改了内部变量导出对象也跟着变</li>
+<li><input disabled="" type="checkbox"> 在 ESM 里用 <code>require</code> &#x2F; <code>__dirname</code> &#x2F; <code>__filename</code></li>
+<li><input disabled="" type="checkbox"> 循环依赖导致某模块拿到 <code>undefined</code></li>
+<li><input disabled="" type="checkbox"> 加 <code>exports</code> 后子路径导入全挂（<code>ERR_PACKAGE_PATH_NOT_EXPORTED</code>）</li>
+<li><input disabled="" type="checkbox"> <code>exports</code> 里条件顺序写反，<code>default</code> 放前面导致永远命中</li>
+<li><input disabled="" type="checkbox"> 同时发 CJS&#x2F;ESM 造成双包，单例状态不同步</li>
+<li><input disabled="" type="checkbox"> <code>import _ from &#39;lodash&#39;</code> 后抱怨包体积没减</li>
+<li><input disabled="" type="checkbox"> <code>sideEffects: false</code> 误标，样式文件被删</li>
+<li><input disabled="" type="checkbox"> 以为 <code>import</code> 可以写在 <code>if</code> 里（必须用 <code>import()</code>）</li>
+<li><input disabled="" type="checkbox"> 生产部署把 <code>.map</code> 公开，源码泄露</li>
+<li><input disabled="" type="checkbox"> 只看 raw size 判断包体积</li>
+<li><input disabled="" type="checkbox"> <code>type=&quot;module&quot;</code> 脚本里依赖顶层 <code>this</code></li>
+<li><input disabled="" type="checkbox"> 忘了 ESM 跨源需要 CORS，本地 <code>file://</code> 打不开</li>
+<li><input disabled="" type="checkbox"> HMR 不写 <code>accept</code>，每次改动整页刷新</li>
+<li><input disabled="" type="checkbox"> <code>require(esm)</code> 遇到顶层 <code>await</code> 报错，没换 <code>import()</code></li>
+<li><input disabled="" type="checkbox"> 老浏览器不支持原生 ESM，dev 正常线上白屏</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules">MDN · JavaScript modules</a> · <a target="_blank" rel="noopener" href="https://nodejs.org/api/esm.html">Node.js · ECMAScript Modules</a> · <a target="_blank" rel="noopener" href="https://nodejs.org/api/packages.html">Node.js · Packages（exports 与 imports）</a> · <a target="_blank" rel="noopener" href="https://webpack.js.org/guides/tree-shaking/">webpack · Tree Shaking</a> · <a target="_blank" rel="noopener" href="https://webpack.js.org/api/hot-module-replacement/">webpack · Module Methods（HMR）</a> · <a target="_blank" rel="noopener" href="https://vite.dev/guide/why.html">Vite · Why Vite</a> · <a target="_blank" rel="noopener" href="https://vite.dev/guide/dep-pre-bundling.html">Vite · Dependency Pre-Bundling</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/javascript/" class="category-chain-item">javascript</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/javascript/" class="print-no-link">#javascript</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 090 · JavaScript（四）：模块化与打包原理</div>
+      <div>https://ethan-iopasd.github.io/2026/10/08/每日技术博客090-JavaScript模块化与打包/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月8日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2056-JavaScriptPromise%E4%B8%8Easync/" title="每日技术博客 056 · JavaScript（三）：Promise 与 async/await">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 056 · JavaScript（三）：Promise 与 async/await</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

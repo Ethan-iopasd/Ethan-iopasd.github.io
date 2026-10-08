@@ -1,0 +1,978 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 075 篇 设计模式系列第一篇。先立原则再讲模式：SOLID 五条判据、创建型模式（单例 &#x2F; 工厂 &#x2F; 建造者 &#x2F; 原型 &#x2F; 对象池），以及 IoC 与 DI 的区别和「过度设计」这条反模式。  📚 设计模式 系列目录   章节 主题 状态    一 SOLID 与创建型模式 本篇    开场：一句话结论模">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 075 · 设计模式（一）：SOLID 与创建型模式">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2075-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F%E5%88%9B%E5%BB%BA%E5%9E%8B%E4%B8%8ESOLID/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 075 篇 设计模式系列第一篇。先立原则再讲模式：SOLID 五条判据、创建型模式（单例 &#x2F; 工厂 &#x2F; 建造者 &#x2F; 原型 &#x2F; 对象池），以及 IoC 与 DI 的区别和「过度设计」这条反模式。  📚 设计模式 系列目录   章节 主题 状态    一 SOLID 与创建型模式 本篇    开场：一句话结论模">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-08T05:10:00.000Z">
+<meta property="article:modified_time" content="2026-10-08T03:06:20.845Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="design-pattern">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 075 · 设计模式（一）：SOLID 与创建型模式 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 075 · 设计模式（一）：SOLID 与创建型模式"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-08 13:10" pubdate>
+          2026年10月8日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          3.1k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          27 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 075 · 设计模式（一）：SOLID 与创建型模式</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-08 · 第 075 篇</p>
+<p>设计模式系列第一篇。先立原则再讲模式：SOLID 五条判据、创建型模式（单例 &#x2F; 工厂 &#x2F; 建造者 &#x2F; 原型 &#x2F; 对象池），以及 IoC 与 DI 的区别和「过度设计」这条反模式。</p>
+</blockquote>
+<h2 id="📚-设计模式-系列目录"><a href="#📚-设计模式-系列目录" class="headerlink" title="📚 设计模式 系列目录"></a>📚 设计模式 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>SOLID 与创建型模式</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p>模式解决的是<strong>变化点</strong>，不是复用；SOLID 是判据，模式只是可选实现 —— <strong>先闻到坏味道，再谈模式</strong>。</p>
+<h2 id="一、三种分类总览"><a href="#一、三种分类总览" class="headerlink" title="一、三种分类总览"></a>一、三种分类总览</h2><p>GoF（《设计模式：可复用面向对象软件的基础》，1994）按<strong>意图</strong>把 23 个模式分三类：</p>
+<table>
+<thead>
+<tr>
+<th>分类</th>
+<th>关注点</th>
+<th>模式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>创建型 Creational</td>
+<td>对象<strong>怎么来</strong></td>
+<td>单例、工厂方法、抽象工厂、建造者、原型</td>
+</tr>
+<tr>
+<td>结构型 Structural</td>
+<td>对象<strong>怎么组装</strong></td>
+<td>适配器、装饰器、代理、外观、组合、桥接、享元</td>
+</tr>
+<tr>
+<td>行为型 Behavioral</td>
+<td>对象<strong>怎么协作</strong></td>
+<td>策略、观察者、模板方法、责任链、命令、状态、迭代器、中介者、访问者、备忘录</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 分类只是索引，不是设计依据。<strong>按变化点选模式，不按分类选模式。</strong></p>
+</blockquote>
+<h2 id="二、SOLID-五条"><a href="#二、SOLID-五条" class="headerlink" title="二、SOLID 五条"></a>二、SOLID 五条</h2><h3 id="S-—-单一职责-SRP"><a href="#S-—-单一职责-SRP" class="headerlink" title="S — 单一职责 SRP"></a>S — 单一职责 SRP</h3><p>定义：一个类<strong>只有一个引起它变化的原因</strong>（是「变化的原因」，不是「只做一件事」）。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-comment">// ❌ 一个类绑了三个变化源：校验、持久化、通知</span><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">UserService</span> &#123; <span class="hljs-keyword">void</span> <span class="hljs-title function_">register</span><span class="hljs-params">(User u)</span> &#123;<br>    <span class="hljs-keyword">if</span> (u.email() == <span class="hljs-literal">null</span>) <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">IllegalArgumentException</span>();<br>    db.insert(u); smtp.send(u.email(), <span class="hljs-string">&quot;欢迎&quot;</span>); &#125; &#125;<br><span class="hljs-comment">// ✅ 按变化源拆分 + 构造注入</span><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">UserService</span> &#123; UserService(UserValidator v, UserRepository r, Notifier n) &#123;...&#125;<br>    <span class="hljs-keyword">void</span> <span class="hljs-title function_">register</span><span class="hljs-params">(User u)</span> &#123; v.validate(u); r.save(u); n.welcome(u); &#125; &#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ SRP 不是「一个类只写一个方法」。拆太碎会得到一堆贫血的「类名即方法」，那同样是坏味道。</p>
+</blockquote>
+<h3 id="O-—-开闭-OCP"><a href="#O-—-开闭-OCP" class="headerlink" title="O — 开闭 OCP"></a>O — 开闭 OCP</h3><p>定义：<strong>对扩展开放，对修改关闭</strong>。新增类型时应加代码，而不是改老代码。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-comment">// ❌ 每加一种支付方式，就要回来改这个 switch</span><br><span class="hljs-type">double</span> <span class="hljs-title function_">fee</span><span class="hljs-params">(String type, <span class="hljs-type">double</span> amt)</span> &#123; <span class="hljs-keyword">switch</span> (type) &#123;<br>    <span class="hljs-keyword">case</span> <span class="hljs-string">&quot;alipay&quot;</span>: <span class="hljs-keyword">return</span> amt * <span class="hljs-number">0.006</span>;<br>    <span class="hljs-keyword">case</span> <span class="hljs-string">&quot;card&quot;</span>:   <span class="hljs-keyword">return</span> amt * <span class="hljs-number">0.01</span>;<br>    <span class="hljs-keyword">default</span>: <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">IllegalArgumentException</span>(type); &#125; &#125;<br><span class="hljs-comment">// ✅ 抽象成策略，新增方式 = 新增一个实现</span><br><span class="hljs-keyword">interface</span> <span class="hljs-title class_">FeePolicy</span> &#123; <span class="hljs-type">double</span> <span class="hljs-title function_">fee</span><span class="hljs-params">(<span class="hljs-type">double</span> amt)</span>; &#125;<br><span class="hljs-keyword">class</span> <span class="hljs-title class_">FeeCalculator</span> &#123; <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> Map&lt;String, FeePolicy&gt; policies;<br>    <span class="hljs-type">double</span> <span class="hljs-title function_">fee</span><span class="hljs-params">(String t, <span class="hljs-type">double</span> a)</span> &#123; <span class="hljs-keyword">return</span> policies.get(t).fee(a); &#125; &#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ OCP 不等于「禁止任何 if」。<strong>只有会反复增长的分支才值得抽象</strong>，一次性分支用 <code>switch</code> 更清楚。</p>
+</blockquote>
+<h3 id="L-—-里氏替换-LSP"><a href="#L-—-里氏替换-LSP" class="headerlink" title="L — 里氏替换 LSP"></a>L — 里氏替换 LSP</h3><p>定义：子类实例能替换父类实例，且<strong>不破坏调用方依赖的契约</strong>（不加强前置条件、不削弱后置条件）。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-comment">// ❌ 经典反例：正方形不是矩形的合法子类</span><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">Square</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_">Rectangle</span> &#123;<br>    <span class="hljs-keyword">void</span> <span class="hljs-title function_">setWidth</span><span class="hljs-params">(<span class="hljs-type">int</span> w)</span>  &#123; <span class="hljs-built_in">this</span>.w = w; <span class="hljs-built_in">this</span>.h = w; &#125;   <span class="hljs-comment">// 偷改了 height</span><br>    <span class="hljs-keyword">void</span> <span class="hljs-title function_">setHeight</span><span class="hljs-params">(<span class="hljs-type">int</span> h)</span> &#123; <span class="hljs-built_in">this</span>.w = h; <span class="hljs-built_in">this</span>.h = h; &#125;   <span class="hljs-comment">// 偷改了 width</span><br>&#125;   <span class="hljs-comment">// 调用方 setWidth(5); setHeight(4); 期望 area=20，实际 16</span><br><span class="hljs-comment">// ✅ 不强行继承，各自实现同一个抽象</span><br><span class="hljs-keyword">interface</span> <span class="hljs-title class_">Shape</span> &#123; <span class="hljs-type">int</span> <span class="hljs-title function_">area</span><span class="hljs-params">()</span>; &#125;<br><span class="hljs-keyword">record</span> <span class="hljs-title class_">Rect</span><span class="hljs-params">(<span class="hljs-type">int</span> w, <span class="hljs-type">int</span> h)</span> <span class="hljs-keyword">implements</span> <span class="hljs-title class_">Shape</span> &#123; <span class="hljs-keyword">public</span> <span class="hljs-type">int</span> <span class="hljs-title function_">area</span><span class="hljs-params">()</span>&#123; <span class="hljs-keyword">return</span> w * h; &#125; &#125;<br><span class="hljs-keyword">record</span> <span class="hljs-title class_">Square</span><span class="hljs-params">(<span class="hljs-type">int</span> s)</span>      <span class="hljs-keyword">implements</span> <span class="hljs-title class_">Shape</span> &#123; <span class="hljs-keyword">public</span> <span class="hljs-type">int</span> <span class="hljs-title function_">area</span><span class="hljs-params">()</span>&#123; <span class="hljs-keyword">return</span> s * s; &#125; &#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>instanceof</code> &#x2F; <code>getClass() ==</code> 判断子类类型再分支，几乎总是 LSP 被破坏的信号。</p>
+</blockquote>
+<h3 id="I-—-接口隔离-ISP"><a href="#I-—-接口隔离-ISP" class="headerlink" title="I — 接口隔离 ISP"></a>I — 接口隔离 ISP</h3><p>定义：客户端<strong>不应被迫依赖它不使用的方法</strong>。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-comment">// ❌ 胖接口：Robot 被迫实现 eat/sleep</span><br><span class="hljs-keyword">interface</span> <span class="hljs-title class_">Worker</span> &#123; <span class="hljs-keyword">void</span> <span class="hljs-title function_">work</span><span class="hljs-params">()</span>; <span class="hljs-keyword">void</span> <span class="hljs-title function_">eat</span><span class="hljs-params">()</span>; <span class="hljs-keyword">void</span> <span class="hljs-title function_">sleep</span><span class="hljs-params">()</span>; &#125;<br><span class="hljs-keyword">class</span> <span class="hljs-title class_">Robot</span> <span class="hljs-keyword">implements</span> <span class="hljs-title class_">Worker</span> &#123; <span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">work</span><span class="hljs-params">()</span> &#123; <span class="hljs-comment">/* ok */</span> &#125;<br>    <span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">eat</span><span class="hljs-params">()</span>   &#123; <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">UnsupportedOperationException</span>(); &#125;<br>    <span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">sleep</span><span class="hljs-params">()</span> &#123; <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">UnsupportedOperationException</span>(); &#125; &#125;<br><span class="hljs-comment">// ✅ 拆成按需实现的窄接口</span><br><span class="hljs-keyword">interface</span> <span class="hljs-title class_">Workable</span> &#123; <span class="hljs-keyword">void</span> <span class="hljs-title function_">work</span><span class="hljs-params">()</span>; &#125;<br><span class="hljs-keyword">interface</span> <span class="hljs-title class_">Feedable</span> &#123; <span class="hljs-keyword">void</span> <span class="hljs-title function_">eat</span><span class="hljs-params">()</span>; &#125;<br><span class="hljs-keyword">class</span> <span class="hljs-title class_">Robot</span> <span class="hljs-keyword">implements</span> <span class="hljs-title class_">Workable</span> &#123; <span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">work</span><span class="hljs-params">()</span> &#123; <span class="hljs-comment">/* ok */</span> &#125; &#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 接口里塞 <code>default</code> 方法绕开实现负担，是 ISP 的信号，不是解法。</p>
+</blockquote>
+<h3 id="D-—-依赖倒置-DIP"><a href="#D-—-依赖倒置-DIP" class="headerlink" title="D — 依赖倒置 DIP"></a>D — 依赖倒置 DIP</h3><p>定义：高层模块不依赖低层模块，两者都依赖<strong>抽象</strong>；抽象不依赖细节，细节依赖抽象。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-comment">// ❌ 高层直接 new 具体实现，编译期绑死</span><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">OrderService</span> &#123; <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> <span class="hljs-type">MySqlOrderRepo</span> <span class="hljs-variable">repo</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">MySqlOrderRepo</span>(); &#125;<br><span class="hljs-comment">// ✅ 依赖抽象，实现从外部注入</span><br><span class="hljs-keyword">interface</span> <span class="hljs-title class_">OrderRepo</span> &#123; <span class="hljs-keyword">void</span> <span class="hljs-title function_">save</span><span class="hljs-params">(Order o)</span>; &#125;<br><span class="hljs-keyword">class</span> <span class="hljs-title class_">OrderService</span> &#123; <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> OrderRepo repo; OrderService(OrderRepo r)&#123; <span class="hljs-built_in">this</span>.repo = r; &#125; &#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 「依赖抽象」的边界是<strong>跨模块&#x2F;跨层</strong>。同一模块内部的工具类，强行抽接口只会增加噪声。</p>
+</blockquote>
+<h2 id="三、迪米特法则与组合优于继承"><a href="#三、迪米特法则与组合优于继承" class="headerlink" title="三、迪米特法则与组合优于继承"></a>三、迪米特法则与组合优于继承</h2><p><strong>迪米特法则（LoD，最少知识原则）</strong>：只与<strong>直接朋友</strong>说话，不要 <code>order.getCustomer().getAddress().getCity().getTaxRate()</code> 这种链式穿透 —— 让直接对象替你完成（<code>order.taxRate()</code>）。</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>继承</th>
+<th>组合</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>耦合</td>
+<td>强，编译期绑定，破坏封装</td>
+<td>弱，运行期可替换</td>
+</tr>
+<tr>
+<td>复用</td>
+<td>只能复用父类实现</td>
+<td>可复用任意实现</td>
+</tr>
+<tr>
+<td>变化</td>
+<td>父类一改，子类全受牵连</td>
+<td>只换被组合的对象</td>
+</tr>
+<tr>
+<td>适用</td>
+<td>「is-a」且契约稳定</td>
+<td>「has-a &#x2F; uses-a」</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 默认选组合。<strong>继承只在这两件事同时成立时用</strong>：子类确实是父类的语义子类型，且父类为继承做了设计（文档化的钩子方法）。</p>
+</blockquote>
+<h2 id="四、单例-Singleton"><a href="#四、单例-Singleton" class="headerlink" title="四、单例 Singleton"></a>四、单例 Singleton</h2><p>目的：保证一个类<strong>只有一个实例</strong>，并提供全局访问点。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-comment">// 1. 饿汉：类加载即初始化，简单、线程安全，但可能浪费</span><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">Eager</span> &#123; <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-type">Eager</span> <span class="hljs-variable">INSTANCE</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">Eager</span>(); <span class="hljs-keyword">private</span> <span class="hljs-title function_">Eager</span><span class="hljs-params">()</span>&#123;&#125; <span class="hljs-keyword">static</span> Eager <span class="hljs-title function_">get</span><span class="hljs-params">()</span>&#123; <span class="hljs-keyword">return</span> INSTANCE; &#125; &#125;<br><span class="hljs-comment">// 2. 双重检查锁 DCL —— 注意 volatile，否则可能拿到半初始化对象</span><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">Dcl</span> &#123;<br>    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">volatile</span> Dcl instance;      <span class="hljs-comment">// ⚠️ volatile 不能省</span><br>    <span class="hljs-keyword">private</span> <span class="hljs-title function_">Dcl</span><span class="hljs-params">()</span> &#123;&#125;<br>    <span class="hljs-keyword">static</span> Dcl <span class="hljs-title function_">get</span><span class="hljs-params">()</span> &#123;<br>        <span class="hljs-keyword">if</span> (instance == <span class="hljs-literal">null</span>) <span class="hljs-keyword">synchronized</span> (Dcl.class) &#123; <span class="hljs-keyword">if</span> (instance == <span class="hljs-literal">null</span>) instance = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Dcl</span>(); &#125;<br>        <span class="hljs-keyword">return</span> instance;<br>    &#125;<br>&#125;<br><span class="hljs-comment">// 3. 静态内部类 Holder：延迟加载 + 线程安全，无锁</span><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">Holder</span> &#123; <span class="hljs-keyword">private</span> <span class="hljs-title function_">Holder</span><span class="hljs-params">()</span>&#123;&#125; <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">H</span> &#123; <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-type">Holder</span> <span class="hljs-variable">INSTANCE</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">Holder</span>(); &#125; <span class="hljs-keyword">static</span> Holder <span class="hljs-title function_">get</span><span class="hljs-params">()</span>&#123; <span class="hljs-keyword">return</span> H.INSTANCE; &#125; &#125;<br><span class="hljs-comment">// 4. 枚举：Effective Java 推荐，天然防反射、防反序列化破坏</span><br><span class="hljs-keyword">enum</span> <span class="hljs-title class_">EnumSingleton</span> &#123; INSTANCE; <span class="hljs-keyword">void</span> <span class="hljs-title function_">doSomething</span><span class="hljs-params">()</span> &#123; &#125; &#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>实现</th>
+<th>延迟加载</th>
+<th>线程安全</th>
+<th>防反射&#x2F;序列化</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>饿汉</td>
+<td>❌</td>
+<td>✅</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>DCL</td>
+<td>✅</td>
+<td>✅（需 volatile）</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>静态内部类</td>
+<td>✅</td>
+<td>✅</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>枚举</strong></td>
+<td>❌</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+</tbody></table>
+<p><strong>为什么单例常被称为反模式</strong>：本质是<strong>全局可变状态</strong>，隐式依赖，调用方看不出依赖了它；难以替换 → 单测里没法注入替身（见 079 篇）；生命周期与容器冲突。</p>
+<blockquote>
+<p>⚠️ Spring 的 <code>@Bean</code> 默认就是单例作用域，<strong>别在容器里再手写一套单例</strong>。<br>⚠️ 无状态工具类直接用静态方法，比「单例类」更诚实。</p>
+</blockquote>
+<h2 id="五、工厂方法-vs-抽象工厂"><a href="#五、工厂方法-vs-抽象工厂" class="headerlink" title="五、工厂方法 vs 抽象工厂"></a>五、工厂方法 vs 抽象工厂</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-comment">// 工厂方法：一个方法负责创建一个「产品」</span><br><span class="hljs-keyword">interface</span> <span class="hljs-title class_">LoggerFactory</span> &#123; Logger <span class="hljs-title function_">create</span><span class="hljs-params">()</span>; &#125;<br><span class="hljs-keyword">class</span> <span class="hljs-title class_">FileLoggerFactory</span> <span class="hljs-keyword">implements</span> <span class="hljs-title class_">LoggerFactory</span> &#123; <span class="hljs-keyword">public</span> Logger <span class="hljs-title function_">create</span><span class="hljs-params">()</span> &#123; <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">FileLogger</span>(); &#125; &#125;<br><span class="hljs-comment">// 抽象工厂：一个接口负责创建「一整个产品族」（多个相关产品）</span><br><span class="hljs-keyword">interface</span> <span class="hljs-title class_">GuiFactory</span> &#123; Button <span class="hljs-title function_">button</span><span class="hljs-params">()</span>; Checkbox <span class="hljs-title function_">checkbox</span><span class="hljs-params">()</span>; &#125;<br><span class="hljs-keyword">class</span> <span class="hljs-title class_">DarkFactory</span> <span class="hljs-keyword">implements</span> <span class="hljs-title class_">GuiFactory</span> &#123;<br>    <span class="hljs-keyword">public</span> Button <span class="hljs-title function_">button</span><span class="hljs-params">()</span>     &#123; <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">DarkButton</span>(); &#125;<br>    <span class="hljs-keyword">public</span> Checkbox <span class="hljs-title function_">checkbox</span><span class="hljs-params">()</span> &#123; <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">DarkCheckbox</span>(); &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th></th>
+<th>工厂方法</th>
+<th>抽象工厂</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>创建对象数</td>
+<td>一个</td>
+<td>一族（多个）</td>
+</tr>
+<tr>
+<td>扩展方式</td>
+<td>新增子类工厂</td>
+<td>新增工厂实现</td>
+</tr>
+<tr>
+<td>典型场景</td>
+<td>按类型产出单个对象</td>
+<td>主题&#x2F;皮肤&#x2F;驱动族，需成套切换</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 抽象工厂的硬伤：<strong>产品族里新增一个产品</strong>（如加 <code>Slider</code>），所有工厂实现都要改 —— 违反 OCP。产品种类稳定的场景才用它。</p>
+</blockquote>
+<h2 id="六、建造者-Builder"><a href="#六、建造者-Builder" class="headerlink" title="六、建造者 Builder"></a>六、建造者 Builder</h2><p>目的：把「构造」与「表示」分离，解决<strong>参数过多</strong>和<strong>可选参数组合爆炸</strong>。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-comment">// ❌ 伸缩构造器反模式：参数一多就没人记得住顺序</span><br><span class="hljs-keyword">new</span> <span class="hljs-title class_">Pizza</span>(<span class="hljs-literal">true</span>, <span class="hljs-literal">false</span>, <span class="hljs-literal">true</span>, <span class="hljs-literal">false</span>, <span class="hljs-number">12</span>, <span class="hljs-string">&quot;cheese&quot;</span>, <span class="hljs-literal">null</span>, <span class="hljs-literal">false</span>);<br><span class="hljs-comment">// ✅ 链式 Builder</span><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">Pizza</span> &#123;<br>    <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> <span class="hljs-type">int</span> size; <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> <span class="hljs-type">boolean</span> cheese;<br>    <span class="hljs-keyword">private</span> <span class="hljs-title function_">Pizza</span><span class="hljs-params">(Builder b)</span> &#123; <span class="hljs-built_in">this</span>.size = b.size; <span class="hljs-built_in">this</span>.cheese = b.cheese; &#125;<br>    <span class="hljs-keyword">static</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">Builder</span> &#123;<br>        <span class="hljs-keyword">private</span> <span class="hljs-type">int</span> size; <span class="hljs-keyword">private</span> <span class="hljs-type">boolean</span> cheese;<br>        Builder <span class="hljs-title function_">size</span><span class="hljs-params">(<span class="hljs-type">int</span> s)</span>       &#123; <span class="hljs-built_in">this</span>.size = s; <span class="hljs-keyword">return</span> <span class="hljs-built_in">this</span>; &#125;<br>        Builder <span class="hljs-title function_">cheese</span><span class="hljs-params">(<span class="hljs-type">boolean</span> c)</span> &#123; <span class="hljs-built_in">this</span>.cheese = c; <span class="hljs-keyword">return</span> <span class="hljs-built_in">this</span>; &#125;<br>        Pizza <span class="hljs-title function_">build</span><span class="hljs-params">()</span> &#123; <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">Pizza</span>(<span class="hljs-built_in">this</span>); &#125;<br>    &#125;<br>&#125;<br><span class="hljs-keyword">new</span> <span class="hljs-title class_">Pizza</span>.Builder().size(<span class="hljs-number">12</span>).cheese(<span class="hljs-literal">true</span>).build();<br><span class="hljs-comment">// Lombok：@Builder 自动生成上面那套</span><br><span class="hljs-meta">@Builder</span> <span class="hljs-meta">@Getter</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">User</span> &#123; <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> String name; <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> <span class="hljs-type">int</span> age; &#125;<br><span class="hljs-type">User</span> <span class="hljs-variable">u</span> <span class="hljs-operator">=</span> User.builder().name(<span class="hljs-string">&quot;a&quot;</span>).age(<span class="hljs-number">18</span>).build();<br></code></pre></td></tr></table></figure>
+
+<p>选型：伸缩构造器（参数 &gt; 3 个就不可读）→ Setter（可变、可能半成品）→ 手写 Builder（样板多但可控）→ Lombok <code>@Builder</code>（零样板，需注解处理器）。</p>
+<blockquote>
+<p>⚠️ Lombok <code>@Builder</code> 与 <code>@NoArgsConstructor</code> 同用时，无参构造会被覆盖掉，反序列化会失败 —— 需显式补 <code>@NoArgsConstructor</code> + <code>@AllArgsConstructor</code>。</p>
+</blockquote>
+<h2 id="七、原型-Prototype-与深浅拷贝"><a href="#七、原型-Prototype-与深浅拷贝" class="headerlink" title="七、原型 Prototype 与深浅拷贝"></a>七、原型 Prototype 与深浅拷贝</h2><p>目的：<strong>克隆</strong>已有对象来创建新对象，避免重复初始化开销。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">class</span> <span class="hljs-title class_">Order</span> <span class="hljs-keyword">implements</span> <span class="hljs-title class_">Cloneable</span> &#123;<br>    <span class="hljs-keyword">private</span> List&lt;Item&gt; items; <span class="hljs-keyword">private</span> Address addr;<br>    <span class="hljs-meta">@Override</span> <span class="hljs-keyword">public</span> Order <span class="hljs-title function_">clone</span><span class="hljs-params">()</span> &#123;<br>        <span class="hljs-keyword">try</span> &#123;<br>            <span class="hljs-type">Order</span> <span class="hljs-variable">o</span> <span class="hljs-operator">=</span> (Order) <span class="hljs-built_in">super</span>.clone();          <span class="hljs-comment">// 浅拷贝</span><br>            o.items = <span class="hljs-keyword">new</span> <span class="hljs-title class_">ArrayList</span>&lt;&gt;(<span class="hljs-built_in">this</span>.items);    <span class="hljs-comment">// 手动深拷贝 List</span><br>            o.addr  = <span class="hljs-built_in">this</span>.addr.clone();              <span class="hljs-comment">// 手动深拷贝引用字段</span><br>            <span class="hljs-keyword">return</span> o;<br>        &#125; <span class="hljs-keyword">catch</span> (CloneNotSupportedException e) &#123; <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">AssertionError</span>(e); &#125;<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+<table>
+<thead>
+<tr>
+<th>拷贝方式</th>
+<th>基本类型</th>
+<th>引用字段</th>
+<th>风险</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>浅拷贝</td>
+<td>复制值</td>
+<td><strong>复制引用</strong></td>
+<td>改副本影响原对象</td>
+</tr>
+<tr>
+<td>深拷贝</td>
+<td>复制值</td>
+<td>递归复制</td>
+<td>循环引用会爆栈</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>Object.clone()</code> 默认是<strong>浅拷贝</strong>，而且 <code>Cloneable</code> 是个不含方法的标记接口 —— 设计上的历史包袱。序列化&#x2F;JSON 往返或拷贝构造器通常更安全。<br>⚠️ 用 <code>Cloneable</code> 时，<code>super.clone()</code> 必须逐层调用，否则子类的字段仍是浅拷贝。</p>
+</blockquote>
+<h2 id="八、对象池"><a href="#八、对象池" class="headerlink" title="八、对象池"></a>八、对象池</h2><p>目的：复用<strong>创建代价高</strong>的对象（连接、线程、大缓冲区），用池化换掉频繁的创建&#x2F;销毁。典型池：数据库连接池（<code>Connection</code>，看最大连接数&#x2F;空闲超时&#x2F;最大生命周期）、线程池（<code>Thread</code>，看核心&#x2F;最大线程数、队列、拒绝策略）、通用对象池（看借出&#x2F;归还、最大容量、泄漏检测）。</p>
+<blockquote>
+<p>⚠️ 池化不是免费午餐：<strong>池对象必须归还</strong>（<code>try-with-resources</code> &#x2F; <code>finally</code>），否则泄漏；池内对象会<strong>残留上一次的状态</strong>，借出前要重置。<br>⚠️ 现代 JVM 里 <code>new</code> 一个小对象极便宜，<strong>给普通小对象建池通常是负优化</strong>。</p>
+</blockquote>
+<h2 id="九、IoC-与-DI：思想与手段"><a href="#九、IoC-与-DI：思想与手段" class="headerlink" title="九、IoC 与 DI：思想与手段"></a>九、IoC 与 DI：思想与手段</h2><table>
+<thead>
+<tr>
+<th></th>
+<th>IoC 控制反转</th>
+<th>DI 依赖注入</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>层次</td>
+<td><strong>设计思想</strong></td>
+<td><strong>实现手段</strong></td>
+</tr>
+<tr>
+<td>内容</td>
+<td>把「创建&#x2F;调用控制权」从代码交给容器</td>
+<td>把依赖从外部传进来</td>
+</tr>
+<tr>
+<td>关系</td>
+<td>DI 是 IoC 的一种实现</td>
+<td>构造注入 &#x2F; Setter 注入 &#x2F; 字段注入</td>
+</tr>
+</tbody></table>
+<p>「好莱坞原则」：<strong>Don’t call us, we’ll call you.</strong> 你不再主动 <code>new</code>，而是声明「我需要什么」，由框架在你需要时给你。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-comment">// 字段注入：写法最短，但隐藏依赖、难单测、易循环依赖</span><br><span class="hljs-meta">@Service</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">A</span> &#123; <span class="hljs-meta">@Autowired</span> <span class="hljs-keyword">private</span> B b; &#125;<br><span class="hljs-comment">// 构造注入：依赖显式、字段可 final、易于测试 —— 首选</span><br><span class="hljs-meta">@Service</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">A</span> &#123; <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> B b; A(B b) &#123; <span class="hljs-built_in">this</span>.b = b; &#125; &#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 一个类构造器参数超过 4~5 个，先怀疑它违反 SRP，而不是去加 <code>@Autowired</code>。<br>⚠️ <strong>DI 可以手写</strong>（构造器传参就是最简单的 DI），所以「DI 框架」≠「IoC 思想」。</p>
+</blockquote>
+<h2 id="十、何时该用工厂-反模式：过度设计"><a href="#十、何时该用工厂-反模式：过度设计" class="headerlink" title="十、何时该用工厂 + 反模式：过度设计"></a>十、何时该用工厂 + 反模式：过度设计</h2><p>只有当创建过程<strong>不再是 <code>new</code> 一行能表达</strong>时，才值得上工厂：需要按类型&#x2F;配置选实现、依赖运行期信息（配置&#x2F;环境&#x2F;租户）、创建过程要复用或缓存、创建后要统一后置处理、调用方不该知道具体类型。</p>
+<p>「模式不是越多越好」。滥用模式比不用模式更贵：抽象层数变多、跳转变深、新人上手成本陡增。现代语言里，不少模式已被<strong>语法糖&#x2F;语言特性</strong>替代：</p>
+<table>
+<thead>
+<tr>
+<th>模式</th>
+<th>现代替代</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>策略 Strategy</td>
+<td>一等函数 &#x2F; 函数值 &#x2F; lambda（Java <code>Function&lt;T,R&gt;</code>、Go 函数类型）</td>
+</tr>
+<tr>
+<td>命令 Command</td>
+<td>闭包 &#x2F; 可调用对象</td>
+</tr>
+<tr>
+<td>迭代器 Iterator</td>
+<td>生成器 &#x2F; <code>yield</code> &#x2F; 语言内建 <code>for</code></td>
+</tr>
+<tr>
+<td>单例 Singleton</td>
+<td>依赖注入容器 &#x2F; 模块级常量</td>
+</tr>
+<tr>
+<td>访问者 Visitor</td>
+<td>模式匹配 &#x2F; sealed class &#x2F; <code>switch</code> 表达式</td>
+</tr>
+</tbody></table>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-comment">// 策略模式写「打折计算器」—— 5 个类；同样的东西用一等函数只要 1 行：</span><br>Function&lt;Double, Double&gt; vip = p -&gt; p * <span class="hljs-number">0.9</span>;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 反过来，**<code>new Foo()</code> 一行就能搞定的场景套工厂，是纯粹的噪声<strong>。<br>⚠️ 判断标准很简单：</strong>模式带来的抽象，是否在下一个需求里被真正用到？** 用不到就是过度设计。<br>⚠️ 「以后可能要扩展」不是理由。<strong>YAGNI</strong>：先写最直接的实现，等第二个变化点出现再重构。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 把 SRP 理解成「一个类只能有一个方法」</li>
+<li><input disabled="" type="checkbox"> 为了 OCP 把所有 <code>if/switch</code> 都抽成策略，抽象爆炸</li>
+<li><input disabled="" type="checkbox"> 用继承复用代码，而不是表达 is-a 语义</li>
+<li><input disabled="" type="checkbox"> 子类加强前置条件（抛更多异常、要求更多参数）破坏 LSP</li>
+<li><input disabled="" type="checkbox"> 用 <code>instanceof</code> 判断子类类型来分支</li>
+<li><input disabled="" type="checkbox"> 胖接口导致实现类写一堆空方法或 <code>UnsupportedOperationException</code></li>
+<li><input disabled="" type="checkbox"> 高层模块直接 <code>new</code> 低层具体实现，编译期绑死</li>
+<li><input disabled="" type="checkbox"> 容器里手写单例，和 Spring 的单例作用域重复</li>
+<li><input disabled="" type="checkbox"> DCL 单例漏写 <code>volatile</code>，可能拿到半初始化对象</li>
+<li><input disabled="" type="checkbox"> 用反射&#x2F;序列化破坏单例（枚举可防）</li>
+<li><input disabled="" type="checkbox"> 抽象工厂里产品族频繁新增产品，导致所有工厂都要改</li>
+<li><input disabled="" type="checkbox"> 参数不多也套 Builder，代码翻倍无收益</li>
+<li><input disabled="" type="checkbox"> Lombok <code>@Builder</code> 与 <code>@NoArgsConstructor</code> 冲突导致反序列化失败</li>
+<li><input disabled="" type="checkbox"> 以为 <code>clone()</code> 是深拷贝</li>
+<li><input disabled="" type="checkbox"> 对象池借出后忘记归还造成泄漏；或给廉价小对象建池</li>
+<li><input disabled="" type="checkbox"> 把 DI 与 IoC 混为一谈（DI 是手段，IoC 是思想）</li>
+<li><input disabled="" type="checkbox"> 用字段注入导致依赖隐藏、循环依赖、无法单测</li>
+<li><input disabled="" type="checkbox"> <code>new</code> 一行能解决的事也套工厂</li>
+<li><input disabled="" type="checkbox"> 为了「以后可能扩展」提前引入模式（YAGNI 违规）</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://refactoring.guru/design-patterns">Refactoring.Guru · Design Patterns</a> · <a target="_blank" rel="noopener" href="https://refactoring.guru/design-patterns/solid-principles">Refactoring.Guru · SOLID Principles</a> · <a target="_blank" rel="noopener" href="https://projectlombok.org/features/Builder">Project Lombok · @Builder</a> · <a target="_blank" rel="noopener" href="https://martinfowler.com/bliki/InversionOfControl.html">Martin Fowler · Inversion of Control</a> · <a target="_blank" rel="noopener" href="https://docs.spring.io/spring-framework/reference/core/beans/dependencies/factory-collaborators.html">Spring Framework · Dependency Injection</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/design-pattern/" class="category-chain-item">design-pattern</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/design-pattern/" class="print-no-link">#design-pattern</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 075 · 设计模式（一）：SOLID 与创建型模式</div>
+      <div>https://ethan-iopasd.github.io/2026/10/08/每日技术博客075-设计模式创建型与SOLID/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月8日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2076-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F%E7%BB%93%E6%9E%84%E5%9E%8B%E4%B8%8E%E8%A1%8C%E4%B8%BA%E5%9E%8B/" title="每日技术博客 076 · 设计模式（二）：结构型与行为型模式">
+                        <span class="hidden-mobile">每日技术博客 076 · 设计模式（二）：结构型与行为型模式</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

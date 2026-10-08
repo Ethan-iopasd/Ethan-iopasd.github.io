@@ -1,0 +1,1107 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 079 篇 测试系列第一篇。单元测试的边界与 FIRST 原则、五类测试替身的区别、Mock 的代价、覆盖率陷阱与 TDD 红绿重构。  📚 测试 系列目录   章节 主题 状态    一 单元测试与测试替身 本篇    开场：一句话结论单元测试测的是行为，不是实现；测试替身按「要验证什么」选，而不是按习惯 —— Mock 用得越多，重构越痛。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 079 · 测试（一）：单元测试与测试替身">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2079-%E6%B5%8B%E8%AF%95%E5%8D%95%E5%85%83%E6%B5%8B%E8%AF%95%E4%B8%8E%E6%B5%8B%E8%AF%95%E6%9B%BF%E8%BA%AB/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 079 篇 测试系列第一篇。单元测试的边界与 FIRST 原则、五类测试替身的区别、Mock 的代价、覆盖率陷阱与 TDD 红绿重构。  📚 测试 系列目录   章节 主题 状态    一 单元测试与测试替身 本篇    开场：一句话结论单元测试测的是行为，不是实现；测试替身按「要验证什么」选，而不是按习惯 —— Mock 用得越多，重构越痛。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-08T05:30:00.000Z">
+<meta property="article:modified_time" content="2026-10-08T03:07:13.328Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="testing">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 079 · 测试（一）：单元测试与测试替身 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 079 · 测试（一）：单元测试与测试替身"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-08 13:30" pubdate>
+          2026年10月8日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.5k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          21 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 079 · 测试（一）：单元测试与测试替身</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-08 · 第 079 篇</p>
+<p>测试系列第一篇。单元测试的边界与 FIRST 原则、五类测试替身的区别、Mock 的代价、覆盖率陷阱与 TDD 红绿重构。</p>
+</blockquote>
+<h2 id="📚-测试-系列目录"><a href="#📚-测试-系列目录" class="headerlink" title="📚 测试 系列目录"></a>📚 测试 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>单元测试与测试替身</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p>单元测试测的是<strong>行为</strong>，不是实现；测试替身按「要验证什么」选，而不是按习惯 —— <strong>Mock 用得越多，重构越痛</strong>。</p>
+<h2 id="一、测试金字塔-vs-测试奖杯"><a href="#一、测试金字塔-vs-测试奖杯" class="headerlink" title="一、测试金字塔 vs 测试奖杯"></a>一、测试金字塔 vs 测试奖杯</h2><table>
+<thead>
+<tr>
+<th>层级</th>
+<th>范围</th>
+<th>速度</th>
+<th>稳定性</th>
+<th>数量占比</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>单元 Unit</td>
+<td>单个类&#x2F;函数</td>
+<td>毫秒</td>
+<td>高</td>
+<td>金字塔：最多</td>
+</tr>
+<tr>
+<td>集成 Integration</td>
+<td>多组件 + 真实依赖</td>
+<td>秒级</td>
+<td>中</td>
+<td>中</td>
+</tr>
+<tr>
+<td>端到端 E2E</td>
+<td>完整用户流程</td>
+<td>分钟</td>
+<td>低</td>
+<td>金字塔：最少</td>
+</tr>
+</tbody></table>
+<p><strong>测试奖杯（Testing Trophy，Kent C. Dodds）</strong>：前端&#x2F;微服务场景下把重心从单元上移到<strong>集成</strong>，理由是组件间契约才是 bug 高发区。</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs text">金字塔:        E2E 少  →  集成 中  →  单元 多<br>奖杯:          静态检查  →  单元 少  →  集成 多  →  E2E 少<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 金字塔不是教条。<strong>UI 组件、HTTP 客户端、ORM 映射</strong>这类代码，集成测试的性价比高于碎成一地的单元测试。<br>⚠️ 单元测试数量少不代表不写测试，而是把预算投到<strong>更接近真实调用</strong>的层级。</p>
+</blockquote>
+<h2 id="二、单元测试的边界"><a href="#二、单元测试的边界" class="headerlink" title="二、单元测试的边界"></a>二、单元测试的边界</h2><p>「单元」不是「一个类」，而是<strong>一个可独立验证的行为单元</strong>。</p>
+<table>
+<thead>
+<tr>
+<th>判据</th>
+<th>属于单元</th>
+<th>不属于单元</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>依赖</td>
+<td>无 IO、无网络、无时钟</td>
+<td>真实 DB &#x2F; HTTP &#x2F; 文件</td>
+</tr>
+<tr>
+<td>速度</td>
+<td>毫秒级</td>
+<td>秒级以上</td>
+</tr>
+<tr>
+<td>确定性</td>
+<td>同输入同输出</td>
+<td>受环境&#x2F;时序影响</td>
+</tr>
+<tr>
+<td>隔离</td>
+<td>可单独运行</td>
+<td>需先起服务</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 「一个方法一个测试」是过度切分；「一个类一个测试」也未必对 —— 按<strong>行为</strong>划分。<br>⚠️ 单元测试里出现 <code>Thread.sleep</code>、真实端口、<code>new Date()</code>，说明边界已经破了。</p>
+</blockquote>
+<h2 id="三、FIRST-原则"><a href="#三、FIRST-原则" class="headerlink" title="三、FIRST 原则"></a>三、FIRST 原则</h2><table>
+<thead>
+<tr>
+<th>字母</th>
+<th>含义</th>
+<th>反例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>F</strong>ast</td>
+<td>快，毫秒级</td>
+<td>连真实数据库</td>
+</tr>
+<tr>
+<td><strong>I</strong>solated</td>
+<td>相互独立，无共享状态</td>
+<td>测试间共享可变静态变量</td>
+</tr>
+<tr>
+<td><strong>R</strong>epeatable</td>
+<td>任意环境、任意次数结果一致</td>
+<td>依赖当前时间、随机数、网络</td>
+</tr>
+<tr>
+<td><strong>S</strong>elf-validating</td>
+<td>自动判定通过&#x2F;失败</td>
+<td>打印结果靠人肉看</td>
+</tr>
+<tr>
+<td><strong>T</strong>imely</td>
+<td>与代码同步（最好先写）</td>
+<td>上线前补一堆</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ Isolated 常被误写成 Independent。<strong>顺序无关</strong>才是关键：打乱执行顺序结果不变。<br>⚠️ 只要有一个测试依赖另一个的副作用，整套测试就不可信。</p>
+</blockquote>
+<h2 id="四、AAA-与-Given-When-Then"><a href="#四、AAA-与-Given-When-Then" class="headerlink" title="四、AAA 与 Given-When-Then"></a>四、AAA 与 Given-When-Then</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-meta">@Test</span><br><span class="hljs-keyword">void</span> <span class="hljs-title function_">should_reject_when_balance_insufficient</span><span class="hljs-params">()</span> &#123;<br>    <span class="hljs-comment">// Arrange（Given）</span><br>    <span class="hljs-type">var</span> <span class="hljs-variable">account</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">Account</span>(balance: <span class="hljs-number">100</span>);<br>    <span class="hljs-comment">// Act（When）</span><br>    <span class="hljs-type">var</span> <span class="hljs-variable">ex</span> <span class="hljs-operator">=</span> assertThrows(InsufficientFunds.class, () -&gt; account.withdraw(<span class="hljs-number">200</span>));<br>    <span class="hljs-comment">// Assert（Then）</span><br>    assertEquals(<span class="hljs-string">&quot;余额不足&quot;</span>, ex.getMessage());<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>结构</th>
+<th>段数</th>
+<th>关注点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>AAA</td>
+<td>Arrange &#x2F; Act &#x2F; Assert</td>
+<td>准备 &#x2F; 执行 &#x2F; 断言</td>
+</tr>
+<tr>
+<td>Given-When-Then</td>
+<td>Given &#x2F; When &#x2F; Then</td>
+<td>同义，BDD 语境</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 一个测试里出现<strong>多个 Act</strong>，说明它测了多条行为 —— 拆开。<br>⚠️ <code>Assert</code> 段超过 3~4 条断言，通常是「断言过多」，失败时定位困难。</p>
+</blockquote>
+<h2 id="五、测试替身五兄弟"><a href="#五、测试替身五兄弟" class="headerlink" title="五、测试替身五兄弟"></a>五、测试替身五兄弟</h2><p>Gerard Meszaros《xUnit Test Patterns》定义的五类替身：</p>
+<table>
+<thead>
+<tr>
+<th>替身</th>
+<th>作用</th>
+<th>是否断言</th>
+<th>典型工具用法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Dummy</strong></td>
+<td>仅占位，从不被使用</td>
+<td>否</td>
+<td>传个 <code>null</code> &#x2F; 空对象</td>
+</tr>
+<tr>
+<td><strong>Stub</strong></td>
+<td>返回预设值</td>
+<td>否（只提供输入）</td>
+<td><code>when(x).thenReturn(v)</code></td>
+</tr>
+<tr>
+<td><strong>Spy</strong></td>
+<td>记录调用，事后查询</td>
+<td>间接</td>
+<td><code>verify(x).foo()</code></td>
+</tr>
+<tr>
+<td><strong>Mock</strong></td>
+<td>预设期望，验证交互</td>
+<td>是</td>
+<td><code>verify(x, times(1)).foo()</code></td>
+</tr>
+<tr>
+<td><strong>Fake</strong></td>
+<td>有真实逻辑的简化实现</td>
+<td>否</td>
+<td>内存仓库、H2 替代 PG</td>
+</tr>
+</tbody></table>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-comment">// Stub：给输入</span><br><span class="hljs-keyword">when</span>(repo.findById(<span class="hljs-number">1L</span>)).thenReturn(Optional.of(user));<br><span class="hljs-comment">// Spy / Mock：验证交互（这是断言，不是给输入）</span><br>verify(repo).save(any(User.class));<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 大多数「Mock 框架」其实同时提供 Stub（<code>when</code>）与 Mock（<code>verify</code>）能力 —— <strong>别把 <code>when</code> 当 Mock</strong>。<br>⚠️ 优先 Fake 而非 Mock：Fake 更接近真实语义，重构时不会因为方法调用变化而碎掉。</p>
+</blockquote>
+<h2 id="六、Mock-的代价"><a href="#六、Mock-的代价" class="headerlink" title="六、Mock 的代价"></a>六、Mock 的代价</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-comment">// ❌ 断言的是「实现细节」：只要把 save 改成 saveAll，测试就红</span><br>verify(repo).save(user);<br>verify(repo).save(any());          <span class="hljs-comment">// 参数细节也被钉死</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>断言对象</th>
+<th>重构时</th>
+<th>评价</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>返回值 &#x2F; 最终状态</td>
+<td>稳定</td>
+<td>✅ 优先</td>
+</tr>
+<tr>
+<td>对外可观测的副作用</td>
+<td>较稳定</td>
+<td>✅ 可接受</td>
+</tr>
+<tr>
+<td>内部方法调用次数&#x2F;顺序</td>
+<td><strong>极易碎</strong></td>
+<td>⚠️ 谨慎</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>verify</code> 过度使用，会把测试变成「实现快照」—— 重构不改行为也会挂，团队随后开始无视失败。<br>⚠️ <strong>不要 mock 你不拥有的类型</strong>（第三方库、框架、<code>Date</code>）。这类接口会随版本变化，你的 Mock 会撒谎。<br>⚠️ 想 mock 第三方类型时，正确做法是<strong>先包一层自己的接口（适配器）</strong>，再 mock 自己的接口。</p>
+</blockquote>
+<h2 id="七、测试命名与断言可读性"><a href="#七、测试命名与断言可读性" class="headerlink" title="七、测试命名与断言可读性"></a>七、测试命名与断言可读性</h2><table>
+<thead>
+<tr>
+<th>风格</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>should_expected_when_condition</code></td>
+<td><code>should_throw_when_balance_insufficient</code></td>
+</tr>
+<tr>
+<td>Given-When-Then</td>
+<td><code>givenInsufficientBalance_whenWithdraw_thenThrows</code></td>
+</tr>
+<tr>
+<td>行为描述（Jest）</td>
+<td><code>rejects withdrawal over balance</code></td>
+</tr>
+</tbody></table>
+<p>断言库优先选<strong>自带消息</strong>的，失败信息直接说明问题：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs java">assertEquals(expected, actual);                        <span class="hljs-comment">// 失败只有两个值</span><br>assertThat(actual).as(<span class="hljs-string">&quot;订单金额&quot;</span>).isEqualTo(expected); <span class="hljs-comment">// 带语义</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>test1</code> &#x2F; <code>testMethod</code> &#x2F; <code>test2</code> 这类命名等于没命名，失败时只能去读代码。<br>⚠️ 断言消息要写「期望什么」，而不是「哪里错了」—— 后者从 diff 里就能看出来。</p>
+</blockquote>
+<h2 id="八、参数化测试"><a href="#八、参数化测试" class="headerlink" title="八、参数化测试"></a>八、参数化测试</h2><p>把同一逻辑的多组输入写成表，避免复制粘贴。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># pytest</span><br><span class="hljs-meta">@pytest.mark.parametrize(<span class="hljs-params"><span class="hljs-string">&quot;inp,expected&quot;</span>, [(<span class="hljs-params"><span class="hljs-number">1</span>, <span class="hljs-number">1</span></span>), (<span class="hljs-params"><span class="hljs-number">2</span>, <span class="hljs-number">4</span></span>), (<span class="hljs-params"><span class="hljs-number">3</span>, <span class="hljs-number">9</span></span>)]</span>)</span><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">test_square</span>(<span class="hljs-params">inp, expected</span>):<br>    <span class="hljs-keyword">assert</span> square(inp) == expected<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-comment">// JUnit 5</span><br><span class="hljs-meta">@ParameterizedTest</span><br><span class="hljs-meta">@CsvSource(&#123;&quot;1,1&quot;, &quot;2,4&quot;, &quot;3,9&quot;&#125;)</span><br><span class="hljs-keyword">void</span> <span class="hljs-title function_">square</span><span class="hljs-params">(<span class="hljs-type">int</span> in, <span class="hljs-type">int</span> expected)</span> &#123; assertEquals(expected, square(in)); &#125;<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-comment">// Go table-driven</span><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">TestSquare</span><span class="hljs-params">(t *testing.T)</span></span> &#123;<br>    cases := []<span class="hljs-keyword">struct</span>&#123; in, want <span class="hljs-type">int</span> &#125;&#123;&#123;<span class="hljs-number">1</span>, <span class="hljs-number">1</span>&#125;, &#123;<span class="hljs-number">2</span>, <span class="hljs-number">4</span>&#125;, &#123;<span class="hljs-number">3</span>, <span class="hljs-number">9</span>&#125;&#125;<br>    <span class="hljs-keyword">for</span> _, c := <span class="hljs-keyword">range</span> cases &#123;<br>        <span class="hljs-keyword">if</span> got := Square(c.in); got != c.want &#123;<br>            t.Errorf(<span class="hljs-string">&quot;Square(%d)=%d, want %d&quot;</span>, c.in, got, c.want)<br>        &#125;<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 表驱动里<strong>每个 case 要有名字</strong>，否则失败时报「第 3 个 case 挂了」，还得数。<br>⚠️ 一个表里塞入语义完全不同的场景，失败时无法判断是哪类问题。</p>
+</blockquote>
+<h2 id="九、覆盖率的意义与陷阱"><a href="#九、覆盖率的意义与陷阱" class="headerlink" title="九、覆盖率的意义与陷阱"></a>九、覆盖率的意义与陷阱</h2><table>
+<thead>
+<tr>
+<th>指标</th>
+<th>含义</th>
+<th>局限</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>行覆盖 Line</td>
+<td>执行过的行占比</td>
+<td>不区分分支</td>
+</tr>
+<tr>
+<td>分支覆盖 Branch</td>
+<td><code>if/switch</code> 两路是否都走</td>
+<td>仍不保证语义正确</td>
+</tr>
+<tr>
+<td>路径覆盖</td>
+<td>组合路径</td>
+<td>爆炸式增长，极少用</td>
+</tr>
+</tbody></table>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-type">int</span> <span class="hljs-title function_">f</span><span class="hljs-params">(<span class="hljs-type">int</span> x)</span> &#123; <span class="hljs-keyword">return</span> x &gt; <span class="hljs-number">0</span> ? <span class="hljs-number">1</span> : -<span class="hljs-number">1</span>; &#125;   <span class="hljs-comment">// 行覆盖 100%：只要调一次</span><br>                                           <span class="hljs-comment">// 分支覆盖 100%：需要 x&gt;0 和 x&lt;=0 各一次</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>行覆盖 100% 仍可能漏掉分支</strong>。看覆盖看<strong>分支</strong>，不看行。<br>⚠️ <strong>不要为覆盖率写测试</strong>。为了数字补的断言没有价值，还会拖慢 CI。<br>⚠️ 覆盖率是<strong>发现盲区的工具</strong>，不是 KPI。强制 80% 门槛通常只会催生空断言。</p>
+</blockquote>
+<h2 id="十、TDD-红绿重构"><a href="#十、TDD-红绿重构" class="headerlink" title="十、TDD 红绿重构"></a>十、TDD 红绿重构</h2><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs text">红：先写一个失败的测试（明确期望）<br>绿：用最少的代码让它通过（不求优雅）<br>重构：在测试保护下清理代码（行为不变）<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>立场</th>
+<th>观点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>支持</td>
+<td>强制先想清楚接口与行为；天然高覆盖</td>
+</tr>
+<tr>
+<td>争议</td>
+<td>教条化会拖慢探索型任务；小步可能过度设计</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ TDD 是<strong>设计手段</strong>，不是宗教。探索阶段（spike）先写代码再补测试完全合理。<br>⚠️ 「先写测试」不等于「测试驱动」—— 若测试只是复述实现，就没有设计价值。</p>
+</blockquote>
+<h2 id="十一、测试数据构造"><a href="#十一、测试数据构造" class="headerlink" title="十一、测试数据构造"></a>十一、测试数据构造</h2><table>
+<thead>
+<tr>
+<th>方式</th>
+<th>说明</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>直接 new</td>
+<td>显式构造</td>
+<td>字段少</td>
+</tr>
+<tr>
+<td>Builder</td>
+<td>链式设默认值，只覆盖关心的字段</td>
+<td>字段多</td>
+</tr>
+<tr>
+<td>Object Mother</td>
+<td>预置命名好的样例对象</td>
+<td>常用组合</td>
+</tr>
+<tr>
+<td>Fixture</td>
+<td>框架级共享装置</td>
+<td>跨测试复用</td>
+</tr>
+</tbody></table>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-type">User</span> <span class="hljs-variable">u</span> <span class="hljs-operator">=</span> User.builder().email(<span class="hljs-string">&quot;a@b.com&quot;</span>).build();   <span class="hljs-comment">// 只关心 email，其余走默认</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ Object Mother 容易变成「上帝工厂」，越加越多、没人敢删 —— 复杂时改用 Builder。<br>⚠️ <strong>共享可变 Fixture 是测试污染的头号来源</strong>。Fixture 要么不可变，要么每个测试重建。</p>
+</blockquote>
+<h2 id="十二、时间与随机性"><a href="#十二、时间与随机性" class="headerlink" title="十二、时间与随机性"></a>十二、时间与随机性</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-comment">// ❌ 直接读系统时间，无法重现</span><br><span class="hljs-keyword">if</span> (LocalDate.now().isAfter(deadline)) &#123; ... &#125;<br><span class="hljs-comment">// ✅ 注入 Clock</span><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">Service</span> &#123; <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> Clock clock; <span class="hljs-type">boolean</span> <span class="hljs-title function_">expired</span><span class="hljs-params">()</span>&#123; <span class="hljs-keyword">return</span> LocalDate.now(clock).isAfter(deadline); &#125; &#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>依赖</th>
+<th>处理方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>当前时间</td>
+<td>注入 <code>Clock</code>（Java）&#x2F; <code>freezegun</code>（Python）&#x2F; <code>jest.useFakeTimers</code>（JS）</td>
+</tr>
+<tr>
+<td>随机数</td>
+<td>注入 <code>Random</code> 并固定种子，或注入可预测的生成器</td>
+</tr>
+<tr>
+<td>UUID</td>
+<td>注入 ID 生成器</td>
+</tr>
+<tr>
+<td>时区</td>
+<td>显式指定，别依赖机器默认时区</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 测试里出现 <code>Thread.sleep(1000)</code> 等待异步 —— 既慢又不稳，改用<strong>轮询 + 超时</strong>或事件回调。<br>⚠️ 固定种子只能保证<strong>可重现</strong>，不能保证<strong>覆盖边界</strong>，随机边界用例仍要显式写。</p>
+</blockquote>
+<h2 id="十三、测试反模式与快照测试"><a href="#十三、测试反模式与快照测试" class="headerlink" title="十三、测试反模式与快照测试"></a>十三、测试反模式与快照测试</h2><table>
+<thead>
+<tr>
+<th>反模式</th>
+<th>后果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>脆弱的测试（钉死实现细节）</td>
+<td>重构即红，团队无视失败</td>
+</tr>
+<tr>
+<td>测试间共享可变状态</td>
+<td>顺序相关，随机挂</td>
+</tr>
+<tr>
+<td>一个测试断言过多</td>
+<td>失败定位困难</td>
+</tr>
+<tr>
+<td><code>sleep</code> 等待</td>
+<td>慢且 flaky</td>
+</tr>
+<tr>
+<td>断言恒真（<code>assertTrue(true)</code>）</td>
+<td>零价值</td>
+</tr>
+<tr>
+<td>测试依赖执行顺序</td>
+<td>并行时崩</td>
+</tr>
+</tbody></table>
+<p><strong>快照测试</strong>：适合<strong>稳定、结构化</strong>的输出（序列化结果、渲染树）；不适合高频变动的 UI。</p>
+<blockquote>
+<p>⚠️ 快照「无脑更新」（<code>--updateSnapshot</code>）等于把回归测试变成橡皮章。<br>⚠️ 大快照失败时看不出改了哪，应拆小或加显式断言。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 把测试金字塔当教条，前端&#x2F;微服务也硬堆单元测试</li>
+<li><input disabled="" type="checkbox"> 单元测试里连真实数据库或发真实 HTTP 请求</li>
+<li><input disabled="" type="checkbox"> 测试之间共享可变静态状态，导致顺序相关</li>
+<li><input disabled="" type="checkbox"> 测试依赖当前时间、随机数或机器时区</li>
+<li><input disabled="" type="checkbox"> 一个测试里出现多个 Act</li>
+<li><input disabled="" type="checkbox"> 把 Stub（<code>when</code>）当 Mock（<code>verify</code>）用</li>
+<li><input disabled="" type="checkbox"> 滥用 <code>verify</code> 断言内部调用次数，重构即挂</li>
+<li><input disabled="" type="checkbox"> Mock 第三方库&#x2F;框架类型，版本升级后 Mock 撒谎</li>
+<li><input disabled="" type="checkbox"> 不优先用 Fake，什么都上 Mock</li>
+<li><input disabled="" type="checkbox"> 测试命名为 <code>test1</code> &#x2F; <code>testMethod</code></li>
+<li><input disabled="" type="checkbox"> 参数化测试的 case 没有名字</li>
+<li><input disabled="" type="checkbox"> 只看行覆盖率，忽略分支覆盖</li>
+<li><input disabled="" type="checkbox"> 为凑覆盖率写空断言</li>
+<li><input disabled="" type="checkbox"> 把覆盖率当 KPI 设硬门槛</li>
+<li><input disabled="" type="checkbox"> 教条化 TDD，探索阶段也强推</li>
+<li><input disabled="" type="checkbox"> 共享可变 Fixture，造成测试污染</li>
+<li><input disabled="" type="checkbox"> 用 <code>Thread.sleep</code> 等异步，既慢又不稳</li>
+<li><input disabled="" type="checkbox"> 测试里直接用 <code>LocalDate.now()</code> &#x2F; <code>Math.random()</code></li>
+<li><input disabled="" type="checkbox"> 无脑 <code>--updateSnapshot</code>，快照测试形同虚设</li>
+<li><input disabled="" type="checkbox"> 断言恒真（<code>assertTrue(true)</code>）或只打印不判定</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://docs.pytest.org/en/stable/how-to/parametrize.html">pytest · Parametrize</a> · <a target="_blank" rel="noopener" href="https://junit.org/junit5/docs/current/user-guide/#writing-tests-parameterized-tests">JUnit 5 · Parameterized Tests</a> · <a target="_blank" rel="noopener" href="https://go.dev/wiki/TableDrivenTests">Go · Table-driven tests</a> · <a target="_blank" rel="noopener" href="https://martinfowler.com/articles/mocksArentStubs.html">Martin Fowler · Mocks Aren’t Stubs</a> · <a target="_blank" rel="noopener" href="https://kentcdodds.com/blog/the-testing-trophy-and-testing-classifications">Kent C. Dodds · The Testing Trophy</a> · <a target="_blank" rel="noopener" href="https://www.jacoco.org/jacoco/trunk/doc/counters.html">JaCoCo · Coverage counters</a> · <a target="_blank" rel="noopener" href="https://jestjs.io/docs/timer-mocks">jest · Timer Mocks</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/testing/" class="category-chain-item">testing</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/testing/" class="print-no-link">#testing</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 079 · 测试（一）：单元测试与测试替身</div>
+      <div>https://ethan-iopasd.github.io/2026/10/08/每日技术博客079-测试单元测试与测试替身/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月8日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2080-%E6%B5%8B%E8%AF%95%E9%9B%86%E6%88%90%E6%B5%8B%E8%AF%95%E4%B8%8EE2E/" title="每日技术博客 080 · 测试（二）：集成测试、E2E 与测试策略">
+                        <span class="hidden-mobile">每日技术博客 080 · 测试（二）：集成测试、E2E 与测试策略</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

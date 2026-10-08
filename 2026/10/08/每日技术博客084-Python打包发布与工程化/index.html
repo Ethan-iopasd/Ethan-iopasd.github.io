@@ -1,0 +1,1109 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 084 篇 pyproject.toml 怎么配、构建后端怎么选、sdist 为什么总漏文件、Docker 里为什么不该留编译器——一次讲清 Python 工程的发布链路。  📚 Python 系列目录   章节 主题 状态    一 依赖管理与虚拟环境 已发布   二 类型注解与静态检查 已发布   三 异步编程 asyncio 已发布   四">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 084 · Python（七）：打包、发布与项目工程化">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2084-Python%E6%89%93%E5%8C%85%E5%8F%91%E5%B8%83%E4%B8%8E%E5%B7%A5%E7%A8%8B%E5%8C%96/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 084 篇 pyproject.toml 怎么配、构建后端怎么选、sdist 为什么总漏文件、Docker 里为什么不该留编译器——一次讲清 Python 工程的发布链路。  📚 Python 系列目录   章节 主题 状态    一 依赖管理与虚拟环境 已发布   二 类型注解与静态检查 已发布   三 异步编程 asyncio 已发布   四">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-08T05:55:00.000Z">
+<meta property="article:modified_time" content="2026-10-08T03:06:03.258Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="python">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 084 · Python（七）：打包、发布与项目工程化 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 084 · Python（七）：打包、发布与项目工程化"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-08 13:55" pubdate>
+          2026年10月8日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.3k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          20 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 084 · Python（七）：打包、发布与项目工程化</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-08 · 第 084 篇</p>
+<p><code>pyproject.toml</code> 怎么配、构建后端怎么选、sdist 为什么总漏文件、Docker 里为什么不该留编译器——一次讲清 Python 工程的发布链路。</p>
+</blockquote>
+<h2 id="📚-Python-系列目录"><a href="#📚-Python-系列目录" class="headerlink" title="📚 Python 系列目录"></a>📚 Python 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>依赖管理与虚拟环境</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>类型注解与静态检查</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>异步编程 asyncio</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td>GIL、线程与进程</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>五</td>
+<td>性能剖析与优化</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>六</td>
+<td>装饰器、元编程与描述符</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>七</td>
+<td>打包、发布与项目工程化</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><code>pyproject.toml</code> 是唯一的配置入口（PEP 518 + PEP 621），<code>setup.py</code> &#x2F; <code>setup.cfg</code> 只作为兼容保留；<strong>构建产物是 wheel 和 sdist，锁文件才是可复现的保证</strong>。</p>
+<h2 id="一、pyproject-toml-是唯一入口"><a href="#一、pyproject-toml-是唯一入口" class="headerlink" title="一、pyproject.toml 是唯一入口"></a>一、pyproject.toml 是唯一入口</h2><table>
+<thead>
+<tr>
+<th>标准</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>PEP 518</strong></td>
+<td>定义 <code>[build-system]</code>，声明构建时依赖</td>
+</tr>
+<tr>
+<td><strong>PEP 517</strong></td>
+<td>定义构建后端接口（<code>build_wheel</code> &#x2F; <code>build_sdist</code>）</td>
+</tr>
+<tr>
+<td><strong>PEP 621</strong></td>
+<td>定义 <code>[project]</code> 表，元数据的标准写法</td>
+</tr>
+</tbody></table>
+<figure class="highlight toml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><code class="hljs toml"><span class="hljs-section">[build-system]</span><br><span class="hljs-attr">requires</span> = [<span class="hljs-string">&quot;hatchling&quot;</span>]<br><span class="hljs-attr">build-backend</span> = <span class="hljs-string">&quot;hatchling.build&quot;</span><br><br><span class="hljs-section">[project]</span><br><span class="hljs-attr">name</span> = <span class="hljs-string">&quot;myapp&quot;</span><br><span class="hljs-attr">version</span> = <span class="hljs-string">&quot;1.2.0&quot;</span><br><span class="hljs-attr">description</span> = <span class="hljs-string">&quot;Demo package&quot;</span><br><span class="hljs-attr">readme</span> = <span class="hljs-string">&quot;README.md&quot;</span><br><span class="hljs-attr">requires-python</span> = <span class="hljs-string">&quot;&gt;=3.10&quot;</span><br><span class="hljs-attr">license</span> = &#123; text = <span class="hljs-string">&quot;MIT&quot;</span> &#125;<br><span class="hljs-attr">dependencies</span> = [<span class="hljs-string">&quot;httpx&gt;=0.27,&lt;1.0&quot;</span>, <span class="hljs-string">&quot;pydantic~=2.7&quot;</span>]<br><br><span class="hljs-section">[project.optional-dependencies]</span><br><span class="hljs-attr">dev</span> = [<span class="hljs-string">&quot;pytest&gt;=8&quot;</span>, <span class="hljs-string">&quot;ruff&gt;=0.6&quot;</span>, <span class="hljs-string">&quot;mypy&gt;=1.11&quot;</span>]<br><br><span class="hljs-section">[project.scripts]</span><br><span class="hljs-attr">myapp</span> = <span class="hljs-string">&quot;myapp.cli:main&quot;</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>文件</th>
+<th>现状</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>setup.py</code></td>
+<td>仍被 setuptools 支持，但只该留「构建时动态逻辑」</td>
+</tr>
+<tr>
+<td><code>setup.cfg</code></td>
+<td>声明式元数据可写，但新项目没理由再用</td>
+</tr>
+<tr>
+<td><code>pyproject.toml</code></td>
+<td>✅ 元数据 + 工具配置统一入口</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 只要目录里存在 <code>setup.py</code>，<strong>很多工具会优先走 legacy 流程</strong>，绕过 PEP 517。迁移时该删就删干净。</p>
+<p>⚠️ <code>license = &#123; text = &quot;MIT&quot; &#125;</code> 是旧写法，PEP 639 起推荐 <code>license = &quot;MIT&quot;</code> + <code>license-files</code>。后端支持不一，跨后端时先用兼容写法。</p>
+</blockquote>
+<h2 id="二、构建后端与项目布局"><a href="#二、构建后端与项目布局" class="headerlink" title="二、构建后端与项目布局"></a>二、构建后端与项目布局</h2><table>
+<thead>
+<tr>
+<th>后端</th>
+<th>配置风格</th>
+<th>适合</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>setuptools</strong></td>
+<td><code>pyproject.toml</code> + 少量 <code>setup.py</code></td>
+<td>老项目、需要 C 扩展</td>
+</tr>
+<tr>
+<td><strong>hatchling</strong></td>
+<td>纯 <code>pyproject.toml</code>，默认认 src 布局</td>
+<td>新库，配置最少</td>
+</tr>
+<tr>
+<td><strong>poetry-core</strong></td>
+<td>跟 Poetry 生态绑定</td>
+<td>用 Poetry 管依赖的项目</td>
+</tr>
+<tr>
+<td><strong>flit-core</strong></td>
+<td>极简，要求模块名 &#x3D;&#x3D; 包名</td>
+<td>单文件小库</td>
+</tr>
+<tr>
+<td><strong>pdm-backend</strong></td>
+<td>支持动态版本、多后端</td>
+<td>PDM 生态</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>build-backend</code> 一旦发布过版本就<strong>别轻易换</strong>。不同后端对文件包含规则、动态字段的支持不同，换后端经常导致新版本 wheel 里少文件。</p>
+</blockquote>
+<figure class="highlight vim"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs vim">project/<br>├── src/myapp/&#123;__init__.<span class="hljs-keyword">py</span>, core.<span class="hljs-keyword">py</span>&#125;<br>├── tests/test_core.<span class="hljs-keyword">py</span><br>└── pyproject.toml<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>布局</th>
+<th>直接 <code>pytest</code> 时</th>
+<th>风险</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>扁平（<code>myapp/</code> 在根）</td>
+<td>导入的是<strong>工作目录</strong>里的源码</td>
+<td>测试通过，装到环境里跑不起来</td>
+</tr>
+<tr>
+<td><strong>src 布局</strong></td>
+<td>必须 <code>pip install -e .</code> 才能导入</td>
+<td>强制验证「打包后能用」</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 扁平布局的经典事故：<code>pyproject.toml</code> 里漏配子包，本地测试全绿，<code>pip install</code> 后 <code>ImportError</code>。<strong>src 布局就是让这个问题在测试阶段暴露。</strong></p>
+</blockquote>
+<figure class="highlight toml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs toml"><span class="hljs-comment"># setuptools 需要显式声明；hatchling 默认认 src</span><br><span class="hljs-section">[tool.setuptools.packages.find]</span><br><span class="hljs-attr">where</span> = [<span class="hljs-string">&quot;src&quot;</span>]<br></code></pre></td></tr></table></figure>
+
+<h2 id="三、版本号与依赖声明"><a href="#三、版本号与依赖声明" class="headerlink" title="三、版本号与依赖声明"></a>三、版本号与依赖声明</h2><figure class="highlight toml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs toml"><span class="hljs-comment"># 手写（简单，但容易忘改）</span><br><span class="hljs-section">[project]</span><br><span class="hljs-attr">version</span> = <span class="hljs-string">&quot;1.2.0&quot;</span><br><br><span class="hljs-comment"># 从 git tag 推导（推荐）</span><br><span class="hljs-section">[project]</span><br><span class="hljs-attr">dynamic</span> = [<span class="hljs-string">&quot;version&quot;</span>]<br><br><span class="hljs-section">[tool.hatch.version]</span><br><span class="hljs-attr">source</span> = <span class="hljs-string">&quot;vcs&quot;</span><br><br><span class="hljs-section">[tool.hatch.build.hooks.vcs]</span><br><span class="hljs-attr">version-file</span> = <span class="hljs-string">&quot;src/myapp/_version.py&quot;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 用 <code>setuptools-scm</code> &#x2F; <code>hatch-vcs</code> 时，从 PyPI 下载 sdist 再构建<strong>没有 git 历史</strong>，会报找不到版本。所以必须在构建时预生成 <code>_version.py</code>。</p>
+</blockquote>
+<figure class="highlight toml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs toml"><span class="hljs-attr">dependencies</span> = [<span class="hljs-string">&quot;httpx&gt;=0.27,&lt;1.0&quot;</span>, <span class="hljs-string">&quot;pydantic~=2.7&quot;</span>]<br><br><span class="hljs-section">[project.optional-dependencies]</span><br><span class="hljs-attr">dev</span> = [<span class="hljs-string">&quot;pytest&gt;=8&quot;</span>, <span class="hljs-string">&quot;ruff&gt;=0.6&quot;</span>]<br><span class="hljs-attr">postgres</span> = [<span class="hljs-string">&quot;psycopg[binary]&gt;=3.2&quot;</span>]<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>写法</th>
+<th>含义</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>&gt;=1.2,&lt;2.0</code></td>
+<td>明确区间</td>
+<td>最可控</td>
+</tr>
+<tr>
+<td><code>~=1.2.3</code></td>
+<td><code>&gt;=1.2.3, ==1.2.*</code></td>
+<td>兼容版本，不改次要号</td>
+</tr>
+<tr>
+<td><code>==1.2.3</code></td>
+<td>精确锁定</td>
+<td>库里不该这么写</td>
+</tr>
+<tr>
+<td><code>&gt;=1.2</code></td>
+<td>无上界</td>
+<td>⚠️ 迟早被上游破坏</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 库（library）的 <code>dependencies</code> <strong>不要写 <code>==</code> 精确版本</strong>，会把冲突全部转嫁给使用者。应用（application）才用锁文件锁死。</p>
+</blockquote>
+<h3 id="锁文件的意义"><a href="#锁文件的意义" class="headerlink" title="锁文件的意义"></a>锁文件的意义</h3><table>
+<thead>
+<tr>
+<th>锁文件</th>
+<th>生态</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>uv.lock</code></td>
+<td>uv</td>
+<td>全量解析结果 + hash</td>
+</tr>
+<tr>
+<td><code>poetry.lock</code></td>
+<td>Poetry</td>
+<td>同上</td>
+</tr>
+<tr>
+<td><code>requirements.txt</code>（<code>pip-compile</code> 生成）</td>
+<td>pip-tools</td>
+<td>带 hash 的固定版本</td>
+</tr>
+<tr>
+<td><code>requirements.txt</code>（手写）</td>
+<td>——</td>
+<td>⚠️ 通常没锁传递依赖</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash">uv lock          <span class="hljs-comment"># 解析并写锁文件</span><br>uv <span class="hljs-built_in">sync</span> --frozen <span class="hljs-comment"># CI 中严格按锁文件安装，不一致直接失败</span><br></code></pre></td></tr></table></figure>
+<blockquote>
+<p>⚠️ <strong>生产环境绝不装未锁定的依赖</strong>。<code>pip install flask</code> 今天和明天的解析结果可能不同，一个补丁版本就能把线上打挂。</p>
+</blockquote>
+<h2 id="四、构建-wheel-与-sdist"><a href="#四、构建-wheel-与-sdist" class="headerlink" title="四、构建 wheel 与 sdist"></a>四、构建 wheel 与 sdist</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash">python -m build            <span class="hljs-comment"># 同时产出 wheel + sdist 到 dist/</span><br>python -m build --wheel    <span class="hljs-comment"># 只要 wheel</span><br>unzip -l dist/myapp-1.2.0-py3-none-any.whl   <span class="hljs-comment"># wheel 就是 zip</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>产物</th>
+<th>本质</th>
+<th>安装时</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>*.whl</code></td>
+<td>一个 zip 包</td>
+<td>解压即用，<strong>不执行构建</strong></td>
+</tr>
+<tr>
+<td><code>*.tar.gz</code></td>
+<td>源码包（sdist）</td>
+<td>需要本地构建，可能编译</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>sdist 里漏文件是最常见的发布事故</strong>：别人从 PyPI 装就是坏的，而你本地（从源码装）永远复现不了。</p>
+</blockquote>
+<figure class="highlight toml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs toml"><span class="hljs-comment"># hatchling</span><br><span class="hljs-section">[tool.hatch.build.targets.sdist]</span><br><span class="hljs-attr">include</span> = [<span class="hljs-string">&quot;src&quot;</span>, <span class="hljs-string">&quot;tests&quot;</span>, <span class="hljs-string">&quot;README.md&quot;</span>, <span class="hljs-string">&quot;LICENSE&quot;</span>]<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs nginx"><span class="hljs-comment"># MANIFEST.in（setuptools）</span><br><span class="hljs-attribute">include</span> README.md LICENSE pyproject.toml<br>recursive-include src <span class="hljs-regexp">*.py</span> <span class="hljs-regexp">*.json</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 验证方式：<code>python -m build</code> 后<strong>在干净的虚拟环境里从 sdist 安装再跑测试</strong>。本地直接 <code>pip install .</code> 走的是源码目录，查不出漏文件。</p>
+</blockquote>
+<h2 id="五、发布、入口点与包数据"><a href="#五、发布、入口点与包数据" class="headerlink" title="五、发布、入口点与包数据"></a>五、发布、入口点与包数据</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash">python -m twine upload --repository testpypi dist/*<br>python -m twine upload dist/*<br></code></pre></td></tr></table></figure>
+
+<p>凭据放 <code>~/.pypirc</code> 的 <code>[testpypi]</code> &#x2F; <code>[pypi]</code> 段，<code>username = __token__</code>，<code>password</code> 填 API token。</p>
+<blockquote>
+<p>⚠️ PyPI 上的版本号<strong>发布后不可撤销</strong>（只能 yank，不能覆盖）。先在 TestPyPI 演练，检查 <code>README</code> 渲染和文件清单。</p>
+</blockquote>
+<figure class="highlight toml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs toml"><span class="hljs-section">[project.scripts]</span><br><span class="hljs-attr">myapp</span> = <span class="hljs-string">&quot;myapp.cli:main&quot;</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">from</span> importlib.resources <span class="hljs-keyword">import</span> files<br><br>schema = (files(<span class="hljs-string">&quot;myapp.data&quot;</span>) / <span class="hljs-string">&quot;schema.json&quot;</span>).read_text(encoding=<span class="hljs-string">&quot;utf-8&quot;</span>)<br><br><span class="hljs-comment"># __init__.py：公开 API 边界</span><br><span class="hljs-keyword">from</span> .core <span class="hljs-keyword">import</span> Client, Config<br>__all__ = [<span class="hljs-string">&quot;Client&quot;</span>, <span class="hljs-string">&quot;Config&quot;</span>]<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>main()</code> 的返回值会作为进程退出码，<strong>返回 <code>None</code> 等价于 0</strong>，别靠异常栈当退出码。</p>
+<p>⚠️ 用 <code>__file__</code> 拼路径读数据文件在<strong>打包成 zipapp &#x2F; 单文件可执行后必然失效</strong>，<code>importlib.resources</code>（3.9+）才可靠。</p>
+<p>⚠️ <code>__all__</code> 只影响 <code>from myapp import *</code>，<strong>不阻止别人导入内部模块</strong>。真正的边界靠文档与 <code>_internal/</code> 命名约定。</p>
+</blockquote>
+<h2 id="六、单文件可执行与-Docker"><a href="#六、单文件可执行与-Docker" class="headerlink" title="六、单文件可执行与 Docker"></a>六、单文件可执行与 Docker</h2><table>
+<thead>
+<tr>
+<th>方案</th>
+<th>产物</th>
+<th>启动速度</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>PyInstaller</strong></td>
+<td>单文件 &#x2F; 目录</td>
+<td>慢（自解压）</td>
+<td>分发给非技术用户</td>
+</tr>
+<tr>
+<td><strong>Nuitka</strong></td>
+<td>编译为 C 的二进制</td>
+<td>快</td>
+<td>性能 + 保护源码</td>
+</tr>
+<tr>
+<td><strong>shiv</strong> &#x2F; <strong>pex</strong></td>
+<td>zipapp &#x2F; pex 单文件</td>
+<td>中</td>
+<td>有 Python 环境的内网机器</td>
+</tr>
+<tr>
+<td><strong>Docker</strong></td>
+<td>镜像</td>
+<td>中</td>
+<td>服务端首选</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ PyInstaller 单文件模式每次启动都要解压到临时目录，<strong>冷启动可能慢几秒</strong>，且杀软常误报。别指望它是「轻量分发」。</p>
+</blockquote>
+<figure class="highlight dockerfile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs dockerfile"><span class="hljs-keyword">FROM</span> python:<span class="hljs-number">3.13</span>-slim AS builder<br><span class="hljs-keyword">COPY</span><span class="language-bash"> --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv</span><br><span class="hljs-keyword">WORKDIR</span><span class="language-bash"> /app</span><br><span class="hljs-keyword">COPY</span><span class="language-bash"> pyproject.toml uv.lock ./</span><br><span class="hljs-keyword">RUN</span><span class="language-bash"> uv <span class="hljs-built_in">sync</span> --frozen --no-dev</span><br><br><span class="hljs-keyword">FROM</span> python:<span class="hljs-number">3.13</span>-slim<br><span class="hljs-keyword">WORKDIR</span><span class="language-bash"> /app</span><br><span class="hljs-keyword">COPY</span><span class="language-bash"> --from=builder /app/.venv /app/.venv</span><br><span class="hljs-keyword">COPY</span><span class="language-bash"> src ./src</span><br><span class="hljs-keyword">ENV</span> PATH=<span class="hljs-string">&quot;/app/.venv/bin:$PATH&quot;</span><br><span class="hljs-keyword">CMD</span><span class="language-bash"> [<span class="hljs-string">&quot;python&quot;</span>, <span class="hljs-string">&quot;-m&quot;</span>, <span class="hljs-string">&quot;myapp&quot;</span>]</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>做法</th>
+<th>效果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>多阶段构建</td>
+<td>编译工具链留在 builder 阶段</td>
+</tr>
+<tr>
+<td><code>pip install --no-cache-dir</code></td>
+<td>不留 pip 缓存</td>
+</tr>
+<tr>
+<td><code>uv sync --frozen</code></td>
+<td>按锁文件精确安装</td>
+</tr>
+<tr>
+<td><code>slim</code> &#x2F; <code>alpine</code></td>
+<td>更小，但 alpine 的 musl 会踩 C 扩展坑</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>不要把 gcc、build-essential 留在最终镜像里</strong>。多阶段构建的意义就是「装依赖需要编译器，运行不需要」。</p>
+<p>⚠️ alpine 用 musl libc，很多预编译 wheel（<code>numpy</code>、<code>psycopg2</code>）没有对应产物，会退化成源码编译并失败。除非确定依赖链干净，否则用 <code>slim</code>。</p>
+</blockquote>
+<h2 id="七、质量工具链与-CI"><a href="#七、质量工具链与-CI" class="headerlink" title="七、质量工具链与 CI"></a>七、质量工具链与 CI</h2><table>
+<thead>
+<tr>
+<th>工具</th>
+<th>职责</th>
+<th>关系</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>ruff</strong></td>
+<td>lint + format + import 排序</td>
+<td>已覆盖 flake8 &#x2F; isort &#x2F; 大部分 black 场景</td>
+</tr>
+<tr>
+<td><strong>black</strong></td>
+<td>格式化</td>
+<td>可与 ruff 二选一</td>
+</tr>
+<tr>
+<td><strong>isort</strong></td>
+<td>import 排序</td>
+<td>ruff 的 <code>I</code> 规则已替代</td>
+</tr>
+<tr>
+<td><strong>mypy</strong> &#x2F; <strong>pyright</strong></td>
+<td>类型检查</td>
+<td>严格度可调，pyright 更快</td>
+</tr>
+</tbody></table>
+<figure class="highlight toml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs toml"><span class="hljs-section">[tool.ruff]</span><br><span class="hljs-attr">line-length</span> = <span class="hljs-number">100</span><br><span class="hljs-attr">target-version</span> = <span class="hljs-string">&quot;py310&quot;</span><br><br><span class="hljs-section">[tool.ruff.lint]</span><br><span class="hljs-attr">select</span> = [<span class="hljs-string">&quot;E&quot;</span>, <span class="hljs-string">&quot;F&quot;</span>, <span class="hljs-string">&quot;I&quot;</span>, <span class="hljs-string">&quot;UP&quot;</span>, <span class="hljs-string">&quot;B&quot;</span>, <span class="hljs-string">&quot;SIM&quot;</span>]<br><br><span class="hljs-section">[tool.mypy]</span><br><span class="hljs-attr">python_version</span> = <span class="hljs-string">&quot;3.10&quot;</span><br><span class="hljs-attr">strict</span> = <span class="hljs-literal">true</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-comment"># .pre-commit-config.yaml</span><br><span class="hljs-attr">repos:</span><br>  <span class="hljs-bullet">-</span> <span class="hljs-attr">repo:</span> <span class="hljs-string">https://github.com/astral-sh/ruff-pre-commit</span><br>    <span class="hljs-attr">rev:</span> <span class="hljs-string">v0.6.9</span><br>    <span class="hljs-attr">hooks:</span><br>      <span class="hljs-bullet">-</span> <span class="hljs-attr">id:</span> <span class="hljs-string">ruff</span><br>        <span class="hljs-attr">args:</span> [<span class="hljs-string">--fix</span>]<br>      <span class="hljs-bullet">-</span> <span class="hljs-attr">id:</span> <span class="hljs-string">ruff-format</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>ruff 的 format 与 black 不要同时跑</strong>，格式规则有细微差异，会来回改。选一个。</p>
+<p>⚠️ pre-commit 默认只在<strong>暂存文件</strong>上跑，hook 环境的依赖是独立的。<code>mypy</code> 必须把被检查模块的依赖写进 <code>additional_dependencies</code>，否则报找不到实现。</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>CI 阶段</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>lint</td>
+<td><code>ruff check</code> + <code>ruff format --check</code></td>
+</tr>
+<tr>
+<td>type</td>
+<td><code>mypy</code> &#x2F; <code>pyright</code></td>
+</tr>
+<tr>
+<td>test</td>
+<td><code>pytest -n auto --cov</code></td>
+</tr>
+<tr>
+<td>build</td>
+<td><code>python -m build</code>，检查产物内容</td>
+</tr>
+<tr>
+<td>publish</td>
+<td>tag 触发，<code>twine upload</code></td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash">tox run -e py310,py311,py312   <span class="hljs-comment"># 多 Python 版本</span><br>nox -s tests-3.12              <span class="hljs-comment"># 多环境组合</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>pytest</code> 在 CI 里必须<strong>从已安装的包测试</strong>（src 布局 + <code>pip install -e .</code>），否则测的是工作目录源码，sdist 漏文件 CI 也发现不了。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> <code>dependencies</code> 里写 <code>==</code> 精确版本，把冲突转嫁给使用者</li>
+<li><input disabled="" type="checkbox"> 库的依赖写 <code>&gt;=x</code> 无上界，被上游破坏性更新打挂</li>
+<li><input disabled="" type="checkbox"> 生产环境装未锁定的依赖，解析结果每天都可能变</li>
+<li><input disabled="" type="checkbox"> 锁文件没进版本控制，CI 无法复现</li>
+<li><input disabled="" type="checkbox"> <code>uv sync</code> 不加 <code>--frozen</code>，CI 里悄悄改了依赖</li>
+<li><input disabled="" type="checkbox"> 保留 <code>setup.py</code> 导致部分工具走 legacy 流程</li>
+<li><input disabled="" type="checkbox"> 用扁平布局，本地测试通过但装完 <code>ImportError</code></li>
+<li><input disabled="" type="checkbox"> <code>setuptools</code> 没配 <code>packages.find</code>，子包没打进 wheel</li>
+<li><input disabled="" type="checkbox"> sdist 漏文件（<code>MANIFEST.in</code> &#x2F; <code>include</code> 没配全）</li>
+<li><input disabled="" type="checkbox"> 只在源码目录验证，从不从 sdist 装一遍</li>
+<li><input disabled="" type="checkbox"> 用 <code>hatch-vcs</code> 但没生成版本文件，从 sdist 构建时找不到版本</li>
+<li><input disabled="" type="checkbox"> 用 <code>__file__</code> 读包内数据文件，打包成 zipapp 后失效</li>
+<li><input disabled="" type="checkbox"> <code>license = &#123; text = &quot;MIT&quot; &#125;</code> 旧写法与新标准混用</li>
+<li><input disabled="" type="checkbox"> PyPI 版本发布后想覆盖，只能 yank</li>
+<li><input disabled="" type="checkbox"> 从不在 TestPyPI 演练，直接传正式仓库</li>
+<li><input disabled="" type="checkbox"> <code>ruff format</code> 和 <code>black</code> 同时跑，来回改格式</li>
+<li><input disabled="" type="checkbox"> pre-commit 的 mypy 没写 <code>additional_dependencies</code>，误报找不到实现</li>
+<li><input disabled="" type="checkbox"> Docker 最终镜像里留着 gcc &#x2F; build-essential</li>
+<li><input disabled="" type="checkbox"> alpine 基础镜像踩 musl 缺 wheel，退化成源码编译</li>
+<li><input disabled="" type="checkbox"> PyInstaller 单文件模式冷启动慢，被当成轻量分发</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://packaging.python.org/en/latest/guides/writing-pyproject-toml/">Python 打包用户指南 · pyproject.toml</a> · <a target="_blank" rel="noopener" href="https://peps.python.org/pep-0621/">PEP 621 · 项目元数据</a> · <a target="_blank" rel="noopener" href="https://peps.python.org/pep-0517/">PEP 517 · 构建后端接口</a> · <a target="_blank" rel="noopener" href="https://peps.python.org/pep-0518/">PEP 518 · build-system</a> · <a target="_blank" rel="noopener" href="https://packaging.python.org/en/latest/tutorials/packaging-projects/">PyPA · 打包 Python 项目</a> · <a target="_blank" rel="noopener" href="https://hatch.pypa.io/latest/">hatchling 文档</a> · <a target="_blank" rel="noopener" href="https://docs.astral.sh/uv/">uv 官方文档</a> · <a target="_blank" rel="noopener" href="https://docs.astral.sh/ruff/">Ruff 官方文档</a> · <a target="_blank" rel="noopener" href="https://docs.python.org/3/library/importlib.resources.html">importlib.resources</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/python/" class="category-chain-item">python</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/python/" class="print-no-link">#python</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 084 · Python（七）：打包、发布与项目工程化</div>
+      <div>https://ethan-iopasd.github.io/2026/10/08/每日技术博客084-Python打包发布与工程化/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月8日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2068-Python%E8%A3%85%E9%A5%B0%E5%99%A8%E4%B8%8E%E5%85%83%E7%BC%96%E7%A8%8B/" title="每日技术博客 068 · Python（六）：装饰器、元编程与描述符">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 068 · Python（六）：装饰器、元编程与描述符</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

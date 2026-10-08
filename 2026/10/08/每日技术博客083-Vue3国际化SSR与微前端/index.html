@@ -1,0 +1,1172 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 083 篇 Vue 3 系列收官：i18n 的 Composition API 用法与插值顺序坑、SSR 的 hydration mismatch 成因、微前端五种方案的取舍边界。  📚 Vue 3 系列目录   章节 主题 状态    一 模板语法、响应式与组合式 API 已发布   二 组件、Props &#x2F; Emits &#x2F;">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 083 · Vue 3（九）：国际化、SSR 与微前端">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2083-Vue3%E5%9B%BD%E9%99%85%E5%8C%96SSR%E4%B8%8E%E5%BE%AE%E5%89%8D%E7%AB%AF/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 083 篇 Vue 3 系列收官：i18n 的 Composition API 用法与插值顺序坑、SSR 的 hydration mismatch 成因、微前端五种方案的取舍边界。  📚 Vue 3 系列目录   章节 主题 状态    一 模板语法、响应式与组合式 API 已发布   二 组件、Props &#x2F; Emits &#x2F;">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-08T05:50:00.000Z">
+<meta property="article:modified_time" content="2026-10-08T03:04:44.493Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="vue3">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 083 · Vue 3（九）：国际化、SSR 与微前端 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 083 · Vue 3（九）：国际化、SSR 与微前端"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-08 13:50" pubdate>
+          2026年10月8日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.8k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          24 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 083 · Vue 3（九）：国际化、SSR 与微前端</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-08 · 第 083 篇</p>
+<p>Vue 3 系列收官：i18n 的 Composition API 用法与插值顺序坑、SSR 的 hydration mismatch 成因、微前端五种方案的取舍边界。</p>
+</blockquote>
+<h2 id="📚-Vue-3-系列目录"><a href="#📚-Vue-3-系列目录" class="headerlink" title="📚 Vue 3 系列目录"></a>📚 Vue 3 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>模板语法、响应式与组合式 API</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>组件、Props &#x2F; Emits &#x2F; 插槽与双向绑定</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>Vue Router 路由</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td>Pinia 状态管理</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>五</td>
+<td>性能优化与生产构建</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>六</td>
+<td>组合式函数与逻辑复用</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>七</td>
+<td>测试与调试</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>八</td>
+<td>组件设计模式与渲染机制</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>九</td>
+<td>国际化、SSR 与微前端</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p>国际化是<strong>消息 key 的组织问题</strong>，SSR 是<strong>两套运行时必须渲染出同一棵树</strong>，微前端是<strong>用运行时开销换团队自治</strong>——三件事都不难写，难的是知道代价在哪。</p>
+<h2 id="一、vue-i18n-的-Composition-API"><a href="#一、vue-i18n-的-Composition-API" class="headerlink" title="一、vue-i18n 的 Composition API"></a>一、vue-i18n 的 Composition API</h2><p><code>vue-i18n</code> v9 起支持 Vue 3，当前主版本 <strong>v11</strong>（v8 已 EOL）。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-comment">// i18n/index.js</span><br><span class="hljs-keyword">import</span> &#123; createI18n &#125; <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;vue-i18n&#x27;</span><br><br><span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> i18n = <span class="hljs-title function_">createI18n</span>(&#123;<br>  <span class="hljs-attr">legacy</span>: <span class="hljs-literal">false</span>,          <span class="hljs-comment">// 必须关掉 Legacy API，才能用 useI18n</span><br>  <span class="hljs-attr">globalInjection</span>: <span class="hljs-literal">true</span>,  <span class="hljs-comment">// 模板里可直接 $t</span><br>  <span class="hljs-attr">locale</span>: <span class="hljs-string">&#x27;zh&#x27;</span>,<br>  <span class="hljs-attr">fallbackLocale</span>: <span class="hljs-string">&#x27;en&#x27;</span>,<br>  <span class="hljs-attr">messages</span>: &#123; en, zh &#125;,<br>&#125;)<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-keyword">import</span> &#123; useI18n &#125; <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;vue-i18n&#x27;</span><br><span class="hljs-keyword">const</span> &#123; t, locale, setLocaleMessage &#125; = <span class="hljs-title function_">useI18n</span>(&#123; <span class="hljs-attr">useScope</span>: <span class="hljs-string">&#x27;global&#x27;</span> &#125;)<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>作用</th>
+<th>常见误用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>legacy: false</code></td>
+<td>启用 Composition API</td>
+<td>忘写 → <code>useI18n</code> 抛 <code>Not available in legacy mode</code></td>
+</tr>
+<tr>
+<td><code>globalInjection</code></td>
+<td>模板里能用 <code>$t</code></td>
+<td>只在 <code>legacy: false</code> 下有效</td>
+</tr>
+<tr>
+<td><code>useScope: &#39;global&#39;</code></td>
+<td>读写全局语言包</td>
+<td>默认 <code>local</code> 改了不生效</td>
+</tr>
+<tr>
+<td><code>fallbackLocale</code></td>
+<td>缺 key 时兜底</td>
+<td>不设 → 页面直接显示 key</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 默认 <code>useScope</code> 是 <code>local</code>，<code>locale.value = &#39;en&#39;</code> 只改组件级作用域。要切全局必须显式传 <code>useScope: &#39;global&#39;</code>。</p>
+</blockquote>
+<h2 id="二、消息格式：插值、复数与顺序问题"><a href="#二、消息格式：插值、复数与顺序问题" class="headerlink" title="二、消息格式：插值、复数与顺序问题"></a>二、消息格式：插值、复数与<strong>顺序问题</strong></h2><figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs json"><span class="hljs-punctuation">&#123;</span><br>  <span class="hljs-attr">&quot;greeting&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;你好，&#123;name&#125;，你有 &#123;count&#125; 条新消息&quot;</span><span class="hljs-punctuation">,</span><br>  <span class="hljs-attr">&quot;apple&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;no apples | one apple | &#123;count&#125; apples&quot;</span><br><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-title function_">t</span>(<span class="hljs-string">&#x27;greeting&#x27;</span>, &#123; <span class="hljs-attr">name</span>: user.<span class="hljs-property">name</span>, <span class="hljs-attr">count</span>: list.<span class="hljs-property">length</span> &#125;)<br><span class="hljs-title function_">t</span>(<span class="hljs-string">&#x27;apple&#x27;</span>, <span class="hljs-number">0</span>)    <span class="hljs-comment">// no apples</span><br><span class="hljs-title function_">t</span>(<span class="hljs-string">&#x27;apple&#x27;</span>, <span class="hljs-number">1</span>)    <span class="hljs-comment">// one apple</span><br><span class="hljs-title function_">t</span>(<span class="hljs-string">&#x27;apple&#x27;</span>, <span class="hljs-number">10</span>)   <span class="hljs-comment">// 10 apples</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 复数分支数由 <code>Intl.PluralRules</code> 按语言决定：英文 2 分支、阿拉伯语 6 分支、中文 1 分支。写死三分支换语言就崩。</p>
+</blockquote>
+<p><strong>插值顺序是 i18n 最经典的坑：</strong></p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-comment">// ❌ 中文「主语+动词+宾语」，日文宾语在前，拼接必翻车</span><br><span class="hljs-title function_">t</span>(<span class="hljs-string">&#x27;you&#x27;</span>) + verb + <span class="hljs-title function_">t</span>(<span class="hljs-string">&#x27;object&#x27;</span>)<br><br><span class="hljs-comment">// ✅ 把语序交给语言包</span><br><span class="hljs-comment">// zh: &quot;&#123;subject&#125;把&#123;object&#125;放在了&#123;place&#125;&quot;</span><br><span class="hljs-comment">// ja: &quot;&#123;subject&#125;は&#123;object&#125;を&#123;place&#125;に置いた&quot;</span><br><span class="hljs-title function_">t</span>(<span class="hljs-string">&#x27;put&#x27;</span>, &#123; subject, object, place &#125;)<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 任何 <code>A + B</code> 的字符串拼接（含模板字符串、<code>.concat()</code>）都是给未来埋雷。占位符顺序因语言而异，<strong>只能靠命名插值</strong>。</p>
+</blockquote>
+<p>数字与日期走原生 <code>Intl</code>：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-keyword">const</span> &#123; n, d &#125; = <span class="hljs-title function_">useI18n</span>(&#123; <span class="hljs-attr">useScope</span>: <span class="hljs-string">&#x27;global&#x27;</span> &#125;)<br><br><span class="hljs-title function_">n</span>(<span class="hljs-number">1234567.89</span>)                              <span class="hljs-comment">// 按 locale 加千分位</span><br><span class="hljs-title function_">n</span>(<span class="hljs-number">0.5</span>, <span class="hljs-string">&#x27;percent&#x27;</span>)                          <span class="hljs-comment">// 50%</span><br><span class="hljs-title function_">n</span>(<span class="hljs-number">99.9</span>, <span class="hljs-string">&#x27;currency&#x27;</span>, &#123; <span class="hljs-attr">currency</span>: <span class="hljs-string">&#x27;CNY&#x27;</span> &#125;)   <span class="hljs-comment">// ¥99.90</span><br><span class="hljs-title function_">d</span>(<span class="hljs-keyword">new</span> <span class="hljs-title class_">Date</span>(), <span class="hljs-string">&#x27;short&#x27;</span>)                     <span class="hljs-comment">// 短日期格式</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 不要自己 <code>toFixed(2)</code> 拼货币符号：符号位置、千分位、小数点在各语言下都不同。</p>
+</blockquote>
+<h2 id="三、语言包的组织、懒加载与兜底"><a href="#三、语言包的组织、懒加载与兜底" class="headerlink" title="三、语言包的组织、懒加载与兜底"></a>三、语言包的组织、懒加载与兜底</h2><figure class="highlight pgsql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs pgsql">locales/zh/&#123;common,<span class="hljs-keyword">user</span>,<span class="hljs-keyword">order</span>&#125;.json<br>locales/en/&#123;common,<span class="hljs-keyword">user</span>,<span class="hljs-keyword">order</span>&#125;.json<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>key 命名</th>
+<th>示例</th>
+<th>评价</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>语义 key</td>
+<td><code>user.login.submit</code></td>
+<td>✅ key 稳定，改文案不动代码</td>
+</tr>
+<tr>
+<td>原文当 key</td>
+<td><code>&quot;Submit&quot;</code></td>
+<td>⚠️ 改文案即改 key，同词不同语境无法区分</td>
+</tr>
+</tbody></table>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-keyword">async</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">loadLocale</span>(<span class="hljs-params">locale</span>) &#123;<br>  <span class="hljs-keyword">const</span> modules = <span class="hljs-keyword">import</span>.<span class="hljs-property">meta</span>.<span class="hljs-title function_">glob</span>(<span class="hljs-string">&#x27;./locales/*/*.json&#x27;</span>)<br>  <span class="hljs-keyword">const</span> msgs = &#123;&#125;<br>  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> path <span class="hljs-keyword">in</span> modules) &#123;<br>    <span class="hljs-keyword">if</span> (!path.<span class="hljs-title function_">includes</span>(<span class="hljs-string">`/<span class="hljs-subst">$&#123;locale&#125;</span>/`</span>)) <span class="hljs-keyword">continue</span><br>    <span class="hljs-keyword">const</span> ns = path.<span class="hljs-title function_">split</span>(<span class="hljs-string">&#x27;/&#x27;</span>).<span class="hljs-title function_">pop</span>().<span class="hljs-title function_">replace</span>(<span class="hljs-string">&#x27;.json&#x27;</span>, <span class="hljs-string">&#x27;&#x27;</span>)<br>    msgs[ns] = (<span class="hljs-keyword">await</span> modules[path]()).<span class="hljs-property">default</span><br>  &#125;<br>  i18n.<span class="hljs-property">global</span>.<span class="hljs-title function_">setLocaleMessage</span>(locale, msgs)<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>import.meta.glob</code> 是 Vite 编译期特性，<strong>参数必须是字面量字符串</strong>。写成 <code>./locales/$&#123;locale&#125;/*.json</code> 直接编译报错。</p>
+</blockquote>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-keyword">const</span> i18n = <span class="hljs-title function_">createI18n</span>(&#123;<br>  <span class="hljs-attr">legacy</span>: <span class="hljs-literal">false</span>,<br>  <span class="hljs-attr">fallbackLocale</span>: <span class="hljs-string">&#x27;en&#x27;</span>,<br>  <span class="hljs-attr">missingWarn</span>: <span class="hljs-keyword">import</span>.<span class="hljs-property">meta</span>.<span class="hljs-property">env</span>.<span class="hljs-property">DEV</span>,   <span class="hljs-comment">// 生产关掉，否则日志被刷爆</span><br>  <span class="hljs-attr">fallbackWarn</span>: <span class="hljs-keyword">import</span>.<span class="hljs-property">meta</span>.<span class="hljs-property">env</span>.<span class="hljs-property">DEV</span>,<br>  <span class="hljs-attr">missing</span>: <span class="hljs-function">(<span class="hljs-params">locale, key</span>) =&gt;</span> &#123; <span class="hljs-title function_">reportMissing</span>(locale, key); <span class="hljs-keyword">return</span> key &#125;,<br>&#125;)<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>配置</th>
+<th>生产建议</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>missingWarn</code> &#x2F; <code>fallbackWarn</code></td>
+<td><code>false</code></td>
+<td>缺 key 警告会刷爆日志</td>
+</tr>
+<tr>
+<td><code>fallbackLocale</code></td>
+<td>必设</td>
+<td>否则缺 key 显示原始 key</td>
+</tr>
+<tr>
+<td><code>missing</code> 回调</td>
+<td>上报监控</td>
+<td>把缺 key 变成可观测指标</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 别用 <code>fallbackLocale: false</code> 图省事，页面会出现 <code>user.login.submit</code> 这种字符串，比显示英文更难看。</p>
+</blockquote>
+<h3 id="SEO-与-hreflang"><a href="#SEO-与-hreflang" class="headerlink" title="SEO 与 hreflang"></a>SEO 与 <code>hreflang</code></h3><figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs html"><span class="hljs-tag">&lt;<span class="hljs-name">link</span> <span class="hljs-attr">rel</span>=<span class="hljs-string">&quot;alternate&quot;</span> <span class="hljs-attr">hreflang</span>=<span class="hljs-string">&quot;zh-CN&quot;</span> <span class="hljs-attr">href</span>=<span class="hljs-string">&quot;https://example.com/zh/page&quot;</span> /&gt;</span><br><span class="hljs-tag">&lt;<span class="hljs-name">link</span> <span class="hljs-attr">rel</span>=<span class="hljs-string">&quot;alternate&quot;</span> <span class="hljs-attr">hreflang</span>=<span class="hljs-string">&quot;en&quot;</span> <span class="hljs-attr">href</span>=<span class="hljs-string">&quot;https://example.com/en/page&quot;</span> /&gt;</span><br><span class="hljs-tag">&lt;<span class="hljs-name">link</span> <span class="hljs-attr">rel</span>=<span class="hljs-string">&quot;alternate&quot;</span> <span class="hljs-attr">hreflang</span>=<span class="hljs-string">&quot;x-default&quot;</span> <span class="hljs-attr">href</span>=<span class="hljs-string">&quot;https://example.com/page&quot;</span> /&gt;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>hreflang</code> 必须用<strong>绝对 URL</strong>，且要互相引用（A→B、B→A）。单边引用搜索引擎不认，SPA 动态注入 head 爬虫也未必执行。</p>
+</blockquote>
+<h2 id="四、SSR：两套运行时，一棵树"><a href="#四、SSR：两套运行时，一棵树" class="headerlink" title="四、SSR：两套运行时，一棵树"></a>四、SSR：两套运行时，一棵树</h2><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-comment">// 服务端</span><br><span class="hljs-keyword">import</span> &#123; createSSRApp &#125; <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;vue&#x27;</span><br><span class="hljs-keyword">import</span> &#123; renderToString &#125; <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;vue/server-renderer&#x27;</span><br><br><span class="hljs-keyword">const</span> app = <span class="hljs-title function_">createSSRApp</span>(<span class="hljs-title function_">createApp</span>())<br><span class="hljs-keyword">const</span> html = <span class="hljs-keyword">await</span> <span class="hljs-title function_">renderToString</span>(app)<br><br><span class="hljs-comment">// 客户端 entry —— 也必须是 createSSRApp，不是 createApp</span><br><span class="hljs-title function_">createSSRApp</span>(<span class="hljs-title function_">createApp</span>()).<span class="hljs-title function_">mount</span>(<span class="hljs-string">&#x27;#app&#x27;</span>)<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>API</th>
+<th>环境</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>createSSRApp</code></td>
+<td>两端</td>
+<td>SSR 实例，客户端 hydration 也用它</td>
+</tr>
+<tr>
+<td><code>renderToString</code></td>
+<td>服务端</td>
+<td>渲染为 HTML 字符串</td>
+</tr>
+<tr>
+<td><code>renderToWebStream</code></td>
+<td>服务端</td>
+<td>流式输出</td>
+</tr>
+<tr>
+<td><code>useSSRContext</code></td>
+<td>服务端</td>
+<td>组件内取 SSR context</td>
+</tr>
+<tr>
+<td><code>onServerPrefetch</code></td>
+<td>服务端</td>
+<td>渲染前预取数据</td>
+</tr>
+</tbody></table>
+<h3 id="数据预取与状态序列化"><a href="#数据预取与状态序列化" class="headerlink" title="数据预取与状态序列化"></a>数据预取与状态序列化</h3><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-title function_">onServerPrefetch</span>(<span class="hljs-title function_">async</span> () =&gt; &#123; <span class="hljs-keyword">await</span> store.<span class="hljs-title function_">fetchUser</span>() &#125;)<br><br><span class="hljs-keyword">const</span> ctx = &#123;&#125;<br><span class="hljs-keyword">const</span> html = <span class="hljs-keyword">await</span> <span class="hljs-title function_">renderToString</span>(app, ctx)<br><span class="hljs-keyword">const</span> state = <span class="hljs-title class_">JSON</span>.<span class="hljs-title function_">stringify</span>(ctx.<span class="hljs-property">state</span>).<span class="hljs-title function_">replace</span>(<span class="hljs-regexp">/&lt;/g</span>, <span class="hljs-string">&#x27;\\u003C&#x27;</span>)<br><br><span class="hljs-keyword">const</span> page = <span class="hljs-string">`&lt;div id=&quot;app&quot;&gt;<span class="hljs-subst">$&#123;html&#125;</span>&lt;/div&gt;</span><br><span class="hljs-string">&lt;script&gt;window.__STATE__ = <span class="hljs-subst">$&#123;state&#125;</span>&lt;/script&gt;`</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 序列化必须把 <code>&lt;</code> 转义成 <code>\u003C</code>，否则数据里出现 <code>&lt;/script&gt;</code> 会提前闭合标签，直接 XSS。</p>
+</blockquote>
+<h3 id="SSR-下不能用的-API"><a href="#SSR-下不能用的-API" class="headerlink" title="SSR 下不能用的 API"></a>SSR 下不能用的 API</h3><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-comment">// ❌ 服务端直接崩</span><br><span class="hljs-variable language_">window</span>.<span class="hljs-property">innerWidth</span>; <span class="hljs-variable language_">document</span>.<span class="hljs-title function_">querySelector</span>(<span class="hljs-string">&#x27;#app&#x27;</span>); <span class="hljs-variable language_">localStorage</span>.<span class="hljs-title function_">getItem</span>(<span class="hljs-string">&#x27;token&#x27;</span>)<br><br><span class="hljs-comment">// ✅ 用 onMounted / import.meta.env.SSR 隔离</span><br><span class="hljs-title function_">onMounted</span>(<span class="hljs-function">() =&gt;</span> <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-variable language_">window</span>.<span class="hljs-property">innerWidth</span>))<br><span class="hljs-keyword">if</span> (!<span class="hljs-keyword">import</span>.<span class="hljs-property">meta</span>.<span class="hljs-property">env</span>.<span class="hljs-property">SSR</span>) <span class="hljs-variable language_">localStorage</span>.<span class="hljs-title function_">setItem</span>(<span class="hljs-string">&#x27;token&#x27;</span>, t)<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>客户端 API</th>
+<th>替代方案</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>window</code> &#x2F; <code>document</code></td>
+<td><code>onMounted</code> 包裹，或 <code>&lt;ClientOnly&gt;</code></td>
+</tr>
+<tr>
+<td><code>localStorage</code> &#x2F; <code>sessionStorage</code></td>
+<td>Cookie，或挂载后再读</td>
+</tr>
+<tr>
+<td><code>Date.now()</code> &#x2F; <code>Math.random()</code></td>
+<td>服务端算好塞进 state</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>SSR 收益是首屏与 SEO，成本是服务端 CPU</strong>。每个请求跑一次 Vue 渲染，高 QPS 下 Node 成瓶颈。<strong>绝不能把跨请求状态放模块顶层变量</strong>，会串号。</p>
+</blockquote>
+<h3 id="Nuxt-3-vs-手写-SSR"><a href="#Nuxt-3-vs-手写-SSR" class="headerlink" title="Nuxt 3 vs 手写 SSR"></a>Nuxt 3 vs 手写 SSR</h3><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>手写 SSR</th>
+<th>Nuxt 3</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>起步成本</td>
+<td>高（自己搭 Vite + Express）</td>
+<td>低（约定式）</td>
+</tr>
+<tr>
+<td>控制粒度</td>
+<td>完全可控</td>
+<td>受框架约定约束</td>
+</tr>
+<tr>
+<td>数据预取</td>
+<td>自己写</td>
+<td><code>useAsyncData</code> &#x2F; <code>useFetch</code> 内置</td>
+</tr>
+<tr>
+<td>部署形态</td>
+<td>自己选</td>
+<td>SSR &#x2F; SSG &#x2F; ISR &#x2F; SPA 一键切</td>
+</tr>
+<tr>
+<td>适合</td>
+<td>已有 Node 服务、深度定制</td>
+<td>新项目、内容站</td>
+</tr>
+</tbody></table>
+<p><strong>SSG</strong> 是构建期生成静态 HTML，<strong>ISR</strong> 是静态页 + 后台按需再生成。二者都无运行时服务端渲染成本，适合内容不频繁变的站点。</p>
+<h2 id="五、hydration-mismatch-的成因与排查"><a href="#五、hydration-mismatch-的成因与排查" class="headerlink" title="五、hydration mismatch 的成因与排查"></a>五、hydration mismatch 的成因与排查</h2><p>hydration 是客户端<strong>复用</strong>服务端 HTML 并挂载事件的过程。两边渲染结果不一致时，Vue 会丢弃服务端 DOM 重渲染并报 <code>Hydration node mismatch</code>。</p>
+<table>
+<thead>
+<tr>
+<th>成因</th>
+<th>表现</th>
+<th>修法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Math.random()</code> &#x2F; <code>Date.now()</code></td>
+<td>文本节点对不上</td>
+<td>服务端算好，随 state 下发</td>
+</tr>
+<tr>
+<td>时区 &#x2F; <code>Intl</code> 数据差异</td>
+<td>日期文本不同</td>
+<td>固定 <code>timeZone</code>，两端同一 ICU</td>
+</tr>
+<tr>
+<td>浏览器 API 分支</td>
+<td>服务端走了另一条路</td>
+<td><code>import.meta.env.SSR</code> 或 <code>onMounted</code></td>
+</tr>
+<tr>
+<td>无效 HTML 嵌套</td>
+<td><code>&lt;p&gt;</code> 里塞 <code>&lt;div&gt;</code></td>
+<td>修模板</td>
+</tr>
+<tr>
+<td><code>v-if</code> 依赖客户端状态</td>
+<td>树结构不同</td>
+<td><code>&lt;ClientOnly&gt;</code> 包起来</td>
+</tr>
+<tr>
+<td>第三方脚本改 DOM</td>
+<td>水合时 DOM 已变</td>
+<td>隔离到 <code>onMounted</code></td>
+</tr>
+</tbody></table>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs vue">&lt;ClientOnly&gt;<br>  &lt;ClientTime :time=&quot;Date.now()&quot; /&gt;<br>  &lt;template #fallback&gt;&lt;span&gt;加载中…&lt;/span&gt;&lt;/template&gt;<br>&lt;/ClientOnly&gt;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>&lt;ClientOnly&gt;</code> 让该区域<strong>不参与 SSR</strong>，首屏内容缺失、SEO 拿不到。能改成「服务端算好再下发」的优先那么做，别拿它当万能挡箭牌。</p>
+<p>⚠️ 无效 HTML 嵌套最隐蔽：<code>&lt;p&gt;&lt;div&gt;x&lt;/div&gt;&lt;/p&gt;</code> 被浏览器重排成三段，客户端按虚拟 DOM 找节点就错位。<strong>校验服务端 HTML 合法性</strong>比对着代码猜快。</p>
+</blockquote>
+<h2 id="六、微前端：五种方案对比"><a href="#六、微前端：五种方案对比" class="headerlink" title="六、微前端：五种方案对比"></a>六、微前端：五种方案对比</h2><table>
+<thead>
+<tr>
+<th>方案</th>
+<th>隔离级别</th>
+<th>接入成本</th>
+<th>依赖复用</th>
+<th>典型场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>iframe</strong></td>
+<td>最强（进程级）</td>
+<td>极低</td>
+<td>❌ 完全不复用</td>
+<td>第三方页面、强隔离</td>
+</tr>
+<tr>
+<td><strong>Web Components</strong></td>
+<td>Shadow DOM 样式隔离</td>
+<td>中</td>
+<td>⚠️ 弱</td>
+<td>跨团队组件级集成</td>
+</tr>
+<tr>
+<td><strong>Module Federation</strong></td>
+<td>无运行时沙箱</td>
+<td>中高</td>
+<td>✅ 共享依赖</td>
+<td>构建期共享、同技术栈</td>
+</tr>
+<tr>
+<td><strong>qiankun</strong></td>
+<td>JS 沙箱 + 样式隔离</td>
+<td>中</td>
+<td>⚠️ 需配置</td>
+<td>多技术栈子应用</td>
+</tr>
+<tr>
+<td><strong>micro-app</strong></td>
+<td>类 Web Components</td>
+<td>中</td>
+<td>⚠️ 需配置</td>
+<td>同上，接入更轻</td>
+</tr>
+</tbody></table>
+<table>
+<thead>
+<tr>
+<th>样式隔离手段</th>
+<th>隔离范围</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Shadow DOM</td>
+<td>真隔离</td>
+<td>全局样式进不来，需 <code>::part</code> &#x2F; CSS 变量</td>
+</tr>
+<tr>
+<td><code>scoped</code></td>
+<td>组件内</td>
+<td>子应用间不隔离</td>
+</tr>
+<tr>
+<td>命名前缀</td>
+<td>约定级</td>
+<td>靠自觉，容易冲突</td>
+</tr>
+<tr>
+<td>qiankun <code>strictStyleIsolation</code></td>
+<td>影子 DOM 包裹</td>
+<td>UI 库弹层挂 body 会失效</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ qiankun 的 <code>strictStyleIsolation</code> 与 <code>experimentalStyleIsolation</code> 二选一。前者用 Shadow DOM，<strong>很多 UI 库的弹窗挂载到 <code>document.body</code>，被隔离后样式全丢</strong>，这是最常踩的坑。</p>
+</blockquote>
+<p>JS 沙箱通过 Proxy 劫持子应用的 <code>window</code> 读写，卸载时销毁，不污染真实全局。</p>
+<blockquote>
+<p>⚠️ 沙箱拦不住所有场景：<code>document.body.appendChild</code> 的节点、<code>setTimeout</code> 闭包、动态插入的第三方 <code>&lt;script&gt;</code> 都可能泄漏到真实全局。</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>通信方式</th>
+<th>适用</th>
+<th>风险</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Props 下发</td>
+<td>主 → 子，一次性配置</td>
+<td>变化需重挂载</td>
+</tr>
+<tr>
+<td><code>initGlobalState</code></td>
+<td>主 ↔ 子双向</td>
+<td>强耦合，状态难追踪</td>
+</tr>
+<tr>
+<td>事件总线</td>
+<td>松耦合广播</td>
+<td>事件名冲突、难调试</td>
+</tr>
+<tr>
+<td><code>postMessage</code></td>
+<td>iframe 方案</td>
+<td>序列化成本</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 主应用与子应用<strong>同时接管路由</strong>是冲突根源。约定「主应用只管顶层路径，子应用只在激活前缀内接管」，并让子应用 <code>base</code> 指向自己前缀。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ Module Federation 里 <code>singleton: true</code> 但<strong>版本区间不重叠</strong>时，运行时会加载两份 Vue，<code>provide/inject</code> 与响应式直接失效。</p>
+</blockquote>
+<h2 id="七、微前端不是银弹"><a href="#七、微前端不是银弹" class="headerlink" title="七、微前端不是银弹"></a>七、微前端不是银弹</h2><table>
+<thead>
+<tr>
+<th>症状</th>
+<th>更该用的方案</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一个团队、一个仓库</td>
+<td>单体 + 目录分模块</td>
+</tr>
+<tr>
+<td>只想复用几个组件</td>
+<td>发 npm 包（私有 registry）</td>
+</tr>
+<tr>
+<td>只想独立部署</td>
+<td>独立 CI + 反向代理按路径分流</td>
+</tr>
+<tr>
+<td>子应用间频繁共享状态</td>
+<td>说明它们本就是一个应用</td>
+</tr>
+<tr>
+<td>团队技术栈完全统一</td>
+<td>Module Federation，或干脆别拆</td>
+</tr>
+<tr>
+<td>团队独立、发布节奏不同、栈可不同</td>
+<td>微前端才有意义</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 微前端换来的每条好处都对应一份运行时开销：多一次资源加载、多一层沙箱代理、多一份公共依赖、多一套调试路径。<strong>只有「团队边界」真实存在时它才划算。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ 常见反模式：把微前端当性能优化。它<strong>只会更慢</strong>，目标是团队自治与独立发布，不是快。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> <code>createI18n</code> 忘写 <code>legacy: false</code>，<code>useI18n</code> 直接报错</li>
+<li><input disabled="" type="checkbox"> <code>useI18n()</code> 默认 <code>local</code> 作用域，改 <code>locale</code> 不生效</li>
+<li><input disabled="" type="checkbox"> 用字符串拼接组装翻译文案，换语言语序全错</li>
+<li><input disabled="" type="checkbox"> 复数只写中英两分支，忽略其他语言分支数不同</li>
+<li><input disabled="" type="checkbox"> 自己 <code>toFixed(2)</code> 拼货币符号，不用 <code>Intl.NumberFormat</code></li>
+<li><input disabled="" type="checkbox"> <code>import.meta.glob</code> 路径用变量拼接，编译期报错</li>
+<li><input disabled="" type="checkbox"> 生产环境 <code>missingWarn: true</code>，日志被缺 key 警告刷爆</li>
+<li><input disabled="" type="checkbox"> <code>fallbackLocale: false</code>，页面直接显示原始 key</li>
+<li><input disabled="" type="checkbox"> <code>hreflang</code> 用相对路径，或只做单向引用</li>
+<li><input disabled="" type="checkbox"> 客户端用 <code>createApp</code> 而不是 <code>createSSRApp</code>，水合失败</li>
+<li><input disabled="" type="checkbox"> 序列化 state 时未转义 <code>&lt;</code>，数据含 <code>&lt;/script&gt;</code> 触发 XSS</li>
+<li><input disabled="" type="checkbox"> 跨请求状态放模块顶层变量，SSR 下串号</li>
+<li><input disabled="" type="checkbox"> 用 <code>Math.random()</code> &#x2F; <code>Date.now()</code> 渲染，hydration mismatch</li>
+<li><input disabled="" type="checkbox"> 模板写出 <code>&lt;p&gt;&lt;div&gt;&lt;/div&gt;&lt;/p&gt;</code>，DOM 结构错位</li>
+<li><input disabled="" type="checkbox"> <code>&lt;ClientOnly&gt;</code> 包住首屏主要内容，SEO 失去意义</li>
+<li><input disabled="" type="checkbox"> qiankun <code>strictStyleIsolation</code> 开完，UI 库弹窗样式全丢</li>
+<li><input disabled="" type="checkbox"> 子应用 <code>vue</code> 版本区间与主应用不重叠，运行两份 Vue</li>
+<li><input disabled="" type="checkbox"> 主应用与子应用都接管全局路由，互相抢跳转</li>
+<li><input disabled="" type="checkbox"> 把微前端当性能方案，实际每次导航都更慢</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://cn.vuejs.org/api/ssr">Vue 3 · 服务端渲染 API</a> · <a target="_blank" rel="noopener" href="https://cn.vuejs.org/guide/scaling-up/ssr">Vue 3 · SSR 指南</a> · <a target="_blank" rel="noopener" href="https://vue-i18n.intlify.dev/guide/advanced/composition">Vue I18n · Composition API</a> · <a target="_blank" rel="noopener" href="https://vue-i18n.intlify.dev/guide/essentials/syntax">Vue I18n · 消息格式</a> · <a target="_blank" rel="noopener" href="https://vue-i18n.intlify.dev/guide/essentials/pluralization">Vue I18n · 复数</a> · <a target="_blank" rel="noopener" href="https://nuxt.com/docs/guide/concepts/rendering">Nuxt 3 · 渲染模式</a> · <a target="_blank" rel="noopener" href="https://qiankun.umijs.org/zh">qiankun 官方文档</a> · <a target="_blank" rel="noopener" href="https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Intl/NumberFormat">MDN · Intl.NumberFormat</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/vue3/" class="category-chain-item">vue3</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/vue3/" class="print-no-link">#vue3</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 083 · Vue 3（九）：国际化、SSR 与微前端</div>
+      <div>https://ethan-iopasd.github.io/2026/10/08/每日技术博客083-Vue3国际化SSR与微前端/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月8日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2067-Vue3%E7%BB%84%E4%BB%B6%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F%E4%B8%8E%E6%B8%B2%E6%9F%93%E6%9C%BA%E5%88%B6/" title="每日技术博客 067 · Vue 3（八）：组件设计模式与渲染机制">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 067 · Vue 3（八）：组件设计模式与渲染机制</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
