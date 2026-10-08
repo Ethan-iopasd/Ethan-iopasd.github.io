@@ -1,0 +1,1220 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 069 篇 五种网络驱动的选型、默认 bridge 没有 DNS 这个头号坑、EXPOSE 的真实语义，以及 overlay2 分层、volume &#x2F; bind mount &#x2F; tmpfs 的取舍与空间回收。  📚 Docker 系列目录   章节 主题 状态    一 镜像分层与 Dockerfile 已发布   二 Com">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 069 · Docker（四）：网络模式与存储驱动">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2069-Docker%E7%BD%91%E7%BB%9C%E4%B8%8E%E5%AD%98%E5%82%A8%E9%A9%B1%E5%8A%A8/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 069 篇 五种网络驱动的选型、默认 bridge 没有 DNS 这个头号坑、EXPOSE 的真实语义，以及 overlay2 分层、volume &#x2F; bind mount &#x2F; tmpfs 的取舍与空间回收。  📚 Docker 系列目录   章节 主题 状态    一 镜像分层与 Dockerfile 已发布   二 Com">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-08T04:20:00.000Z">
+<meta property="article:modified_time" content="2026-10-08T02:55:16.647Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="docker">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 069 · Docker（四）：网络模式与存储驱动 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 069 · Docker（四）：网络模式与存储驱动"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-08 12:20" pubdate>
+          2026年10月8日 中午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.9k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          25 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 069 · Docker（四）：网络模式与存储驱动</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-08 · 第 069 篇</p>
+<p>五种网络驱动的选型、默认 bridge 没有 DNS 这个头号坑、<code>EXPOSE</code> 的真实语义，以及 overlay2 分层、volume &#x2F; bind mount &#x2F; tmpfs 的取舍与空间回收。</p>
+</blockquote>
+<h2 id="📚-Docker-系列目录"><a href="#📚-Docker-系列目录" class="headerlink" title="📚 Docker 系列目录"></a>📚 Docker 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>镜像分层与 Dockerfile</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>Compose、网络与数据卷</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>镜像瘦身与构建优化</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td>网络模式与存储驱动</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>永远用自定义 bridge 网络而不是默认 <code>bridge</code></strong> —— 默认 bridge 没有容器名 DNS 解析，只能靠已废弃的 <code>--link</code> 或手写 <code>/etc/hosts</code>；存储侧则是 <code>volume</code> 给数据、<code>bind mount</code> 给配置、<code>tmpfs</code> 给敏感临时文件，三者不要混用。</p>
+<h2 id="一、五种网络驱动"><a href="#一、五种网络驱动" class="headerlink" title="一、五种网络驱动"></a>一、五种网络驱动</h2><table>
+<thead>
+<tr>
+<th>驱动</th>
+<th>隔离性</th>
+<th>性能</th>
+<th>跨主机</th>
+<th>典型场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>bridge</code></td>
+<td>中（独立 netns + 软件网桥）</td>
+<td>中（NAT 开销）</td>
+<td>❌</td>
+<td><strong>单机默认选择</strong></td>
+</tr>
+<tr>
+<td><code>host</code></td>
+<td><strong>无</strong>（共享宿主 netns）</td>
+<td><strong>最高</strong>（无 NAT）</td>
+<td>❌</td>
+<td>高性能、端口固定的服务</td>
+</tr>
+<tr>
+<td><code>none</code></td>
+<td>最高（只有 lo）</td>
+<td>—</td>
+<td>❌</td>
+<td>完全离线任务、自定义网络栈</td>
+</tr>
+<tr>
+<td><code>overlay</code></td>
+<td>中（VXLAN 封装）</td>
+<td>中低（封装开销）</td>
+<td>✅</td>
+<td>Swarm &#x2F; 多主机集群</td>
+</tr>
+<tr>
+<td><code>macvlan</code></td>
+<td>中（独立 MAC）</td>
+<td>高（无 NAT）</td>
+<td>✅（同二层）</td>
+<td>需要真实 IP、被外部设备直连</td>
+</tr>
+<tr>
+<td><code>ipvlan</code></td>
+<td>中（共享 MAC）</td>
+<td>高</td>
+<td>✅</td>
+<td>类似 macvlan，受交换机 MAC 表限制时用</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash">docker network <span class="hljs-built_in">ls</span> &amp;&amp; docker network inspect bridge<br>docker network create --driver bridge --subnet 10.10.0.0/16 my-net<br>docker network connect my-net web &amp;&amp; docker network disconnect my-net web<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>macvlan</code> 在云主机上<strong>经常不可用</strong> —— 虚拟网卡通常禁止混杂模式，且对单网卡的 MAC<br>数量有限制。AWS &#x2F; 阿里云上优先考虑 <code>ipvlan</code> 或干脆用 host 网络。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>--network host</code> 在 Linux 上会<strong>让 <code>-p</code> 完全失效</strong>（Docker 只打印一条 warning，<br>不报错）。容器直接占用宿主端口，多个容器想用同一端口会冲突。Docker Desktop 上<br>host 网络长期受限，别指望它和 Linux 行为一致。</p>
+</blockquote>
+<h2 id="二、默认-bridge-vs-自定义-bridge（头号坑）"><a href="#二、默认-bridge-vs-自定义-bridge（头号坑）" class="headerlink" title="二、默认 bridge vs 自定义 bridge（头号坑）"></a>二、默认 bridge vs 自定义 bridge（头号坑）</h2><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>默认 <code>bridge</code></th>
+<th>自定义 bridge</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>容器名 DNS 解析</strong></td>
+<td>❌ <strong>不支持</strong></td>
+<td>✅ 内嵌 DNS（<code>127.0.0.11</code>）</td>
+</tr>
+<tr>
+<td>容器间互访</td>
+<td>只能用 IP，或 <code>--link</code>（已废弃）</td>
+<td>直接用容器名 &#x2F; 别名</td>
+</tr>
+<tr>
+<td>隔离性</td>
+<td>所有未指定 <code>--network</code> 的容器都在里面</td>
+<td>按网络隔离</td>
+</tr>
+<tr>
+<td>运行中挂载&#x2F;卸载</td>
+<td>❌ 必须重建容器</td>
+<td>✅ <code>docker network connect/disconnect</code></td>
+</tr>
+<tr>
+<td>配置粒度</td>
+<td>全局一份，改完要重启 daemon</td>
+<td>每个网络独立配置（MTU、iptables 规则）</td>
+</tr>
+<tr>
+<td>环境变量共享</td>
+<td><code>--link</code> 会注入（历史行为）</td>
+<td>不支持（用 volume &#x2F; compose 传）</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># ❌ 默认 bridge：db 这个名字解析不了</span><br>docker run -d --name db postgres<br>docker run --<span class="hljs-built_in">rm</span> postgres psql -h db -U postgres    <span class="hljs-comment"># could not translate host name &quot;db&quot;</span><br><br><span class="hljs-comment"># ✅ 自定义 bridge：容器名直接当域名</span><br>docker network create app-net<br>docker run -d --name db --network app-net postgres<br>docker run --<span class="hljs-built_in">rm</span> --network app-net postgres psql -h db -U postgres   <span class="hljs-comment"># 通</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash">docker <span class="hljs-built_in">exec</span> web <span class="hljs-built_in">cat</span> /etc/resolv.conf     <span class="hljs-comment"># 自定义网络里是 nameserver 127.0.0.11</span><br>docker network inspect app-net --format <span class="hljs-string">&#x27;&#123;&#123;range .Containers&#125;&#125;&#123;&#123;.Name&#125;&#125; &#123;&#123;.IPv4Address&#125;&#125;&#123;&#123;&quot;\n&quot;&#125;&#125;&#123;&#123;end&#125;&#125;&#x27;</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>能解析的名字</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>容器名</td>
+<td>默认生效</td>
+</tr>
+<tr>
+<td><code>--network-alias</code> 指定的别名</td>
+<td>一个容器可挂多个别名</td>
+</tr>
+<tr>
+<td><code>--hostname</code></td>
+<td>在自定义网络里也会注册</td>
+</tr>
+<tr>
+<td>Compose 的 service 名</td>
+<td>Compose 会自动建网络并注册</td>
+</tr>
+<tr>
+<td><code>container_name</code></td>
+<td>只有当它在<strong>同一个自定义网络</strong>里才生效</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>这是 Docker 最高频的坑</strong>：<code>docker run --name db postgres</code> 之后，另一个容器<br><code>ping db</code> 不通，不是网络坏了，是默认 bridge 不提供名字解析。<strong>养成习惯：<br>所有 <code>docker run</code> 都显式带 <code>--network</code>。</strong></p>
+</blockquote>
+<h2 id="三、端口映射与-EXPOSE-的真实语义"><a href="#三、端口映射与-EXPOSE-的真实语义" class="headerlink" title="三、端口映射与 EXPOSE 的真实语义"></a>三、端口映射与 <code>EXPOSE</code> 的真实语义</h2><table>
+<thead>
+<tr>
+<th>概念</th>
+<th>写法</th>
+<th>是否真的打开端口</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>暴露（expose）</td>
+<td>Dockerfile <code>EXPOSE 8080</code></td>
+<td>❌ <strong>只是元数据 &#x2F; 文档</strong></td>
+</tr>
+<tr>
+<td>发布（publish）</td>
+<td><code>docker run -p 8080:80</code></td>
+<td>✅ 建立映射</td>
+</tr>
+<tr>
+<td>自动发布</td>
+<td><code>docker run -P</code></td>
+<td>✅ 随机宿主端口映射到所有 EXPOSE 端口</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs bash">docker run -d -p 8080:80 nginx              <span class="hljs-comment"># 宿主 8080 → 容器 80</span><br>docker run -d -p 127.0.0.1:8080:80 nginx    <span class="hljs-comment"># 只绑回环，外网访问不到</span><br>docker run -d -p 8080:80/udp nginx          <span class="hljs-comment"># 指定 UDP</span><br>docker run -d -p 80 nginx                   <span class="hljs-comment"># 宿主端口随机</span><br>docker port &lt;container&gt;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>EXPOSE</code> 不会发布端口，也不能让宿主机访问容器</strong>。官方文档原话：<br><em>The EXPOSE instruction does not actually publish the port.</em><br>它只影响 <code>docker run -P</code> 和 <code>docker inspect</code> 的元数据，以及提供文档价值。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>-p 8080:80</code> 默认绑 <code>0.0.0.0</code>，<strong>等于暴露到公网</strong>。只想本机访问必须写<br><code>-p 127.0.0.1:8080:80</code>。云主机上不加 IP 前缀直接暴露数据库端口是常见事故。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>同一自定义网络内的容器互访不需要 <code>-p</code></strong> —— 网络内所有端口彼此可见。<br><code>-p</code> 只影响「从宿主机外部能否访问」。</p>
+</blockquote>
+<h2 id="四、iptables-与-docker-proxy"><a href="#四、iptables-与-docker-proxy" class="headerlink" title="四、iptables 与 docker-proxy"></a>四、<code>iptables</code> 与 <code>docker-proxy</code></h2><table>
+<thead>
+<tr>
+<th>组件</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>DOCKER</code> 链（nat 表）</td>
+<td>做 DNAT，把宿主端口流量转到容器 IP:端口</td>
+</tr>
+<tr>
+<td><code>DOCKER-USER</code> 链</td>
+<td>留给用户自定义规则的钩子，<strong>优先于 DOCKER 链</strong></td>
+</tr>
+<tr>
+<td><code>docker-proxy</code></td>
+<td>用户态转发进程，处理宿主机本地回环访问等场景</td>
+</tr>
+<tr>
+<td><code>userland-proxy</code></td>
+<td>daemon 配置，默认 <code>true</code>；设 <code>false</code> 后纯靠 iptables</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash">ps aux | grep docker-proxy<br><span class="hljs-built_in">sudo</span> iptables -t nat -L DOCKER -n --line-numbers<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 防火墙（firewalld &#x2F; ufw）规则常被 Docker 的 iptables 链<strong>绕过</strong> —— Docker 直接往<br>nat 表的 <code>DOCKER</code> 链插规则，优先级高于 firewalld 的 <code>INPUT</code> 链。想限制容器端口访问，<br>规则要写在 <strong><code>DOCKER-USER</code> 链</strong>里。</p>
+</blockquote>
+<h2 id="五、容器访问宿主机"><a href="#五、容器访问宿主机" class="headerlink" title="五、容器访问宿主机"></a>五、容器访问宿主机</h2><table>
+<thead>
+<tr>
+<th>平台</th>
+<th>写法</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Docker Desktop（mac&#x2F;Win）</td>
+<td><code>host.docker.internal</code></td>
+<td>内置解析，开箱可用</td>
+</tr>
+<tr>
+<td>Linux</td>
+<td><code>--add-host=host.docker.internal:host-gateway</code></td>
+<td>Docker 20.10+</td>
+</tr>
+<tr>
+<td>任意</td>
+<td>宿主 <code>docker0</code> 的 IP（默认 <code>172.17.0.1</code>）</td>
+<td>硬编码，换环境就废</td>
+</tr>
+<tr>
+<td>任意</td>
+<td><code>--network host</code></td>
+<td>直接用 <code>127.0.0.1</code></td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash">docker run --<span class="hljs-built_in">rm</span> --add-host=host.docker.internal:host-gateway \<br>  curlimages/curl -s http://host.docker.internal:8000/health<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ **Linux 上没有内置的 <code>host.docker.internal</code>**（Docker Desktop 才有），直接写会报<br><code>Could not resolve host</code>，必须显式 <code>--add-host ...:host-gateway</code>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 宿主服务若只监听 <code>127.0.0.1</code>，<strong>容器无论用哪个地址都连不上</strong> —— 流量到达宿主网卡后<br>目标地址是宿主 IP，不匹配回环监听。要让服务监听 <code>0.0.0.0</code>，或用 <code>--network host</code>。</p>
+</blockquote>
+<h2 id="六、跨主机-overlay-与-VXLAN"><a href="#六、跨主机-overlay-与-VXLAN" class="headerlink" title="六、跨主机 overlay 与 VXLAN"></a>六、跨主机 overlay 与 VXLAN</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash">docker network create -d overlay --attachable my-overlay<br>docker network create -d overlay --subnet 10.0.9.0/24 --opt encrypted my-overlay<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>VXLAN</td>
+<td>把二层帧封装进 UDP，默认端口 <code>4789</code></td>
+</tr>
+<tr>
+<td>VNI</td>
+<td>网络标识，每个 overlay 网络一个</td>
+</tr>
+<tr>
+<td><code>--attachable</code></td>
+<td>允许<strong>独立容器</strong>（非 Swarm service）接入</td>
+</tr>
+<tr>
+<td>数据存储</td>
+<td>Swarm 模式内置；独立使用需 Consul &#x2F; Etcd &#x2F; ZooKeeper</td>
+</tr>
+<tr>
+<td><code>--opt encrypted</code></td>
+<td>在 VXLAN 之上再加一层 IPSec 加密（有 CPU 开销）</td>
+</tr>
+</tbody></table>
+<h2 id="七、存储驱动与分层"><a href="#七、存储驱动与分层" class="headerlink" title="七、存储驱动与分层"></a>七、存储驱动与分层</h2><table>
+<thead>
+<tr>
+<th>驱动</th>
+<th>分层机制</th>
+<th>状态</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>overlay2</code></td>
+<td>OverlayFS</td>
+<td><strong>默认，推荐</strong></td>
+<td>内核 4.0+，性能好、稳定</td>
+</tr>
+<tr>
+<td><code>overlay</code></td>
+<td>OverlayFS（旧）</td>
+<td>已废弃</td>
+<td>层数受限，用 <code>overlay2</code></td>
+</tr>
+<tr>
+<td><code>aufs</code></td>
+<td>AUFS</td>
+<td>已废弃</td>
+<td>老 Ubuntu 的历史产物</td>
+</tr>
+<tr>
+<td><code>btrfs</code></td>
+<td>Btrfs 子卷</td>
+<td>可用</td>
+<td>需要 <code>/var/lib/docker</code> 在 Btrfs 上</td>
+</tr>
+<tr>
+<td><code>zfs</code></td>
+<td>ZFS 数据集</td>
+<td>可用</td>
+<td>需要 ZFS，内存开销大</td>
+</tr>
+<tr>
+<td><code>devicemapper</code></td>
+<td>瘦置备</td>
+<td><strong>已废弃</strong></td>
+<td>RHEL 7 时代，不要再选</td>
+</tr>
+<tr>
+<td><code>vfs</code></td>
+<td>逐层完整复制</td>
+<td>可用</td>
+<td><strong>无 CoW，极慢极大</strong>，只用于测试</td>
+</tr>
+</tbody></table>
+<figure class="highlight arcade"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs arcade">容器可写层 (<span class="hljs-built_in">upper</span>)        ← 容器内的所有写操作，容器删除即丢失<br>  ↓ OverlayFS 联合挂载<br>镜像只读层 (<span class="hljs-built_in">lower</span>)        ← 各层由 Dockerfile 指令生成，跨镜像共享<br>  ↓<br>数据卷 / bind mount       ← 绕过存储驱动，直接落到宿主机或卷插件<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">docker info --format <span class="hljs-string">&#x27;&#123;&#123;.Driver&#125;&#125;&#x27;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>容器可写层是「写时复制」的</strong>。改一个大文件（比如日志）会把整个文件复制到可写层，<br>容器体积和 I&#x2F;O 都会暴涨。<strong>所有需要持久化或高频写的路径必须挂 volume。</strong></p>
+</blockquote>
+<h2 id="八、三种挂载方式与-mount-vs-v"><a href="#八、三种挂载方式与-mount-vs-v" class="headerlink" title="八、三种挂载方式与 --mount vs -v"></a>八、三种挂载方式与 <code>--mount</code> vs <code>-v</code></h2><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>volume</th>
+<th>bind mount</th>
+<th>tmpfs</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>存储位置</td>
+<td><code>/var/lib/docker/volumes/</code>（Docker 管理）</td>
+<td>宿主任意路径</td>
+<td><strong>内存</strong></td>
+</tr>
+<tr>
+<td>可移植性</td>
+<td>✅ 跨平台、可被 volume driver 接管</td>
+<td>❌ 依赖宿主目录结构</td>
+<td>❌ Linux only</td>
+</tr>
+<tr>
+<td>备份</td>
+<td><code>docker volume</code> 命令 + 临时容器</td>
+<td>直接用宿主工具</td>
+<td>不可备份</td>
+</tr>
+<tr>
+<td>权限</td>
+<td>由 Docker 初始化（可继承镜像内权限）</td>
+<td><strong>宿主权限说了算</strong></td>
+<td>由 <code>tmpfs-mode</code> 控制</td>
+</tr>
+<tr>
+<td>性能</td>
+<td>好（Linux 上走原生 fs）</td>
+<td>好，但 macOS&#x2F;Win 上经 gRPC-FUSE 很慢</td>
+<td><strong>最快</strong></td>
+</tr>
+<tr>
+<td>适合</td>
+<td>数据库数据、上传文件</td>
+<td>配置文件、源码热挂载、开发调试</td>
+<td>密钥、session、临时缓存</td>
+</tr>
+<tr>
+<td>被 <code>docker rm -v</code> 影响</td>
+<td>匿名卷会删，具名卷不删</td>
+<td>不受影响</td>
+<td>不受影响</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs bash">docker volume create pgdata<br>docker run -d -v pgdata:/var/lib/postgresql/data postgres         <span class="hljs-comment"># volume</span><br>docker run -d -v <span class="hljs-string">&quot;<span class="hljs-variable">$PWD</span>/conf/nginx.conf&quot;</span>:/etc/nginx/nginx.conf:ro nginx   <span class="hljs-comment"># bind mount</span><br>docker run -d --tmpfs /run:rw,size=64m,mode=1777 nginx            <span class="hljs-comment"># tmpfs</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>差异点</th>
+<th><code>-v</code></th>
+<th><code>--mount</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>语法</td>
+<td>冒号分隔的位置参数</td>
+<td><code>key=value</code>，可读性好</td>
+</tr>
+<tr>
+<td><strong>宿主路径不存在</strong></td>
+<td><strong>自动创建目录</strong>（以 root 属主）</td>
+<td><strong>报错退出</strong></td>
+</tr>
+<tr>
+<td>文件名挂载</td>
+<td>宿主文件不存在时也会创建成目录</td>
+<td>明确报错</td>
+</tr>
+<tr>
+<td>挂载选项</td>
+<td><code>:ro</code> <code>:rw</code> <code>:z</code> <code>:Z</code> <code>:cached</code></td>
+<td><code>readonly</code>、<code>volume-opt=</code></td>
+</tr>
+<tr>
+<td>tmpfs 参数</td>
+<td>只能用 <code>--tmpfs</code></td>
+<td><code>tmpfs-size</code> &#x2F; <code>tmpfs-mode</code> 直接写</td>
+</tr>
+<tr>
+<td>推荐度</td>
+<td>短、快，交互式敲命令方便</td>
+<td><strong>脚本 &#x2F; Compose 里推荐</strong></td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash">--mount <span class="hljs-built_in">type</span>=volume,src=myvol,dst=/data,<span class="hljs-built_in">readonly</span><br>--mount <span class="hljs-built_in">type</span>=<span class="hljs-built_in">bind</span>,src=/host/data,dst=/data<br>--mount <span class="hljs-built_in">type</span>=tmpfs,dst=/run,tmpfs-size=64m,tmpfs-mode=1777<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>macOS &#x2F; Windows 上的 bind mount 性能极差</strong>（走虚拟化层文件共享），大项目<br><code>node_modules</code> 挂进去，构建能慢十倍。<strong>数据放 volume，只有必须实时同步的源码才用<br>bind mount。</strong></p>
+</blockquote>
+<h2 id="九、具名卷、匿名卷、备份与空间回收"><a href="#九、具名卷、匿名卷、备份与空间回收" class="headerlink" title="九、具名卷、匿名卷、备份与空间回收"></a>九、具名卷、匿名卷、备份与空间回收</h2><table>
+<thead>
+<tr>
+<th>类型</th>
+<th>生命周期</th>
+<th>命名</th>
+<th>排查难度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>具名卷</td>
+<td>显式 <code>docker volume rm</code> 才删</td>
+<td>可读的名字</td>
+<td>低</td>
+</tr>
+<tr>
+<td>匿名卷</td>
+<td><code>docker rm -v</code> 时删除，否则<strong>残留</strong></td>
+<td>64 位随机 ID</td>
+<td>高</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash">docker run -d -v /var/lib/data postgres          <span class="hljs-comment"># 匿名卷</span><br>docker run -d -v pgdata:/var/lib/data postgres   <span class="hljs-comment"># 具名卷</span><br>docker volume <span class="hljs-built_in">ls</span> -f dangling=<span class="hljs-literal">true</span> &amp;&amp; docker volume prune<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 备份 / 恢复：把卷挂进临时容器</span><br>docker run --<span class="hljs-built_in">rm</span> -v pgdata:/data -v <span class="hljs-string">&quot;<span class="hljs-variable">$PWD</span>&quot;</span>:/backup busybox \<br>  tar czf /backup/pgdata-$(<span class="hljs-built_in">date</span> +%F).tar.gz -C /data .<br>docker run --<span class="hljs-built_in">rm</span> -v pgdata-restore:/data -v <span class="hljs-string">&quot;<span class="hljs-variable">$PWD</span>&quot;</span>:/backup busybox \<br>  tar xzf /backup/pgdata-2026-10-08.tar.gz -C /data<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs bash">docker system <span class="hljs-built_in">df</span> -v                <span class="hljs-comment"># 逐项明细</span><br>docker system prune                <span class="hljs-comment"># 停掉的容器 + 悬空镜像 + 无用网络</span><br>docker image prune -a              <span class="hljs-comment"># 再加：所有没被容器使用的镜像</span><br>docker builder prune --all         <span class="hljs-comment"># 构建缓存</span><br>docker system prune -a --volumes   <span class="hljs-comment"># ⚠️ 再加：所有未引用的卷</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>数据库的 volume 不能直接 <code>tar</code> 备份</strong>。运行中的 MySQL &#x2F; PostgreSQL 数据文件处于<br>不一致状态，恢复出来可能起不来。<strong>要么 <code>mysqldump</code> &#x2F; <code>pg_dump</code>，要么先停容器再打包。</strong><br>打包时要 <code>-C /data .</code>，写成 <code>tar czf x.tar /data</code> 会带上 <code>/data</code> 这一层路径。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>docker system prune -a --volumes</code> 是<strong>清库级操作</strong>，会删掉所有未运行容器引用的卷。<br>容器停着但数据还要留的场景，数据就没了。<strong>执行前先 <code>docker system df -v</code> 看清每一项。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ 磁盘被占满但 <code>docker system df</code> 显示不多时，检查 <code>/var/lib/docker/overlay2</code> 与<br><code>/var/log/containers</code>（日志文件不受 prune 管理）。容器 stdout 日志由<br><code>--log-opt max-size</code> 控制，默认<strong>无上限</strong>。</p>
+</blockquote>
+<h2 id="十、容器内-DNS-与-etc-hosts"><a href="#十、容器内-DNS-与-etc-hosts" class="headerlink" title="十、容器内 DNS 与 /etc/hosts"></a>十、容器内 DNS 与 <code>/etc/hosts</code></h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs bash">docker run --dns 8.8.8.8 --dns 1.1.1.1 nginx<br>docker run --dns-search example.com --dns-opt ndots:2 nginx<br>docker run --add-host api.local:10.0.0.5 nginx<br>docker <span class="hljs-built_in">exec</span> web <span class="hljs-built_in">cat</span> /etc/resolv.conf /etc/hosts<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>文件</th>
+<th>来源</th>
+<th>可否持久修改</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>/etc/hosts</code></td>
+<td>Docker 启动时生成（含容器名、<code>--add-host</code>）</td>
+<td>❌ 重启即重置</td>
+</tr>
+<tr>
+<td><code>/etc/resolv.conf</code></td>
+<td>自定义网络为 <code>127.0.0.11</code>；默认 bridge 为宿主 DNS</td>
+<td>❌ 重启即重置</td>
+</tr>
+<tr>
+<td><code>/etc/hostname</code></td>
+<td>容器 ID 或 <code>--hostname</code></td>
+<td>❌</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>--dns</code> 只在<strong>默认 bridge &#x2F; 自定义网络</strong>下生效。用了 <code>--network host</code> 时容器直接读<br>宿主的 <code>/etc/resolv.conf</code>，<code>--dns</code> 被忽略。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 自定义网络下 <code>127.0.0.11</code> 是 Docker 的内嵌 DNS，它会把解析不了的域名<strong>转发给宿主<br>DNS</strong>。宿主 DNS 配错时表现为「容器名能解析、外网域名不能解析」，排查时别只盯着 Docker 网络。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 用默认 <code>bridge</code> 网络，容器之间无法用容器名互访</li>
+<li><input disabled="" type="checkbox"> 还在用已废弃的 <code>--link</code>，容器重建后别名失效</li>
+<li><input disabled="" type="checkbox"> 以为 <code>EXPOSE</code> 会发布端口，宿主机访问不到却查不出原因</li>
+<li><input disabled="" type="checkbox"> <code>-p 8080:80</code> 不带 IP 前缀，服务被暴露到公网</li>
+<li><input disabled="" type="checkbox"> <code>--network host</code> 下写 <code>-p</code>，以为端口映射生效（实际被忽略）</li>
+<li><input disabled="" type="checkbox"> 用 firewalld&#x2F;ufw 限制容器端口，被 Docker 的 <code>DOCKER</code> 链绕过</li>
+<li><input disabled="" type="checkbox"> Linux 上直接用 <code>host.docker.internal</code>，报无法解析</li>
+<li><input disabled="" type="checkbox"> 宿主服务只监听 <code>127.0.0.1</code>，容器连不上</li>
+<li><input disabled="" type="checkbox"> 云主机上强行用 <code>macvlan</code>，被虚拟网卡限制卡住</li>
+<li><input disabled="" type="checkbox"> overlay 网络的 VXLAN 封装导致大包不通（MTU 未调整）</li>
+<li><input disabled="" type="checkbox"> macOS 上把大目录 bind mount 进容器，构建慢十倍</li>
+<li><input disabled="" type="checkbox"> <code>tmpfs</code> 不设 <code>size</code>，吃光宿主内存</li>
+<li><input disabled="" type="checkbox"> 空 volume 挂到代码目录，遮住镜像里已构建好的文件</li>
+<li><input disabled="" type="checkbox"> 用匿名卷，<code>docker rm</code> 不带 <code>-v</code>，磁盘被随机 ID 占满</li>
+<li><input disabled="" type="checkbox"> 直接 <code>tar</code> 备份运行中的数据库卷，恢复后起不来</li>
+<li><input disabled="" type="checkbox"> <code>docker system prune -a --volumes</code> 一把梭，删掉还需要的数据卷</li>
+<li><input disabled="" type="checkbox"> 容器日志无上限增长，占满磁盘却不被 prune 清理</li>
+<li><input disabled="" type="checkbox"> Compose 里写 <code>- data:/data</code> 以为是 bind mount，实际是具名卷</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://docs.docker.com/engine/network/drivers/bridge/">Docker · Bridge network driver</a> · <a target="_blank" rel="noopener" href="https://docs.docker.com/engine/network/drivers/host/">Docker · Host network driver</a> · <a target="_blank" rel="noopener" href="https://docs.docker.com/engine/network/drivers/overlay/">Docker · Overlay network driver</a> · <a target="_blank" rel="noopener" href="https://docs.docker.com/engine/network/drivers/macvlan/">Docker · Macvlan network driver</a> · <a target="_blank" rel="noopener" href="https://docs.docker.com/engine/network/drivers/">Docker · 网络驱动总览</a> · <a target="_blank" rel="noopener" href="https://docs.docker.com/engine/network/port-publishing/">Docker · Port publishing</a> · <a target="_blank" rel="noopener" href="https://docs.docker.com/reference/dockerfile/#expose">Dockerfile · EXPOSE</a> · <a target="_blank" rel="noopener" href="https://docs.docker.com/engine/storage/drivers/">Docker · Storage drivers</a> · <a target="_blank" rel="noopener" href="https://docs.docker.com/engine/storage/volumes/">Docker · Volumes</a> · <a target="_blank" rel="noopener" href="https://docs.docker.com/engine/storage/bind-mounts/">Docker · Bind mounts</a> · <a target="_blank" rel="noopener" href="https://docs.docker.com/engine/storage/tmpfs/">Docker · tmpfs mounts</a> · <a target="_blank" rel="noopener" href="https://docs.docker.com/reference/cli/docker/system/prune/">Docker · system prune</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/docker/" class="category-chain-item">docker</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/docker/" class="print-no-link">#docker</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 069 · Docker（四）：网络模式与存储驱动</div>
+      <div>https://ethan-iopasd.github.io/2026/10/08/每日技术博客069-Docker网络与存储驱动/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月8日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2031-Docker%E9%95%9C%E5%83%8F%E7%98%A6%E8%BA%AB/" title="每日技术博客 031 · Docker（三）：镜像瘦身与构建优化">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 031 · Docker（三）：镜像瘦身与构建优化</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

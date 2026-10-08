@@ -1,0 +1,1121 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 067 篇 虚拟 DOM 到 patch 的完整链路、patchFlag 与 block tree 的编译优化，以及受控组件、renderless、provide&#x2F;inject、$attrs 透传等设计模式。  📚 Vue 3 系列目录   章节 主题 状态    一 模板语法、响应式与组合式 API 已发布   二 组件、Props &amp;#x2F">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 067 · Vue 3（八）：组件设计模式与渲染机制">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2067-Vue3%E7%BB%84%E4%BB%B6%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F%E4%B8%8E%E6%B8%B2%E6%9F%93%E6%9C%BA%E5%88%B6/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 067 篇 虚拟 DOM 到 patch 的完整链路、patchFlag 与 block tree 的编译优化，以及受控组件、renderless、provide&#x2F;inject、$attrs 透传等设计模式。  📚 Vue 3 系列目录   章节 主题 状态    一 模板语法、响应式与组合式 API 已发布   二 组件、Props &amp;#x2F">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-08T04:10:00.000Z">
+<meta property="article:modified_time" content="2026-10-08T02:52:35.243Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="vue3">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 067 · Vue 3（八）：组件设计模式与渲染机制 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 067 · Vue 3（八）：组件设计模式与渲染机制"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-08 12:10" pubdate>
+          2026年10月8日 中午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          3k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          25 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 067 · Vue 3（八）：组件设计模式与渲染机制</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-08 · 第 067 篇</p>
+<p>虚拟 DOM 到 patch 的完整链路、patchFlag 与 block tree 的编译优化，以及受控组件、renderless、<code>provide/inject</code>、<code>$attrs</code> 透传等设计模式。</p>
+</blockquote>
+<h2 id="📚-Vue-3-系列目录"><a href="#📚-Vue-3-系列目录" class="headerlink" title="📚 Vue 3 系列目录"></a>📚 Vue 3 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>模板语法、响应式与组合式 API</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>组件、Props &#x2F; Emits &#x2F; 插槽与双向绑定</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>Vue Router 路由</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td>Pinia 状态管理</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>五</td>
+<td>性能优化与生产构建</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>六</td>
+<td>组合式函数与逻辑复用</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>七</td>
+<td>测试与调试</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>八</td>
+<td>组件设计模式与渲染机制</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p>Vue 3 的 diff 不是「全树比对」：编译器把模板标成 <strong>block tree + patchFlag</strong>，运行时只走动态节点。不理解这层，<code>key</code>、<code>v-if</code>、静态提升的行为就全靠背。</p>
+<h2 id="一、渲染管线三段"><a href="#一、渲染管线三段" class="headerlink" title="一、渲染管线三段"></a>一、渲染管线三段</h2><table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>做什么</th>
+<th>时机</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Compile</strong></td>
+<td>模板 → render 函数（返回 vnode 树）</td>
+<td>构建期（<code>vue</code>）或运行时（<code>vue/dist/*.js</code>）</td>
+</tr>
+<tr>
+<td><strong>Mount</strong></td>
+<td>执行 render → 建真实 DOM，收集响应式依赖</td>
+<td>首次渲染</td>
+</tr>
+<tr>
+<td><strong>Patch</strong></td>
+<td>依赖变化 → 重新 render → 比对新旧 vnode → 更新 DOM</td>
+<td>依赖变更</td>
+</tr>
+</tbody></table>
+<p>vnode 是普通对象；手写渲染用 <code>h()</code>：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-keyword">import</span> &#123; h, ref &#125; <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;vue&#x27;</span>;<br><span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> &#123;<br>  <span class="hljs-title function_">setup</span>(<span class="hljs-params"></span>) &#123;<br>    <span class="hljs-keyword">const</span> n = <span class="hljs-title function_">ref</span>(<span class="hljs-number">0</span>);<br>    <span class="hljs-keyword">return</span> <span class="hljs-function">() =&gt;</span> <span class="hljs-title function_">h</span>(<span class="hljs-string">&#x27;div&#x27;</span>, &#123; <span class="hljs-attr">class</span>: <span class="hljs-string">&#x27;box&#x27;</span> &#125;, [<br>      <span class="hljs-title function_">h</span>(<span class="hljs-string">&#x27;span&#x27;</span>, n.<span class="hljs-property">value</span>),<br>      <span class="hljs-title function_">h</span>(<span class="hljs-string">&#x27;button&#x27;</span>, &#123; <span class="hljs-attr">onClick</span>: <span class="hljs-function">() =&gt;</span> n.<span class="hljs-property">value</span>++ &#125;, <span class="hljs-string">&#x27;+&#x27;</span>),<br>    ]);<br>  &#125;,<br>&#125;;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>写法</th>
+<th>灵活性</th>
+<th>编译期优化</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>模板</td>
+<td>中</td>
+<td>✅ 完整（静态提升 &#x2F; patchFlag &#x2F; block）</td>
+</tr>
+<tr>
+<td><code>h()</code> &#x2F; JSX</td>
+<td>高</td>
+<td>⚠️ 基本没有</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 用 <code>h()</code> 或 JSX 手写渲染逻辑时拿不到编译期优化：每次重渲染都会新建全部 vnode、全量比对。只有高度动态的组件才值得付这个代价。</p>
+</blockquote>
+<h2 id="二、编译优化三件事"><a href="#二、编译优化三件事" class="headerlink" title="二、编译优化三件事"></a>二、编译优化三件事</h2><p><strong>1. 静态提升</strong>：无动态绑定的节点，vnode 只在首次渲染时创建并缓存，后续复用同一对象；连续多个静态元素还会压成一个 static vnode（内含整段 HTML），挂载时直接 <code>innerHTML</code>。</p>
+<p><strong>2. patchFlag</strong>：编译期把「这个节点会怎么变」编码成数字，运行时用位运算判断。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-title function_">createElementVNode</span>(<span class="hljs-string">&quot;div&quot;</span>, &#123;<br>  <span class="hljs-attr">class</span>: <span class="hljs-title function_">_normalizeClass</span>(&#123; <span class="hljs-attr">active</span>: _ctx.<span class="hljs-property">active</span> &#125;)<br>&#125;, <span class="hljs-literal">null</span>, <span class="hljs-number">2</span> <span class="hljs-comment">/* CLASS */</span>)<br><br><span class="hljs-comment">// 运行时</span><br><span class="hljs-keyword">if</span> (vnode.<span class="hljs-property">patchFlag</span> &amp; <span class="hljs-title class_">PatchFlags</span>.<span class="hljs-property">CLASS</span> <span class="hljs-comment">/* 2 */</span>) &#123; <span class="hljs-comment">/* 只更新 class */</span> &#125;<br></code></pre></td></tr></table></figure>
+
+<p>常用取值（<code>@vue/shared</code> 的 <code>patchFlags.ts</code>）：</p>
+<table>
+<thead>
+<tr>
+<th>常量</th>
+<th>值</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>TEXT</code></td>
+<td>1</td>
+<td>动态文本子节点</td>
+</tr>
+<tr>
+<td><code>CLASS</code> &#x2F; <code>STYLE</code> &#x2F; <code>PROPS</code></td>
+<td>2 &#x2F; 4 &#x2F; 8</td>
+<td>动态 class &#x2F; style &#x2F; props</td>
+</tr>
+<tr>
+<td><code>FULL_PROPS</code></td>
+<td>16</td>
+<td>含动态键的 props，需全量比对</td>
+</tr>
+<tr>
+<td><code>NEED_HYDRATION</code></td>
+<td>32</td>
+<td>SSR 水合时需处理</td>
+</tr>
+<tr>
+<td><code>STABLE_FRAGMENT</code></td>
+<td>64</td>
+<td>子节点顺序稳定</td>
+</tr>
+<tr>
+<td><code>KEYED_FRAGMENT</code> &#x2F; <code>UNKEYED_FRAGMENT</code></td>
+<td>128 &#x2F; 256</td>
+<td>带 &#x2F; 不带 key 的 fragment</td>
+</tr>
+<tr>
+<td><code>NEED_PATCH</code> &#x2F; <code>DYNAMIC_SLOTS</code></td>
+<td>512 &#x2F; 1024</td>
+<td>自定义指令 &#x2F; 动态插槽</td>
+</tr>
+<tr>
+<td><code>HOISTED</code> &#x2F; <code>BAIL</code></td>
+<td>-1 &#x2F; -2</td>
+<td>静态跳过 &#x2F; 放弃优化走全量 diff</td>
+</tr>
+</tbody></table>
+<p><strong>3. block tree 与 tree flattening</strong>：整个模板包成一个 block，并收集所有带 patchFlag 的<strong>后代节点</strong>（非仅直接子节点）到扁平数组：</p>
+<figure class="highlight applescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs applescript"><span class="hljs-keyword">div</span> (block root)<br>- <span class="hljs-keyword">div</span> <span class="hljs-keyword">with</span> :<span class="hljs-built_in">id</span> binding<br>- <span class="hljs-keyword">div</span> <span class="hljs-keyword">with</span> &#123;&#123; bar &#125;&#125; binding<br></code></pre></td></tr></table></figure>
+
+<p>重渲染时只遍历这个扁平数组，静态部分完全跳过。</p>
+<blockquote>
+<p>⚠️ <code>v-if</code> 和 <code>v-for</code> 会<strong>创建新的 block</strong>，并挂到父 block 的动态后代数组里 —— 这是结构稳定性的来源。手写 render 时用 <code>openBlock()</code> &#x2F; <code>createElementBlock()</code> 才能享受同样优化。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ patchFlag 是<strong>编译产物</strong>。运行时动态生成的 vnode（如 <code>h(type, props)</code> 里 <code>type</code> 是变量）只能标 <code>BAIL</code>，diff 成本显著高于模板编译结果。</p>
+</blockquote>
+<h2 id="三、v-if-vs-v-show"><a href="#三、v-if-vs-v-show" class="headerlink" title="三、v-if vs v-show"></a>三、v-if vs v-show</h2><table>
+<thead>
+<tr>
+<th>维度</th>
+<th><code>v-if</code></th>
+<th><code>v-show</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>DOM</td>
+<td>条件为假时<strong>不存在</strong></td>
+<td>始终存在</td>
+</tr>
+<tr>
+<td>切换成本</td>
+<td>高（创建 &#x2F; 销毁 + 生命周期）</td>
+<td>低（改 <code>display</code>）</td>
+</tr>
+<tr>
+<td>初始成本</td>
+<td>低（假则完全不渲染）</td>
+<td>高（无论真假都要渲染）</td>
+</tr>
+<tr>
+<td>编译产物</td>
+<td>if 分支 + 独立 block</td>
+<td><code>v-show</code> 指令 + <code>NEED_PATCH</code></td>
+</tr>
+<tr>
+<td>适用</td>
+<td>切换少、初始为假、含重组件</td>
+<td>切换频繁</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>v-show</code> <strong>不能用在 <code>&lt;template&gt;</code> 上</strong>，也不支持 <code>v-else</code>；<code>v-if</code> 两者都支持。语义不同，不能互换。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>v-if</code> 的销毁会触发 <code>unmounted</code> 并清空内部状态；<code>v-show</code> 保留组件实例与状态。表单里用 <code>v-show</code> 隐藏再显示，用户输入还在 —— 有时是想要的，有时是 bug。</p>
+</blockquote>
+<h2 id="四、key-的作用"><a href="#四、key-的作用" class="headerlink" title="四、key 的作用"></a>四、key 的作用</h2><p><code>key</code> 是 diff 算法的<strong>身份标识</strong>。无 key 时用「就地复用 + 尾部优化」，有 key 时用「头尾双端比对 + 最长递增子序列」求最小移动。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs vue">&lt;!-- ❌ 无 key：删除首项会就地复用，输入框内容错位 --&gt;<br>&lt;li v-for=&quot;item in list&quot;&gt;&#123;&#123; item.name &#125;&#125; &lt;input&gt;&lt;/li&gt;<br><br>&lt;!-- ✅ 有 key：按身份移动 / 销毁 --&gt;<br>&lt;li v-for=&quot;item in list&quot; :key=&quot;item.id&quot;&gt;&#123;&#123; item.name &#125;&#125; &lt;input&gt;&lt;/li&gt;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>无 key</th>
+<th>有 key</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>纯静态列表</td>
+<td>✅ 更快（少移动）</td>
+<td>略慢</td>
+</tr>
+<tr>
+<td>含输入框 &#x2F; 组件状态</td>
+<td>❌ 状态错位</td>
+<td>✅ 正确</td>
+</tr>
+<tr>
+<td>频繁插入 &#x2F; 删除 &#x2F; 排序</td>
+<td>❌ 大量 patch</td>
+<td>✅ 最小移动</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>不要用数组下标当 key</strong>。下标在插入 &#x2F; 删除后会「继承」到别的元素上，等于没 key，还会让 diff 误判为「内容变了」而非「位置变了」。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 用 <code>Math.random()</code> 当 key 会导致每次渲染都是全新节点，组件被反复销毁重建，状态全丢、性能极差。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>key</code> 也能强制重建组件：换一个 <code>key</code>，Vue 会销毁旧的、挂载新的 —— 比手动清空 ref 更彻底，是重置组件内部状态的常用手段。</p>
+</blockquote>
+<h2 id="五、受控与非受控模式"><a href="#五、受控与非受控模式" class="headerlink" title="五、受控与非受控模式"></a>五、受控与非受控模式</h2><table>
+<thead>
+<tr>
+<th>模式</th>
+<th>谁持有状态</th>
+<th>典型写法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>受控</td>
+<td>父组件</td>
+<td><code>:value</code> + <code>@update:value</code></td>
+</tr>
+<tr>
+<td>非受控</td>
+<td>子组件自己</td>
+<td><code>:defaultValue</code>，内部 ref 持有</td>
+</tr>
+<tr>
+<td>半受控</td>
+<td>两者</td>
+<td>有 <code>value</code> 则受控，否则内部状态</td>
+</tr>
+</tbody></table>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs vue">&lt;!-- 受控子组件 --&gt;<br>&lt;script setup&gt;<br>const props = defineProps&lt;&#123; modelValue: string &#125;&gt;();<br>const emit = defineEmits&lt;&#123; &#x27;update:modelValue&#x27;: [string] &#125;&gt;();<br>&lt;/script&gt;<br>&lt;template&gt;<br>  &lt;input :value=&quot;props.modelValue&quot; @input=&quot;emit(&#x27;update:modelValue&#x27;, $event.target.value)&quot; /&gt;<br>&lt;/template&gt;<br></code></pre></td></tr></table></figure>
+
+<p>多参数 <code>v-model</code>（Vue 3 支持任意名字）：父写 <code>&lt;UserForm v-model:name=&quot;name&quot; v-model:age=&quot;age&quot; /&gt;</code>，子写 <code>const name = defineModel(&#39;name&#39;)</code> &#x2F; <code>const age = defineModel(&#39;age&#39;, &#123; type: Number &#125;)</code>。</p>
+<blockquote>
+<p>⚠️ <code>defineModel</code> 在 <strong>Vue 3.4</strong> 才从实验转正。3.3 及以前要手写 <code>props.modelValue</code> + <code>emit(&#39;update:modelValue&#39;)</code>；升级前先确认构建链里的 Vue 版本一致，否则 SFC 编译会报未知宏。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 受控组件里<strong>不要</strong>把 <code>props.modelValue</code> 复制进内部 ref 再双向绑定 —— 父组件更新时子组件不会同步。要么直接绑 props，要么用 <code>watch</code> + <code>computed</code> 显式同步。</p>
+</blockquote>
+<h2 id="六、无渲染组件与组合式函数"><a href="#六、无渲染组件与组合式函数" class="headerlink" title="六、无渲染组件与组合式函数"></a>六、无渲染组件与组合式函数</h2><p><strong>无渲染组件（renderless）</strong> 只提供逻辑和插槽，不产出自己的 DOM：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs vue">&lt;script setup&gt;<br>import &#123; ref &#125; from &#x27;vue&#x27;;<br>const props = defineProps(&#123; url: String &#125;);<br>const data = ref(null); const loading = ref(true);<br>// ... 拉取逻辑<br>&lt;/script&gt;<br>&lt;template&gt;<br>  &lt;slot :data=&quot;data&quot; :loading=&quot;loading&quot; /&gt;<br>&lt;/template&gt;<br></code></pre></td></tr></table></figure>
+
+<p>用法：<code>&lt;DataFetcher url=&quot;/api/user&quot; v-slot=&quot;&#123; data, loading &#125;&quot;&gt;</code> 内自行决定渲染内容。</p>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>复用模板</th>
+<th>复用逻辑</th>
+<th>类型推断</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>mixin</td>
+<td>✅</td>
+<td>⚠️ 命名冲突</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>无渲染组件</td>
+<td>✅</td>
+<td>✅</td>
+<td>中</td>
+</tr>
+<tr>
+<td>组合式函数</td>
+<td>❌</td>
+<td>✅</td>
+<td>✅ 最好</td>
+</tr>
+<tr>
+<td>高阶组件</td>
+<td>✅</td>
+<td>✅</td>
+<td>中</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 无渲染组件多一层组件实例与插槽渲染开销。<strong>纯逻辑复用优先用组合式函数</strong>，只有复用内容包含「模板结构」时才值得上无渲染组件。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 组合式函数里用 <code>onMounted</code> &#x2F; <code>onUnmounted</code> 必须在 <strong><code>setup</code> 同步执行期</strong>调用。放进 <code>await</code> 之后或异步回调里，生命周期钩子会丢失绑定并告警。</p>
+</blockquote>
+<h2 id="七、defineExpose-与模板-ref"><a href="#七、defineExpose-与模板-ref" class="headerlink" title="七、defineExpose 与模板 ref"></a>七、defineExpose 与模板 ref</h2><p><code>&lt;script setup&gt;</code> 组件<strong>默认关闭</strong>，父组件拿到的 ref 上什么都没有，需要在子组件里 <code>defineExpose(&#123; count, focus &#125;)</code> 显式暴露。</p>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>是否需 <code>defineExpose</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>&lt;script setup&gt;</code> 子组件</td>
+<td>✅ 必须</td>
+</tr>
+<tr>
+<td>选项式 API 子组件</td>
+<td>❌ 默认全部可访问</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 父组件里 <code>child.value</code> 在**挂载前是 <code>null</code>**。在 <code>setup</code> 顶层直接访问拿不到实例，必须在 <code>onMounted</code> 之后或事件回调里访问。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>defineExpose</code> 暴露的是<strong>引用</strong>而非快照。父组件改 <code>child.value.count++</code> 会直接改子组件状态 —— 双向强耦合，组件库场景应改为 emit 事件。</p>
+</blockquote>
+<h2 id="八、provide-inject-做依赖注入"><a href="#八、provide-inject-做依赖注入" class="headerlink" title="八、provide &#x2F; inject 做依赖注入"></a>八、provide &#x2F; inject 做依赖注入</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs vue">&lt;!-- 祖先 --&gt;<br>&lt;script setup&gt;<br>import &#123; provide, ref, readonly &#125; from &#x27;vue&#x27;;<br>const theme = ref(&#x27;dark&#x27;);<br>provide(&#x27;theme&#x27;, &#123; theme: readonly(theme), setTheme: v =&gt; (theme.value = v) &#125;);<br>&lt;/script&gt;<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs vue">&lt;!-- 后代（任意层级） --&gt;<br>&lt;script setup&gt;<br>import &#123; inject, ref &#125; from &#x27;vue&#x27;;<br>const &#123; theme, setTheme &#125; = inject(&#x27;theme&#x27;, &#123; theme: ref(&#x27;light&#x27;), setTheme: () =&gt; &#123;&#125; &#125;);<br>&lt;/script&gt;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>做法</th>
+<th>效果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>provide(key, ref)</code></td>
+<td>后代拿到响应式引用</td>
+</tr>
+<tr>
+<td><code>readonly(ref)</code></td>
+<td>禁止后代直接改，只能走方法</td>
+</tr>
+<tr>
+<td><code>Symbol</code> 作 key</td>
+<td>避免命名冲突</td>
+</tr>
+<tr>
+<td><code>app.provide()</code></td>
+<td>全局注入</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>inject</code> 默认<strong>不做响应式解包</strong>：<code>inject(&#39;x&#39;)</code> 拿到的是 ref 本身，模板里自动解包，但 <code>&lt;script&gt;</code> 里必须写 <code>x.value</code>。用解构会<strong>丢失响应性</strong>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>provide</code> 的值在同一组件实例内<strong>不可变绑定</strong> —— 想改就 provide 一个 ref 或一个对象，而不是 provide 原始值。</p>
+</blockquote>
+<h2 id="九、-attrs-透传与-inheritAttrs"><a href="#九、-attrs-透传与-inheritAttrs" class="headerlink" title="九、$attrs 透传与 inheritAttrs"></a>九、$attrs 透传与 inheritAttrs</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs vue">&lt;script setup&gt;<br>defineOptions(&#123; inheritAttrs: false &#125;);   // Vue 3.3+<br>defineProps(&#123; label: String &#125;);<br>&lt;/script&gt;<br>&lt;template&gt;<br>  &lt;label&gt;&#123;&#123; label &#125;&#125;&lt;/label&gt;<br>  &lt;input v-bind=&quot;$attrs&quot; /&gt;<br>&lt;/template&gt;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>默认 <code>inheritAttrs: true</code></td>
+<td>未声明的 attrs 自动落到<strong>根元素</strong></td>
+</tr>
+<tr>
+<td><code>inheritAttrs: false</code></td>
+<td>关掉自动落点，自己决定往哪放</td>
+</tr>
+<tr>
+<td><code>$attrs</code></td>
+<td>未在 props &#x2F; emits 中声明的透传属性 + 事件监听</td>
+</tr>
+<tr>
+<td>多根组件</td>
+<td>自动落点<strong>失效</strong>，必须手动转发</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 多根节点（fragment）组件<strong>无法自动继承 attrs</strong>，Vue 会警告 <code>Extraneous non-props attributes</code>。必须显式 <code>v-bind=&quot;$attrs&quot;</code>，否则 class &#x2F; style &#x2F; 事件监听全部丢失。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>$attrs</code> 里的 <code>class</code> 和 <code>style</code> 是<strong>合并</strong>而非覆盖语义。透传到内层元素时 class 会叠加，做条件样式要注意优先级。</p>
+</blockquote>
+<h2 id="十、异步组件与-Suspense"><a href="#十、异步组件与-Suspense" class="headerlink" title="十、异步组件与 Suspense"></a>十、异步组件与 Suspense</h2><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-keyword">import</span> &#123; defineAsyncComponent &#125; <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;vue&#x27;</span>;<br><br><span class="hljs-keyword">const</span> <span class="hljs-title class_">Heavy</span> = <span class="hljs-title function_">defineAsyncComponent</span>(&#123;<br>  <span class="hljs-attr">loader</span>: <span class="hljs-function">() =&gt;</span> <span class="hljs-keyword">import</span>(<span class="hljs-string">&#x27;./Heavy.vue&#x27;</span>),<br>  <span class="hljs-attr">loadingComponent</span>: <span class="hljs-title class_">Spinner</span>,<br>  <span class="hljs-attr">errorComponent</span>: <span class="hljs-title class_">ErrorBox</span>,<br>  <span class="hljs-attr">delay</span>: <span class="hljs-number">200</span>,       <span class="hljs-comment">// 延迟显示 loading，避免闪烁</span><br>  <span class="hljs-attr">timeout</span>: <span class="hljs-number">5000</span>,    <span class="hljs-comment">// 超时报错</span><br>&#125;);<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs vue">&lt;Suspense&gt;<br>  &lt;template #default&gt;&lt;AsyncDashboard /&gt;&lt;/template&gt;<br>  &lt;template #fallback&gt;&lt;Skeleton /&gt;&lt;/template&gt;<br>&lt;/Suspense&gt;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>&lt;Suspense&gt;</code> 目前仍是实验性特性</strong>（官方文档明确标注 experimental），不保证进入稳定状态，API 可能变动。生产环境用之前先评估升级风险。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ Suspense 只捕获 <strong><code>setup</code> 顶层</strong>的 <code>await</code>。<code>onMounted</code>、事件回调、<code>watch</code> 里的异步操作<strong>不会</strong>被感知，也不会触发 fallback。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 异步组件的 <code>loadingComponent</code> 与 Suspense 的 <code>#fallback</code> 会<strong>同时生效</strong>，容易叠出两层 loading。二选一，不要混用。</p>
+</blockquote>
+<h2 id="十一、headless-模式"><a href="#十一、headless-模式" class="headerlink" title="十一、headless 模式"></a>十一、headless 模式</h2><p>组件只提供状态与可访问性逻辑，样式完全交给使用方：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs vue">&lt;Dropdown&gt;<br>  &lt;template #trigger=&quot;&#123; open, toggle &#125;&quot;&gt;<br>    &lt;button @click=&quot;toggle&quot; :aria-expanded=&quot;open&quot;&gt;菜单&lt;/button&gt;<br>  &lt;/template&gt;<br>  &lt;template #content=&quot;&#123; close &#125;&quot;&gt;<br>    &lt;ul role=&quot;menu&quot; @keydown.esc=&quot;close&quot;&gt;...&lt;/ul&gt;<br>  &lt;/template&gt;<br>&lt;/Dropdown&gt;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ headless 把可访问性（<code>role</code>、<code>aria-*</code>、键盘导航）的责任<strong>推给了使用方</strong>。组件内部必须把必要的 aria 属性通过 slot props 暴露出来，否则每个使用方都会漏做。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 作用域插槽会<strong>强制子组件重渲染</strong>（Vue 3 已大幅优化，但动态插槽仍标 <code>DYNAMIC_SLOTS</code>）。列表里大量使用作用域插槽时注意压测。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 用 <code>h()</code> &#x2F; JSX 写高频重渲染组件，丢掉全部编译期优化</li>
+<li><input disabled="" type="checkbox"> 手写 render 函数没配 <code>openBlock()</code> &#x2F; <code>createElementBlock()</code>，退化成全量 diff</li>
+<li><input disabled="" type="checkbox"> <code>v-show</code> 用在 <code>&lt;template&gt;</code> 上或配 <code>v-else</code></li>
+<li><input disabled="" type="checkbox"> 用 <code>v-show</code> 隐藏含表单的组件，以为状态会被重置</li>
+<li><input disabled="" type="checkbox"> 列表用数组下标当 <code>key</code>，或用 <code>Math.random()</code> 当 <code>key</code></li>
+<li><input disabled="" type="checkbox"> 受控组件里把 props 复制进内部 ref，父更新不同步</li>
+<li><input disabled="" type="checkbox"> 组合式函数里在 <code>await</code> 之后调 <code>onMounted</code></li>
+<li><input disabled="" type="checkbox"> <code>&lt;script setup&gt;</code> 子组件没 <code>defineExpose</code>，父组件 ref 全空</li>
+<li><input disabled="" type="checkbox"> 在 <code>setup</code> 顶层直接访问模板 ref，拿到 <code>null</code></li>
+<li><input disabled="" type="checkbox"> <code>inject</code> 后解构，丢失响应性</li>
+<li><input disabled="" type="checkbox"> 多根组件忘了 <code>v-bind=&quot;$attrs&quot;</code>，class &#x2F; 事件全丢</li>
+<li><input disabled="" type="checkbox"> 异步组件 <code>loadingComponent</code> 和 Suspense fallback 叠两层</li>
+<li><input disabled="" type="checkbox"> 以为 <code>onMounted</code> &#x2F; 事件回调里的 await 会被 Suspense 捕获</li>
+<li><input disabled="" type="checkbox"> headless 组件没暴露 aria 属性，使用方全部漏做可访问性</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://cn.vuejs.org/guide/extras/rendering-mechanism.html">Vue 3 官方文档 · 渲染机制</a> · <a target="_blank" rel="noopener" href="https://cn.vuejs.org/guide/extras/render-function.html">渲染函数与 JSX</a> · <a target="_blank" rel="noopener" href="https://cn.vuejs.org/guide/components/v-model.html">组件事件与 v-model</a> · <a target="_blank" rel="noopener" href="https://cn.vuejs.org/guide/components/provide-inject.html">依赖注入</a> · <a target="_blank" rel="noopener" href="https://cn.vuejs.org/guide/components/attrs.html">透传 Attributes</a> · <a target="_blank" rel="noopener" href="https://cn.vuejs.org/guide/components/async.html">异步组件</a> · <a target="_blank" rel="noopener" href="https://cn.vuejs.org/guide/built-ins/suspense.html">Suspense</a> · <a target="_blank" rel="noopener" href="https://github.com/vuejs/core/blob/main/packages/shared/src/patchFlags.ts">vuejs&#x2F;core · patchFlags.ts</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/vue3/" class="category-chain-item">vue3</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/vue3/" class="print-no-link">#vue3</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 067 · Vue 3（八）：组件设计模式与渲染机制</div>
+      <div>https://ethan-iopasd.github.io/2026/10/08/每日技术博客067-Vue3组件设计模式与渲染机制/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月8日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2022-Vue3%E6%B5%8B%E8%AF%95%E4%B8%8E%E8%B0%83%E8%AF%95/" title="每日技术博客 022 · Vue 3（七）：测试与调试">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 022 · Vue 3（七）：测试与调试</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

@@ -1,0 +1,1199 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 065 篇 系统设计系列第三篇。CAP 的准确表述、一致性谱系、2PC&#x2F;TCC&#x2F;SAGA、最终一致的三种方案、Raft 的选举与日志复制、Quorum、冲突解决与脑裂。  📚 系统设计 系列目录   章节 主题 状态    一 限流、熔断与降级 已发布   二 消息队列与最终一致性 已发布   三 分布式一致性与共识 本篇">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 065 · 系统设计（三）：分布式一致性与共识">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2065-%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 065 篇 系统设计系列第三篇。CAP 的准确表述、一致性谱系、2PC&#x2F;TCC&#x2F;SAGA、最终一致的三种方案、Raft 的选举与日志复制、Quorum、冲突解决与脑裂。  📚 系统设计 系列目录   章节 主题 状态    一 限流、熔断与降级 已发布   二 消息队列与最终一致性 已发布   三 分布式一致性与共识 本篇">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-08T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-08T02:48:12.498Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="system-design">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 065 · 系统设计（三）：分布式一致性与共识 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 065 · 系统设计（三）：分布式一致性与共识"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-08 12:00" pubdate>
+          2026年10月8日 中午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          3.5k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          30 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 065 · 系统设计（三）：分布式一致性与共识</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-08 · 第 065 篇</p>
+<p>系统设计系列第三篇。CAP 的准确表述、一致性谱系、2PC&#x2F;TCC&#x2F;SAGA、最终一致的三种方案、Raft 的选举与日志复制、Quorum、冲突解决与脑裂。</p>
+</blockquote>
+<h2 id="📚-系统设计-系列目录"><a href="#📚-系统设计-系列目录" class="headerlink" title="📚 系统设计 系列目录"></a>📚 系统设计 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>限流、熔断与降级</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>消息队列与最终一致性</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>分布式一致性与共识</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>CAP 说的是「网络分区发生时，只能在 C 和 A 之间二选一」，不是「三选二」</strong>；<strong>共识算法只在「多数派存活」时才能工作</strong>；<strong>微服务里分布式事务能不用就不用</strong>。</p>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>一句话</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>CAP</td>
+<td>分区发生时，一致性与可用性二选一</td>
+</tr>
+<tr>
+<td>PACELC</td>
+<td>分区时选 A&#x2F;C；<strong>无分区时也要在延迟 L 和一致性 C 之间选</strong></td>
+</tr>
+<tr>
+<td>共识（Consensus）</td>
+<td>让多个节点对「同一份日志的顺序」达成一致</td>
+</tr>
+<tr>
+<td>分布式事务</td>
+<td>让跨服务的多个写操作「全成功或全回滚」</td>
+</tr>
+</tbody></table>
+<h2 id="一、CAP-的准确表述与-PACELC"><a href="#一、CAP-的准确表述与-PACELC" class="headerlink" title="一、CAP 的准确表述与 PACELC"></a>一、CAP 的准确表述与 PACELC</h2><p>CAP 常被误读成「三选二」，正确表述是：</p>
+<blockquote>
+<p><strong>当网络分区（P）发生时，系统只能在一致性（C）和可用性（A）之间选一个。</strong> P 不是可选项 —— 分布式系统里分区一定会发生。</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>选择</th>
+<th>行为</th>
+<th>例子</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>CP</strong></td>
+<td>拒绝服务也不返回旧数据</td>
+<td>etcd、ZooKeeper、HBase</td>
+</tr>
+<tr>
+<td><strong>AP</strong></td>
+<td>返回可能过期的数据也要可用</td>
+<td>Cassandra、DynamoDB（默认）、Eureka</td>
+</tr>
+</tbody></table>
+<p><strong>PACELC</strong> 补上了「没有分区时」的情况：</p>
+<figure class="highlight pgsql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs pgsql"><span class="hljs-keyword">if</span> <span class="hljs-keyword">Partition</span>:  trade-<span class="hljs-keyword">off</span> <span class="hljs-keyword">between</span> Availability <span class="hljs-keyword">and</span> Consistency<br><span class="hljs-keyword">else</span> (E):      trade-<span class="hljs-keyword">off</span> <span class="hljs-keyword">between</span> Latency <span class="hljs-keyword">and</span> Consistency<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>系统</th>
+<th>分区时</th>
+<th>平时</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>DynamoDB &#x2F; Cassandra</td>
+<td>PA</td>
+<td>EL（低延迟优先）</td>
+</tr>
+<tr>
+<td>BigTable &#x2F; HBase</td>
+<td>PC</td>
+<td>EC（一致优先）</td>
+</tr>
+<tr>
+<td>MongoDB</td>
+<td>PA</td>
+<td>EC</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>CAP 里的 C 是「线性一致」，不是「ACID 的 C」。</strong> 线性一致要求「写成功后，任何后续读都能立刻看到」，这比「事务不破坏约束」严格得多。拿 CAP 的 C 去套数据库事务，是最常见的误用。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>CAP 描述的是「分区期间的取舍」，不是系统的永久属性。</strong> 一个系统可以在分区时牺牲一致性、平时给强一致 —— 把它归类成「CP 系统」或「AP 系统」本身就过于简化。</p>
+</blockquote>
+<h2 id="二、一致性谱系与-BASE"><a href="#二、一致性谱系与-BASE" class="headerlink" title="二、一致性谱系与 BASE"></a>二、一致性谱系与 BASE</h2><p>从强到弱：</p>
+<table>
+<thead>
+<tr>
+<th>级别</th>
+<th>保证</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>线性一致（Linearizable）</strong></td>
+<td>所有操作像在一个单机上按实时顺序执行</td>
+<td>最高，分区时不可用</td>
+</tr>
+<tr>
+<td>顺序一致（Sequential）</td>
+<td>所有节点看到的操作顺序一致，但不要求与真实时间一致</td>
+<td>高</td>
+</tr>
+<tr>
+<td>因果一致（Causal）</td>
+<td>有因果关系的操作有序，无关操作可乱序</td>
+<td>中</td>
+</tr>
+<tr>
+<td><strong>最终一致（Eventual）</strong></td>
+<td>停止写入后，最终所有副本一致</td>
+<td>低，中间有窗口</td>
+</tr>
+</tbody></table>
+<p><strong>BASE</strong> 是对 ACID 的「反着来」：</p>
+<table>
+<thead>
+<tr>
+<th>缩写</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>BA</strong>（Basically Available）</td>
+<td>基本可用，允许降级、限流</td>
+</tr>
+<tr>
+<td><strong>S</strong>（Soft state）</td>
+<td>软状态，中间状态允许存在</td>
+</tr>
+<tr>
+<td><strong>E</strong>（Eventually consistent）</td>
+<td>最终一致</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>「最终一致」的「最终」没有时间上界。</strong> 它只保证「不再写入后一定会收敛」，不保证 1 秒还是 1 小时。业务上如果要求「下单后 100ms 内库存可见」，最终一致是不够的 —— 得在链路里显式等待或补偿。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>因果一致是很多业务的实际下限。</strong> 用户「发了评论 → 立刻刷新看到自己的评论」是因果一致需求，用纯最终一致会出现「自己看不到自己刚写的东西」，体验上等同于 bug。</p>
+</blockquote>
+<h2 id="三、分布式事务：2PC-3PC-TCC-SAGA"><a href="#三、分布式事务：2PC-3PC-TCC-SAGA" class="headerlink" title="三、分布式事务：2PC &#x2F; 3PC &#x2F; TCC &#x2F; SAGA"></a>三、分布式事务：2PC &#x2F; 3PC &#x2F; TCC &#x2F; SAGA</h2><h3 id="2PC（两阶段提交）"><a href="#2PC（两阶段提交）" class="headerlink" title="2PC（两阶段提交）"></a>2PC（两阶段提交）</h3><figure class="highlight pgsql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs pgsql">阶段一 <span class="hljs-keyword">Prepare</span>：协调者 → 所有参与者「能提交吗？」<br>                参与者执行事务、写 undo/redo 日志、锁住资源、回「Yes/<span class="hljs-keyword">No</span>」<br>阶段二 <span class="hljs-keyword">Commit</span> ：全部 Yes → 协调者广播 <span class="hljs-keyword">Commit</span>；否则广播 <span class="hljs-keyword">Rollback</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>问题</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>同步阻塞</strong></td>
+<td>Prepare 后参与者一直持锁等 Commit，期间资源全锁死</td>
+</tr>
+<tr>
+<td><strong>协调者单点</strong></td>
+<td>协调者挂掉，参与者永远等不到第二阶段，一直阻塞</td>
+</tr>
+<tr>
+<td><strong>数据不一致</strong></td>
+<td>部分参与者收到 Commit、部分没收到 → 副本不一致</td>
+</tr>
+</tbody></table>
+<h3 id="3PC（三阶段提交）"><a href="#3PC（三阶段提交）" class="headerlink" title="3PC（三阶段提交）"></a>3PC（三阶段提交）</h3><p>在 2PC 前插入 <code>CanCommit</code> 阶段（预询问，不锁资源），并给参与者加<strong>超时</strong>。缓解阻塞，但<strong>仍无法解决分区下的不一致</strong>，且多一轮 RTT。</p>
+<h3 id="TCC（Try-Confirm-Cancel）"><a href="#TCC（Try-Confirm-Cancel）" class="headerlink" title="TCC（Try-Confirm-Cancel）"></a>TCC（Try-Confirm-Cancel）</h3><figure class="highlight apache"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs apache"><span class="hljs-attribute">Try</span>     ：预留资源（冻结库存 <span class="hljs-number">100</span>、冻结余额 <span class="hljs-number">500</span>）<br><span class="hljs-attribute">Confirm</span> ：确认使用预留（扣减冻结 → 实际扣减）<br><span class="hljs-attribute">Cancel</span>  ：释放预留（解冻）<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>特点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>业务层补偿</td>
+<td>每个服务自己实现 Try&#x2F;Confirm&#x2F;Cancel 三个接口</td>
+</tr>
+<tr>
+<td>不依赖数据库锁</td>
+<td>靠「预留」而非「长事务锁」</td>
+</tr>
+<tr>
+<td>要求</td>
+<td><strong>Confirm &#x2F; Cancel 必须幂等</strong>，且要能处理空回滚、悬挂</td>
+</tr>
+</tbody></table>
+<h3 id="SAGA"><a href="#SAGA" class="headerlink" title="SAGA"></a>SAGA</h3><p>把长事务拆成 N 个本地事务，失败时<strong>反向执行补偿</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>模式</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>编排（Orchestration）</strong></td>
+<td>一个中心协调器依次调各服务，逻辑集中、好排查</td>
+</tr>
+<tr>
+<td><strong>协同（Choreography）</strong></td>
+<td>各服务监听事件自行触发下一步，无中心，耦合低但难追踪</td>
+</tr>
+</tbody></table>
+<figure class="highlight mipsasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs mipsasm">正向：<span class="hljs-built_in">T1</span> → <span class="hljs-built_in">T2</span> → <span class="hljs-built_in">T3</span> → <span class="hljs-built_in">T4</span><br>失败：<span class="hljs-built_in">T1</span> → <span class="hljs-built_in">T2</span> → <span class="hljs-built_in">T3</span> ✗ → C3 → C2 → C1   （反向补偿）<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>SAGA 没有隔离性（no isolation）。</strong> 中间状态对外可见 —— T3 失败时，T2 的改动已经被人读到了。必须靠<strong>语义锁</strong>（状态字段 <code>PENDING</code>）、<strong>业务容忍</strong>或<strong>读隔离</strong>来兜底。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>补偿不等于回滚。</strong> 「退款」和「没扣款」不是同一件事（可能已产生手续费、已发积分）。补偿动作本身也是业务操作，会失败、需要重试、必须幂等。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>2PC 在微服务里几乎不用</strong>，因为跨服务的 Prepare 会把锁和连接池全占住，一个慢服务拖死整条链路。它更适合<strong>单库多数据源</strong>这种同机房、低延迟、同事务管理器的场景。</p>
+</blockquote>
+<h2 id="四、最终一致的三种落地方案"><a href="#四、最终一致的三种落地方案" class="headerlink" title="四、最终一致的三种落地方案"></a>四、最终一致的三种落地方案</h2><table>
+<thead>
+<tr>
+<th>方案</th>
+<th>机制</th>
+<th>一致性</th>
+<th>复杂度</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>本地消息表</strong></td>
+<td>业务写入 + 消息记录<strong>同一个本地事务</strong>，再由投递器发送</td>
+<td>最终一致</td>
+<td>低</td>
+<td>自研、无 MQ 事务能力</td>
+</tr>
+<tr>
+<td><strong>事务消息</strong></td>
+<td>MQ 支持半消息：先发半消息，本地事务成功后确认投递</td>
+<td>最终一致</td>
+<td>中</td>
+<td>RocketMQ 等支持事务消息的 MQ</td>
+</tr>
+<tr>
+<td><strong>最大努力通知</strong></td>
+<td>失败后按退避策略反复通知对端，对端保证幂等</td>
+<td>最弱</td>
+<td>最低</td>
+<td>通知外部系统、回调</td>
+</tr>
+</tbody></table>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs sql">本地消息表：<br>  <span class="hljs-keyword">BEGIN</span>;<br>    <span class="hljs-keyword">INSERT INTO</span> orders ...;              <span class="hljs-comment">-- 业务写</span><br>    <span class="hljs-keyword">INSERT INTO</span> outbox (payload, status) <span class="hljs-comment">-- 同一个事务</span><br>      <span class="hljs-keyword">VALUES</span> (..., <span class="hljs-string">&#x27;PENDING&#x27;</span>);<br>  <span class="hljs-keyword">COMMIT</span>;<br>  后台投递器：轮询 outbox → 发 MQ → 成功后置 <span class="hljs-string">&#x27;SENT&#x27;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>本地消息表的关键是「业务写和消息写在同一事务里」。</strong> 分两次提交就会出现「业务成功但消息丢了」或「消息发了但业务回滚了」，那就不叫可靠消息。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>投递器必须保证「至少一次」投递 + 消费端幂等。</strong> 想做到「恰好一次」是不可能的 —— 投递器在「发出去」和「标记已发」之间崩溃，就会重复投递。所以<strong>消费端必须去重</strong>。</p>
+</blockquote>
+<h2 id="五、共识：Paxos、Raft-与-Quorum"><a href="#五、共识：Paxos、Raft-与-Quorum" class="headerlink" title="五、共识：Paxos、Raft 与 Quorum"></a>五、共识：Paxos、Raft 与 Quorum</h2><p><strong>共识要解决的</strong>：多个节点对同一份日志的<strong>内容和顺序</strong>达成一致，且多数派存活时仍能推进。</p>
+<table>
+<thead>
+<tr>
+<th>算法</th>
+<th>特点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Paxos</td>
+<td>理论奠基，正确但难懂、难实现完整版（Multi-Paxos 描述不清）</td>
+</tr>
+<tr>
+<td><strong>Raft</strong></td>
+<td>把共识拆成<strong>选举 &#x2F; 日志复制 &#x2F; 安全性</strong>三块，可理解性优先，工业界主流</td>
+</tr>
+<tr>
+<td>ZAB</td>
+<td>ZooKeeper 用，类似 Raft 但顺序不同</td>
+</tr>
+</tbody></table>
+<p><strong>Raft 三个子问题：</strong></p>
+<table>
+<thead>
+<tr>
+<th>子问题</th>
+<th>机制</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Leader 选举</strong></td>
+<td>随机超时（150–300ms）触发投票，得票过半成为 Leader</td>
+</tr>
+<tr>
+<td><strong>日志复制</strong></td>
+<td>Leader 收请求 → 追加日志 → 复制到多数派 → 提交并返回</td>
+</tr>
+<tr>
+<td><strong>任期（term）</strong></td>
+<td>单调递增的逻辑时钟，每轮选举 +1，用于拒绝过期 Leader</td>
+</tr>
+</tbody></table>
+<figure class="highlight 1c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs 1c">Raft 选举：<br>Follower 超时未收到心跳 → 变 Candidate，term<span class="hljs-punctuation">+</span><span class="hljs-number">1</span> → 广播 RequestVote<br>其他节点：本 term 未投票 <span class="hljs-meta">&amp;&amp; Candidate 日志不比自己旧 → 投票</span><br>得票 &gt; N/<span class="hljs-number">2</span> → 成为 Leader，周期性发心跳（AppendEntries）压制其他选举<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>多数派 Quorum</strong></td>
+<td>任何决策需要 <code>⌊N/2⌋ + 1</code> 个节点同意，两个多数派必然相交</td>
+</tr>
+<tr>
+<td>容错数</td>
+<td>容忍 <code>f</code> 个节点故障需 <code>2f+1</code> 个节点（3 节点容 1，5 节点容 2）</td>
+</tr>
+<tr>
+<td><code>W + R &gt; N</code></td>
+<td>读 Quorum + 写 Quorum 之和 &gt; 副本数，保证读写有交集</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>共识需要「多数派存活」，不是「任意节点存活」。</strong> 5 节点集群挂 3 个就彻底不可写 —— 这是 CP 的代价，不是 bug。<strong>节点数用奇数</strong>（3&#x2F;5&#x2F;7），偶数不增加容错却多一个可能脑裂的节点。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>W + R &gt; N</code> 保证的是「读能读到最新写入」，不保证事务隔离。</strong> 而且它要求副本集固定 —— 节点数变化时要重新计算，否则交集假设失效。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>Raft 的日志提交只认「当前任期的多数派」</strong>。老任期的日志即使被复制到多数派，也不能直接提交，必须由新 Leader 复制一条当前任期的日志后连带提交（Raft 论文 Figure 8 的经典坑）。</p>
+</blockquote>
+<h2 id="六、冲突与时间"><a href="#六、冲突与时间" class="headerlink" title="六、冲突与时间"></a>六、冲突与时间</h2><h3 id="时钟问题"><a href="#时钟问题" class="headerlink" title="时钟问题"></a>时钟问题</h3><blockquote>
+<p><strong>不能依赖各机器的物理时间戳来给事件排序。</strong> NTP 校时会跳变，不同机器时钟有漂移，同一毫秒内的事件无法定序。</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>时钟</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>物理时钟（<code>wall clock</code>）</td>
+<td>只适合记录日志时间，<strong>不能用于定序</strong></td>
+</tr>
+<tr>
+<td>单调时钟（<code>monotonic</code>）</td>
+<td>测时长，不受 NTP 跳变影响</td>
+</tr>
+<tr>
+<td><strong>逻辑时钟（Lamport）</strong></td>
+<td>给事件一个偏序，<code>a → b</code> 则 <code>L(a) &lt; L(b)</code></td>
+</tr>
+<tr>
+<td><strong>向量时钟（Vector Clock）</strong></td>
+<td>能判断「因果先后」还是「并发冲突」</td>
+</tr>
+</tbody></table>
+<h3 id="冲突解决"><a href="#冲突解决" class="headerlink" title="冲突解决"></a>冲突解决</h3><table>
+<thead>
+<tr>
+<th>策略</th>
+<th>说明</th>
+<th>缺点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>LWW（Last-Write-Wins）</strong></td>
+<td>时间戳大的赢</td>
+<td>依赖时钟，<strong>静默丢数据</strong></td>
+</tr>
+<tr>
+<td>版本向量 + 应用合并</td>
+<td>检测到并发冲突交业务处理</td>
+<td>复杂</td>
+</tr>
+<tr>
+<td><strong>CRDT</strong></td>
+<td>数据结构本身可交换、可合并，天然收敛</td>
+<td>只适用特定类型</td>
+</tr>
+</tbody></table>
+<figure class="highlight dns"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs dns">向量时钟比较 <span class="hljs-keyword">A</span>=[<span class="hljs-number">2</span>,<span class="hljs-number">1</span>] B=[<span class="hljs-number">1</span>,<span class="hljs-number">1</span>]：<br>  <span class="hljs-keyword">A</span> 每维 ≥ B 且至少一维 &gt;  → <span class="hljs-keyword">A</span> 因果在 B 之后<br>  <span class="hljs-keyword">A</span>、B 各有维度领先      → 并发冲突，需合并<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>LWW 会静默丢更新。</strong> 两节点并发写同一 key，时钟快的一方赢，另一方<strong>直接被丢弃且无任何提示</strong>。只要业务不能接受丢写，就不能用 LWW。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>物理时钟回拨是真实存在的</strong>：NTP 同步、虚拟机迁移、闰秒都会让时间倒退。任何用 <code>timestamp</code> 做「最新版本判断」的地方都要问一句「时钟回拨了会怎样」。</p>
+</blockquote>
+<h2 id="七、脑裂与-fencing-token"><a href="#七、脑裂与-fencing-token" class="headerlink" title="七、脑裂与 fencing token"></a>七、脑裂与 fencing token</h2><p><strong>脑裂</strong>：分区导致出现两个 Leader，两边都接受写入 → 数据分叉。</p>
+<figure class="highlight livecodeserver"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs livecodeserver">fencing <span class="hljs-keyword">token</span> 方案：<br>  <span class="hljs-number">1.</span> 每次选主，Leader 从「带单调递增编号的锁服务」领取 <span class="hljs-keyword">token</span>（如 <span class="hljs-number">33</span>、<span class="hljs-number">34</span>…）<br>  <span class="hljs-number">2.</span> Leader 带着 <span class="hljs-keyword">token</span> 去写存储<br>  <span class="hljs-number">3.</span> 存储拒绝「<span class="hljs-keyword">token</span> 小于已见过的最大值」的写<br>  → 老 Leader（<span class="hljs-keyword">token</span>=<span class="hljs-number">33</span>）即使还活着，写入也会被拒<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>fencing token</strong></td>
+<td>存储侧校验单调递增的令牌，拒绝过期 Leader</td>
+</tr>
+<tr>
+<td>STONITH</td>
+<td>直接断电&#x2F;隔离旧主（硬件层）</td>
+</tr>
+<tr>
+<td>租约（Lease）</td>
+<td>Leader 持有带超时的租约，过期即失去资格</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>光靠「心跳超时判死」是不够的。</strong> 老 Leader 可能只是因为 GC 停顿被误判，恢复后仍以为自己在线。<strong>必须有存储侧的 fencing 校验</strong>，否则脑裂照样写坏数据。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>租约依赖时钟。</strong> 时钟漂移会让租约「提前失效」或「延后失效」，所以租约时长要留足安全边界，且要能容忍一定漂移。</p>
+</blockquote>
+<h2 id="八、ZooKeeper-etcd-与工程取舍"><a href="#八、ZooKeeper-etcd-与工程取舍" class="headerlink" title="八、ZooKeeper &#x2F; etcd 与工程取舍"></a>八、ZooKeeper &#x2F; etcd 与工程取舍</h2><table>
+<thead>
+<tr>
+<th>系统</th>
+<th>共识</th>
+<th>典型用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>ZooKeeper</td>
+<td>ZAB</td>
+<td>选主、分布式锁、配置中心、Kafka 旧版元数据</td>
+</tr>
+<tr>
+<td>etcd</td>
+<td>Raft</td>
+<td>K8s 元数据、服务发现、配置中心、选主</td>
+</tr>
+<tr>
+<td>Consul</td>
+<td>Raft</td>
+<td>服务发现 + KV + 健康检查</td>
+</tr>
+</tbody></table>
+<p><strong>微服务下的现实取舍：</strong></p>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>建议</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>能拆成「单库事务」</td>
+<td><strong>就拆</strong>，别上分布式事务</td>
+</tr>
+<tr>
+<td>跨服务但可异步</td>
+<td>本地消息表 &#x2F; 事务消息 + 幂等</td>
+</tr>
+<tr>
+<td>跨服务且必须同步强一致</td>
+<td>重新设计边界，尽量合并成一个服务</td>
+</tr>
+<tr>
+<td>跨服务且要补偿</td>
+<td>SAGA &#x2F; TCC</td>
+</tr>
+<tr>
+<td>真需要强一致</td>
+<td>2PC，但限定在同机房、少量参与者</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>幂等是分布式的基础设施，不是可选项。</strong> 只要涉及重试、消息、补偿，就必须有幂等键（业务唯一 id &#x2F; 请求 id）和去重表。没有幂等，任何「至少一次」投递都会产生重复数据。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>别把 ZooKeeper &#x2F; etcd 当数据库用。</strong> 它们适合小数据量、读多写少的协调场景；大量写会打爆 Raft 日志。配置中心里存几百 KB 的大 JSON 也是常见误用。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>「分布式事务」通常是边界划错的信号。</strong> 如果一次业务操作要跨 4 个服务写库，多半是领域边界没拆对。<strong>先怀疑设计，再考虑事务方案。</strong></p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 把 CAP 当成「三选二」，或把 CAP 的 C 当成 ACID 的 C</li>
+<li><input disabled="" type="checkbox"> 以为「最终一致」有确定的时间上界</li>
+<li><input disabled="" type="checkbox"> 用纯最终一致做「自己写的自己立刻能看到」的需求</li>
+<li><input disabled="" type="checkbox"> 在微服务里上 2PC，慢服务拖死整条链路</li>
+<li><input disabled="" type="checkbox"> 用 3PC 以为能解决分区下的一致性问题</li>
+<li><input disabled="" type="checkbox"> TCC 的 Confirm &#x2F; Cancel 不幂等，或没处理空回滚与悬挂</li>
+<li><input disabled="" type="checkbox"> SAGA 忽略「没有隔离性」，中间状态被下游读到</li>
+<li><input disabled="" type="checkbox"> 把补偿当成回滚，以为「退款 &#x3D; 没扣款」</li>
+<li><input disabled="" type="checkbox"> 本地消息表把业务写和消息写分成两个事务</li>
+<li><input disabled="" type="checkbox"> 消费端不做幂等，重试就产生重复数据</li>
+<li><input disabled="" type="checkbox"> 追求「恰好一次」投递（不可能，只能至少一次 + 幂等）</li>
+<li><input disabled="" type="checkbox"> 共识集群用偶数节点，或以为挂一半还能写</li>
+<li><input disabled="" type="checkbox"> 用 <code>W + R &gt; N</code> 当隔离性保证，或副本数变化后不重算</li>
+<li><input disabled="" type="checkbox"> Raft 里直接提交老任期的日志（Figure 8 坑）</li>
+<li><input disabled="" type="checkbox"> 用各机器物理时间戳给事件排序</li>
+<li><input disabled="" type="checkbox"> 用 LWW 解决冲突，静默丢更新</li>
+<li><input disabled="" type="checkbox"> 忽略时钟回拨，用 <code>timestamp</code> 判断「最新版本」</li>
+<li><input disabled="" type="checkbox"> 只靠心跳超时判死，没有 fencing token</li>
+<li><input disabled="" type="checkbox"> 租约时长不留时钟漂移的安全边界</li>
+<li><input disabled="" type="checkbox"> 把 ZooKeeper &#x2F; etcd 当数据库或大对象存储用</li>
+<li><input disabled="" type="checkbox"> 业务边界没拆对就上分布式事务</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://raft.github.io/raft.pdf">Raft 论文 · In Search of an Understandable Consensus Algorithm</a> · <a target="_blank" rel="noopener" href="https://raft.github.io/">Raft 官网 · 可视化与实现列表</a> · <a target="_blank" rel="noopener" href="https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf">Amazon Dynamo 论文 · Dynamo: Amazon’s Highly Available Key-value Store</a> · <a target="_blank" rel="noopener" href="https://research.google/pubs/pub39966/">Google Spanner 论文 · Spanner: Google’s Globally-Distributed Database</a> · <a target="_blank" rel="noopener" href="https://www.cs.umd.edu/~abadi/papers/abadi-pacelc.pdf">PACELC · 一致性与延迟的权衡</a> · <a target="_blank" rel="noopener" href="https://etcd.io/docs/">etcd 官方文档</a> · <a target="_blank" rel="noopener" href="https://zookeeper.apache.org/doc/current/">Apache ZooKeeper 官方文档</a> · <a target="_blank" rel="noopener" href="https://inria.hal.science/inria-00555588/document">CRDT 综述 · A Comprehensive Study of Convergent and Commutative Replicated Data Types</a> · <a target="_blank" rel="noopener" href="https://www.cl.cam.ac.uk/teaching/2122/ConcDisSys/dist-sys-notes.pdf">Martin Kleppmann · 分布式系统笔记</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/system-design/" class="category-chain-item">system-design</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/system-design/" class="print-no-link">#system-design</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 065 · 系统设计（三）：分布式一致性与共识</div>
+      <div>https://ethan-iopasd.github.io/2026/10/08/每日技术博客065-系统设计分布式一致性/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月8日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2049-%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/" title="每日技术博客 049 · 系统设计（二）：消息队列与最终一致性">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 049 · 系统设计（二）：消息队列与最终一致性</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

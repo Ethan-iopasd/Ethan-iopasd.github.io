@@ -1,0 +1,1143 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 062 篇 Elasticsearch 系列第三篇。BM25 打分、multi_match 三种策略、term &#x2F; match 的分词陷阱、Mapping 设计、字段爆炸与 nested。  📚 Elasticsearch 系列目录   章节 主题 状态    一 倒排索引与查询 DSL 已发布   二 聚合、分页与性能优化 已发布">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 062 · Elasticsearch（三）：相关性打分与 Mapping 设计">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2062-Elasticsearch%E7%9B%B8%E5%85%B3%E6%80%A7%E6%89%93%E5%88%86%E4%B8%8EMapping/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 062 篇 Elasticsearch 系列第三篇。BM25 打分、multi_match 三种策略、term &#x2F; match 的分词陷阱、Mapping 设计、字段爆炸与 nested。  📚 Elasticsearch 系列目录   章节 主题 状态    一 倒排索引与查询 DSL 已发布   二 聚合、分页与性能优化 已发布">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-08T03:45:00.000Z">
+<meta property="article:modified_time" content="2026-10-08T02:50:03.483Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="elasticsearch">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 062 · Elasticsearch（三）：相关性打分与 Mapping 设计 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 062 · Elasticsearch（三）：相关性打分与 Mapping 设计"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-08 11:45" pubdate>
+          2026年10月8日 中午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          3.2k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          27 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 062 · Elasticsearch（三）：相关性打分与 Mapping 设计</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-08 · 第 062 篇</p>
+<p>Elasticsearch 系列第三篇。BM25 打分、<code>multi_match</code> 三种策略、<code>term</code> &#x2F; <code>match</code> 的分词陷阱、Mapping 设计、字段爆炸与 <code>nested</code>。</p>
+</blockquote>
+<h2 id="📚-Elasticsearch-系列目录"><a href="#📚-Elasticsearch-系列目录" class="headerlink" title="📚 Elasticsearch 系列目录"></a>📚 Elasticsearch 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>倒排索引与查询 DSL</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>聚合、分页与性能优化</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>相关性打分与 Mapping 设计</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><code>_score</code> 由 BM25 算，但<strong>能不能被搜到</strong>完全由 mapping 决定 —— <code>term</code> 查 <code>text</code>、<code>keyword</code> 没配 <code>normalizer</code>、<code>object</code> 数组丢关联，这三个是线上 90% 的「搜不到 &#x2F; 搜错」根因。</p>
+<h2 id="一、BM25-与打分诊断"><a href="#一、BM25-与打分诊断" class="headerlink" title="一、BM25 与打分诊断"></a>一、BM25 与打分诊断</h2><p>BM25 自 ES 5.0 起取代 TF-IDF 成为默认相似度。</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>TF-IDF</th>
+<th>BM25</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>TF 增长</td>
+<td>线性（词频越高分越高）</td>
+<td><strong>饱和</strong>（<code>k1</code> 控制上限）</td>
+</tr>
+<tr>
+<td>文档长度</td>
+<td>不归一化</td>
+<td><strong>归一化</strong>（<code>b</code> 控制）</td>
+</tr>
+<tr>
+<td>参数</td>
+<td>无</td>
+<td><code>k1=1.2</code>、<code>b=0.75</code></td>
+</tr>
+<tr>
+<td>默认</td>
+<td>5.0 之前</td>
+<td><strong>5.0 起</strong></td>
+</tr>
+</tbody></table>
+<p>打分核心：<code>score = IDF × (tf × (k1+1)) / (tf + k1 × (1 - b + b × dl/avgdl))</code></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>作用</th>
+<th>调大</th>
+<th>调小</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>k1</code>（0~3）</td>
+<td>控制 TF 饱和速度</td>
+<td>词频影响更大</td>
+<td>更快饱和</td>
+</tr>
+<tr>
+<td><code>b</code>（0~1）</td>
+<td>控制长度归一化</td>
+<td>更惩罚长文档</td>
+<td><code>b=0</code> 完全不归一化</td>
+</tr>
+</tbody></table>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs json">PUT /articles<br><span class="hljs-punctuation">&#123;</span><br>  <span class="hljs-attr">&quot;settings&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;similarity&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;my_bm25&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;type&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;BM25&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;k1&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1.5</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;b&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">0.6</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span><span class="hljs-punctuation">,</span><br>  <span class="hljs-attr">&quot;mappings&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;properties&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;title&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;type&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;text&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;similarity&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;my_bm25&quot;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span><br><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs json">GET /articles/_search<br><span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;query&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;match&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;title&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;elasticsearch 打分&quot;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;explain&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">true</span></span> <span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<p><code>explain</code> 输出逐层拆解：</p>
+<table>
+<thead>
+<tr>
+<th>层级</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>value</code></td>
+<td>该节点的贡献分</td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td>用的公式（如 <code>score(freq=2.0), computed as boost * idf * tf</code>）</td>
+</tr>
+<tr>
+<td><code>details</code></td>
+<td>逐层拆解：<code>boost</code> &#x2F; <code>idf</code> &#x2F; <code>tf</code> &#x2F; <code>fieldLength</code></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>k1</code> &#x2F; <code>b</code> 只能在<strong>建索引时</strong>定义，<strong>不能对已有字段动态修改</strong>。想调参得 reindex 重建。别指望线上 <code>PUT _settings</code> 改完立刻生效。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>b=0.75</code> 是通用默认，但**短文本（标题、标签）通常该调低 <code>b</code>**，否则长度差异被过度惩罚；长正文可保持或调高。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 字段长度归一化用的是<strong>该字段的平均长度</strong>（<code>avgdl</code>）。索引里文档构成一变，同一文档的分数也会变 —— 相关性分数<strong>不是跨索引 &#x2F; 跨时间可比的绝对值</strong>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>explain: true</code> 会给<strong>每个命中文档</strong>都算一遍解释，开销极大。只在调试单条时开，别在线上大查询里用。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 查询里有 <code>filter</code>（如 <code>term</code> 过滤）时，filter 部分<strong>不参与打分</strong>，<code>_score</code> 只反映 <code>must</code> &#x2F; <code>should</code>。所以「加了 filter 分数没变」是正常的。</p>
+</blockquote>
+<h2 id="二、boost-function-score-script-score"><a href="#二、boost-function-score-script-score" class="headerlink" title="二、boost &#x2F; function_score &#x2F; script_score"></a>二、boost &#x2F; function_score &#x2F; script_score</h2><table>
+<thead>
+<tr>
+<th>方式</th>
+<th>用途</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>boost</code>（query 级）</td>
+<td>调整某个子查询权重</td>
+<td>低</td>
+</tr>
+<tr>
+<td><code>function_score</code></td>
+<td>按字段值 &#x2F; 衰减函数改分</td>
+<td>中</td>
+</tr>
+<tr>
+<td><code>script_score</code></td>
+<td>任意脚本算分</td>
+<td><strong>高</strong>（painless 逐文档执行）</td>
+</tr>
+</tbody></table>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><code class="hljs json">GET /articles/_search<br><span class="hljs-punctuation">&#123;</span><br>  <span class="hljs-attr">&quot;query&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span><br>    <span class="hljs-attr">&quot;function_score&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span><br>      <span class="hljs-attr">&quot;query&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;match&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;title&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;elasticsearch&quot;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span><span class="hljs-punctuation">,</span><br>      <span class="hljs-attr">&quot;functions&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><br>        <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;filter&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;term&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;status&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;published&quot;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;weight&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">3</span> <span class="hljs-punctuation">&#125;</span><span class="hljs-punctuation">,</span><br>        <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;gauss&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;publish_date&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;origin&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;now&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;scale&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;30d&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;decay&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">0.5</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span><br>      <span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span><br>      <span class="hljs-attr">&quot;score_mode&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;sum&quot;</span><span class="hljs-punctuation">,</span><br>      <span class="hljs-attr">&quot;boost_mode&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;multiply&quot;</span><br>    <span class="hljs-punctuation">&#125;</span><br>  <span class="hljs-punctuation">&#125;</span><br><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>script_score</code> 在<strong>每个候选文档</strong>上跑一次脚本，<code>_score</code> 无法被索引优化。几万候选就能把查询拖到超时。能用 <code>function_score</code> 的衰减 &#x2F; 权重解决就别上脚本。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>function_score</code> 的 <code>score_mode</code> &#x2F; <code>boost_mode</code> 组合直接决定最终分。<code>boost_mode: replace</code> 会<strong>丢掉原始 BM25 分</strong>，文本相关性完全失效。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>boost</code> 值是<strong>乘数不是加法</strong>。给某字段 <code>boost: 2</code> 不等于「多加 2 分」，而是把该子查询得分翻倍，效果随原始分缩放。</p>
+</blockquote>
+<h2 id="三、multi-match-三策略与-dis-max"><a href="#三、multi-match-三策略与-dis-max" class="headerlink" title="三、multi_match 三策略与 dis_max"></a>三、multi_match 三策略与 dis_max</h2><table>
+<thead>
+<tr>
+<th>type</th>
+<th>行为</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>best_fields</code>（默认）</td>
+<td>取<strong>得分最高</strong>的单字段</td>
+<td>一个词主要出现在某字段</td>
+</tr>
+<tr>
+<td><code>most_fields</code></td>
+<td><strong>累加</strong>所有字段的得分</td>
+<td>同一词在多个字段重复出现</td>
+</tr>
+<tr>
+<td><code>cross_fields</code></td>
+<td>把多字段<strong>当一个字段</strong>处理</td>
+<td>词分散在不同字段（如 first_name + last_name）</td>
+</tr>
+</tbody></table>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs json">GET /articles/_search<br><span class="hljs-punctuation">&#123;</span><br>  <span class="hljs-attr">&quot;query&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span><br>    <span class="hljs-attr">&quot;multi_match&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span><br>      <span class="hljs-attr">&quot;query&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;elasticsearch 打分&quot;</span><span class="hljs-punctuation">,</span><br>      <span class="hljs-attr">&quot;fields&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-string">&quot;title^3&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-string">&quot;content&quot;</span><span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span><br>      <span class="hljs-attr">&quot;type&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;best_fields&quot;</span><span class="hljs-punctuation">,</span><br>      <span class="hljs-attr">&quot;operator&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;and&quot;</span><br>    <span class="hljs-punctuation">&#125;</span><br>  <span class="hljs-punctuation">&#125;</span><br><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>most_fields</code> 会让<strong>多字段重复出现同一个词</strong>的文档分数虚高（同一个词被算多次），和 <code>best_fields</code> 语义相反。选错会让「到处都提到关键词的文档」排在真正精准匹配前面。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>cross_fields</code> 只在<strong>所有字段用同一个 analyzer</strong> 时才有意义，且 <code>operator=and</code> 下才能保证「所有词都出现」。字段分词器不同时结果不可预期。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>dis_max</code> 是 <code>best_fields</code> 的底层结构（<code>best_fields</code> 内部就是 <code>dis_max</code> + <code>tie_breaker</code>）。想微调「最佳字段之外其他字段也贡献一点分」，用 <code>tie_breaker</code>。</p>
+</blockquote>
+<h2 id="四、match-term-match-phrase-与-keyword-vs-text"><a href="#四、match-term-match-phrase-与-keyword-vs-text" class="headerlink" title="四、match &#x2F; term &#x2F; match_phrase 与 keyword vs text"></a>四、match &#x2F; term &#x2F; match_phrase 与 keyword vs text</h2><table>
+<thead>
+<tr>
+<th>查询</th>
+<th>是否分析</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>match</code></td>
+<td>✅ 对 query 分词</td>
+<td>全文检索</td>
+</tr>
+<tr>
+<td><code>match_phrase</code></td>
+<td>✅ 分词 + 保持顺序</td>
+<td>短语匹配（<code>slop</code> 控制词间距）</td>
+</tr>
+<tr>
+<td><code>term</code></td>
+<td>❌ 不分词</td>
+<td>精确值（<code>keyword</code>、数值）</td>
+</tr>
+<tr>
+<td><code>terms</code></td>
+<td>❌ 不分词</td>
+<td>多值精确匹配</td>
+</tr>
+</tbody></table>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th><code>text</code></th>
+<th><code>keyword</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>分词</td>
+<td>✅</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>排序 &#x2F; 聚合</td>
+<td>❌（需 fielddata）</td>
+<td>✅（doc_values）</td>
+</tr>
+<tr>
+<td><code>term</code> 查询</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>典型用途</td>
+<td>正文、标题</td>
+<td>状态、标签、ID</td>
+</tr>
+</tbody></table>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs json"><span class="hljs-comment">// text 字段被 standard analyzer 转成小写，term 拿原始大小写去查</span><br>GET /articles/_search<br><span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;query&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;term&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;title&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;Elasticsearch&quot;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span>   <span class="hljs-comment">// ❌ 大概率 0 结果</span><br><span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;query&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;match&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;title&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;Elasticsearch&quot;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span>  <span class="hljs-comment">// ✅</span><br><br><span class="hljs-comment">// 一个字段同时支持全文检索与精确聚合 / 排序：text + keyword 子字段</span><br><span class="hljs-attr">&quot;title&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;type&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;text&quot;</span><span class="hljs-punctuation">,</span><br>           <span class="hljs-attr">&quot;fields&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;keyword&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;type&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;keyword&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;ignore_above&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">256</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>term</code> 不分析</strong>：<code>text</code> 字段默认用 standard analyzer 把 <code>Elasticsearch</code> 转成小写 <code>elasticsearch</code>，但 <code>term</code> 直接拿原始大小写去查，匹配不上。**<code>term</code> 只该用在 <code>keyword</code> 或数值字段上。**</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>keyword</code> 字段用 <code>match</code> 会先被当作一个整体（不分词），等价于 <code>term</code>；但<strong>不做 lowercase</strong>，<code>&quot;Published&quot;</code> 查不到 <code>&quot;published&quot;</code> —— 要么用 <code>term</code> 精确值，要么给字段配 <code>normalizer</code>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 一个字段**不能既是 <code>text</code> 又是 <code>keyword</code>**，标准做法是 <code>text</code> + <code>fields.keyword</code> 子字段（多字段），同时支持全文检索和精确聚合 &#x2F; 排序。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 对 <code>text</code> 字段直接做聚合 &#x2F; 排序，ES 会要求开 <code>fielddata</code>，而 <code>fielddata</code> <strong>默认关闭</strong>且会<strong>把字段值全量加载进堆内存</strong>，是 OOM 的头号元凶。</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>机制</th>
+<th>存储</th>
+<th>场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>doc_values</code></td>
+<td>磁盘列存（默认开）</td>
+<td>排序、聚合、脚本</td>
+</tr>
+<tr>
+<td><code>fielddata</code></td>
+<td><strong>堆内存</strong></td>
+<td><code>text</code> 字段的排序 &#x2F; 聚合</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>doc_values: false</code> 能省磁盘，但会让该字段<strong>无法排序和聚合</strong>，且<strong>不能对已有字段动态修改</strong>（需 reindex）。关之前想清楚。</p>
+</blockquote>
+<h2 id="五、Mapping-设计：dynamic、analyzer-与字段限制"><a href="#五、Mapping-设计：dynamic、analyzer-与字段限制" class="headerlink" title="五、Mapping 设计：dynamic、analyzer 与字段限制"></a>五、Mapping 设计：dynamic、analyzer 与字段限制</h2><table>
+<thead>
+<tr>
+<th><code>dynamic</code></th>
+<th>行为</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>true</code>（默认）</td>
+<td>自动新增字段映射</td>
+</tr>
+<tr>
+<td><code>false</code></td>
+<td>忽略新字段，不索引也不报错</td>
+</tr>
+<tr>
+<td><code>strict</code></td>
+<td>遇到未定义字段直接<strong>报错拒绝写入</strong></td>
+</tr>
+</tbody></table>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs json">PUT /articles<br><span class="hljs-punctuation">&#123;</span><br>  <span class="hljs-attr">&quot;mappings&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span><br>    <span class="hljs-attr">&quot;dynamic&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;strict&quot;</span><span class="hljs-punctuation">,</span><br>    <span class="hljs-attr">&quot;properties&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span><br>      <span class="hljs-attr">&quot;title&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;type&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;text&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;analyzer&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;ik_max_word&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;search_analyzer&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;ik_smart&quot;</span> <span class="hljs-punctuation">&#125;</span><span class="hljs-punctuation">,</span><br>      <span class="hljs-attr">&quot;views&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;type&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;integer&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;index&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">false</span></span> <span class="hljs-punctuation">&#125;</span><span class="hljs-punctuation">,</span>     <span class="hljs-comment">// 只存不索引</span><br>      <span class="hljs-attr">&quot;raw&quot;</span><span class="hljs-punctuation">:</span>   <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;type&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;object&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;enabled&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">false</span></span> <span class="hljs-punctuation">&#125;</span><span class="hljs-punctuation">,</span>    <span class="hljs-comment">// 整块不索引</span><br>      <span class="hljs-attr">&quot;url&quot;</span><span class="hljs-punctuation">:</span>   <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;type&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;keyword&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;ignore_above&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1024</span> <span class="hljs-punctuation">&#125;</span><br>    <span class="hljs-punctuation">&#125;</span><br>  <span class="hljs-punctuation">&#125;</span><br><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>分词器</th>
+<th>粒度</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>ik_max_word</code></td>
+<td>最细</td>
+<td>索引（召回多）</td>
+</tr>
+<tr>
+<td><code>ik_smart</code></td>
+<td>粗</td>
+<td>查询（精度高）</td>
+</tr>
+<tr>
+<td><code>standard</code></td>
+<td>按空格 &#x2F; 标点</td>
+<td>英文默认，中文会被切成单字</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>dynamic: true</code> 是<strong>字段爆炸</strong>的元凶：JSON 里一个动态 key（如 <code>attr_20261008</code>）就新增一个映射，映射表膨胀后集群直接拒绝写入（超 <code>index.mapping.total_fields.limit</code>，<strong>默认 1000</strong>）。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>ignore_above: 256</code> 只影响<strong>索引</strong>（超过长度的值不索引），<strong>原值仍在 <code>_source</code> 里</strong>。所以「设了 ignore_above 却还能在 <code>_source</code> 看到长值」是正常的，但聚合会漏掉这些长值。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>index: false</code> 的字段不能用于查询，但可排序 &#x2F; 聚合（若有 doc_values）且保留在 <code>_source</code>。适合「只展示不检索」的字段。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 用 <code>standard</code> 处理中文，会把「每日技术博客」切成一个个单字，召回高但相关性极差。中文必须装 <code>analysis-ik</code> 并显式指定 <code>analyzer</code>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>索引时和查询时用了不同 analyzer 会导致查不到</strong>。标准做法是索引用细粒度（<code>ik_max_word</code>）、查询用粗粒度（<code>ik_smart</code>），但<strong>分析器产出的 token 必须能对上</strong>，否则 term 无法匹配。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 改 <code>analyzer</code> <strong>对已有数据不生效</strong>，必须 reindex。只改 mapping 不重建索引，老数据仍按老分词器建的倒排。</p>
+</blockquote>
+<h3 id="source-stored-fields-copy-to"><a href="#source-stored-fields-copy-to" class="headerlink" title="_source &#x2F; stored_fields &#x2F; copy_to"></a>_source &#x2F; stored_fields &#x2F; copy_to</h3><table>
+<thead>
+<tr>
+<th>概念</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>_source</code></td>
+<td>原始 JSON，默认全存，可取回任意字段</td>
+</tr>
+<tr>
+<td><code>stored_fields</code></td>
+<td>只对显式 <code>store: true</code> 的字段有效</td>
+</tr>
+<tr>
+<td><code>copy_to</code></td>
+<td>把多个字段拼进一个「大字段」供检索</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>copy_to</code> 只是<strong>把值复制进目标字段的倒排</strong>，目标字段的 <code>_source</code> <strong>不会</strong>包含这些值，也不能直接用于 <code>term</code> 精确匹配（它仍是 <code>text</code>）。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 关闭 <code>_source</code> 能省磁盘，但会<strong>失去 reindex &#x2F; update 的能力</strong>；<code>stored_fields</code> 与 <code>_source</code> 是两套机制，同时开等于存两份。</p>
+</blockquote>
+<h2 id="六、字段爆炸、flattened、nested-与-join"><a href="#六、字段爆炸、flattened、nested-与-join" class="headerlink" title="六、字段爆炸、flattened、nested 与 join"></a>六、字段爆炸、flattened、nested 与 join</h2><figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs json"><span class="hljs-attr">&quot;properties&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;labels&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;type&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;flattened&quot;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span>   <span class="hljs-comment">// 整个对象当作一个字段，key 不展开成映射</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>动态 key</th>
+<th>能否单独查询某 key</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>object</code>（默认）</td>
+<td>每个 key 都建映射</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>flattened</code></td>
+<td><strong>不建独立映射</strong></td>
+<td>⚠️ 只能整体查</td>
+</tr>
+</tbody></table>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs json"><span class="hljs-comment">// object 数组：关联关系丢失</span><br><span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;user&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;alice&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;age&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">20</span> <span class="hljs-punctuation">&#125;</span><span class="hljs-punctuation">,</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;bob&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;age&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">30</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">]</span> <span class="hljs-punctuation">&#125;</span><br><span class="hljs-comment">// 内部被拍平成独立数组：user.name:[alice,bob]  user.age:[20,30]</span><br><span class="hljs-comment">// 查询 name=alice AND age=30 会误命中这个文档</span><br><br><span class="hljs-comment">// 改成 nested，并用 nested query 包住</span><br><span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;query&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;nested&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;path&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;user&quot;</span><span class="hljs-punctuation">,</span><br>    <span class="hljs-attr">&quot;query&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;bool&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;must&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><br>      <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;term&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;user.name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;alice&quot;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span><span class="hljs-punctuation">,</span><br>      <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;term&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;user.age&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">30</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">]</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>方式</th>
+<th>特点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>nested</code></td>
+<td>同文档内父子，查询快，写放大</td>
+</tr>
+<tr>
+<td><code>join</code></td>
+<td>跨文档父子，<strong>必须在同一 shard</strong>，查询用 <code>has_child</code> &#x2F; <code>has_parent</code></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>flattened</code> 把整个对象当成一个字段，<code>labels.color: red</code> 这种<strong>针对单个 key 的精确查询能力变弱</strong>（用 <code>term</code> 查 <code>labels</code> 整个字段）。这是「字段数爆炸」与「查询能力」之间的取舍。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 超过 <code>index.mapping.total_fields.limit</code>（默认 1000）后，索引<strong>拒绝任何新增字段的写入</strong>，报 <code>Limit of total fields [1000] has been exceeded</code>。要么调大阈值（治标），要么改 <code>flattened</code> &#x2F; <code>dynamic: false</code>（治本）。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>object</code> 数组会把子字段<strong>拍平成独立数组</strong>，丢失「哪个值和哪个值属于同一个对象」的关联。<code>name=alice AND age=30</code> 会匹配到 <code>&#123;alice,20&#125;</code> + <code>&#123;bob,30&#125;</code> 的文档 —— ES 最经典的误命中。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>nested</code> 查询<strong>必须用 <code>nested</code> query 包住</strong>，直接写 <code>user.name: alice</code> 会查不到（nested 字段不在根倒排里）。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>nested</code> 每个子文档是<strong>独立的 Lucene 文档</strong>，文档数会成倍膨胀，写入与查询都更贵。能用 <code>flattened</code> 或 <code>copy_to</code> 拼字段解决就别上 <code>nested</code>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>join</code> 字段要求父子文档<strong>路由到同一个 shard</strong>（相同 <code>routing</code>），否则查不到。这让 join 在多分片下扩展性很差，能用反范式冗余就别用。</p>
+</blockquote>
+<h2 id="七、写入调优：refresh-interval-与-bulk"><a href="#七、写入调优：refresh-interval-与-bulk" class="headerlink" title="七、写入调优：refresh_interval 与 _bulk"></a>七、写入调优：refresh_interval 与 _bulk</h2><figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs json">PUT /articles/_settings<br><span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;index.refresh_interval&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;30s&quot;</span> <span class="hljs-punctuation">&#125;</span>      <span class="hljs-comment">// 默认 1s</span><br><br>POST /_bulk<br><span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;index&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;_index&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;articles&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1&quot;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span><br><span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;title&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;...&quot;</span> <span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>refresh_interval</code> 默认 1s，意味着<strong>每秒生成一个 segment</strong>，写入压力大时产生大量小 segment。批量导入时临时调大（如 <code>30s</code> 或 <code>-1</code>），导完再调回。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>_bulk</code> 的<strong>响应要逐条检查</strong>：整体 HTTP 200 不代表全部成功，每条带自己的 <code>status</code>。字段冲突、解析失败都在 <code>items</code> 里，不看就丢数据。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 单次 <code>_bulk</code> 体积建议控制在<strong>几 MB ~ 十几 MB</strong>，不是越大越好。过大会打爆协调节点内存，也会撞上 HTTP 请求体限制（<code>http.max_content_length</code> 默认 100MB）。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>refresh_interval: -1</code> 会<strong>关闭自动刷新</strong>，此时写入的数据<strong>不可被搜索</strong>，直到手动 <code>POST /idx/_refresh</code>。别在生产查询索引上这么设。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> <code>term</code> 查 <code>text</code> 字段，因分词 &#x2F; 大小写导致查不到</li>
+<li><input disabled="" type="checkbox"> <code>keyword</code> 字段用 <code>match</code> 查，期望自动小写匹配</li>
+<li><input disabled="" type="checkbox"> 对 <code>text</code> 字段开 <code>fielddata</code> 做聚合，堆内存被打爆</li>
+<li><input disabled="" type="checkbox"> 一个字段既想全文检索又想聚合，却没配 <code>fields.keyword</code></li>
+<li><input disabled="" type="checkbox"> 用 <code>most_fields</code> 当 <code>best_fields</code>，重复词文档分数虚高</li>
+<li><input disabled="" type="checkbox"> <code>cross_fields</code> 用在分词器不同的字段上</li>
+<li><input disabled="" type="checkbox"> <code>boost_mode: replace</code> 丢掉 BM25 分，相关性全无</li>
+<li><input disabled="" type="checkbox"> 在线上大查询里开 <code>explain: true</code>，开销爆炸</li>
+<li><input disabled="" type="checkbox"> 以为 <code>filter</code> 参与打分（实际不参与）</li>
+<li><input disabled="" type="checkbox"> <code>dynamic: true</code> 遇到动态 key，字段数超 1000 被拒写</li>
+<li><input disabled="" type="checkbox"> <code>ignore_above</code> 设了却以为长值被丢弃（其实还在 <code>_source</code>）</li>
+<li><input disabled="" type="checkbox"> 改了 <code>analyzer</code> 不 reindex，老数据仍按老分词</li>
+<li><input disabled="" type="checkbox"> 中文索引用 <code>standard</code> 分词器，切成单字相关性极差</li>
+<li><input disabled="" type="checkbox"> <code>object</code> 数组当 <code>nested</code> 用，关联关系丢失导致误命中</li>
+<li><input disabled="" type="checkbox"> <code>nested</code> 查询没用 <code>nested</code> query 包住，查不到</li>
+<li><input disabled="" type="checkbox"> <code>join</code> 字段父子文档 routing 不一致，跨 shard 查不到</li>
+<li><input disabled="" type="checkbox"> 批量导入不调 <code>refresh_interval</code>，segment 碎成一片</li>
+<li><input disabled="" type="checkbox"> <code>_bulk</code> 只看 HTTP 200，不看 <code>items</code> 里的失败项</li>
+<li><input disabled="" type="checkbox"> 关闭 <code>_source</code> 后想 <code>_update</code> &#x2F; reindex，发现没数据</li>
+<li><input disabled="" type="checkbox"> 调 <code>k1</code> &#x2F; <code>b</code> 时想动态改已有字段，实际必须 reindex</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://www.elastic.co/guide/en/elasticsearch/reference/current/index-modules-similarity.html">Elasticsearch · 相似度（BM25）</a> · <a target="_blank" rel="noopener" href="https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-multi-match-query.html">Elasticsearch · multi_match</a> · <a target="_blank" rel="noopener" href="https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-settings-limit.html">Elasticsearch · Mapping 限制设置</a> · <a target="_blank" rel="noopener" href="https://www.elastic.co/guide/en/elasticsearch/reference/current/nested.html">Elasticsearch · nested 类型</a> · <a target="_blank" rel="noopener" href="https://www.elastic.co/guide/en/elasticsearch/reference/current/text.html">Elasticsearch · text 字段与 fielddata</a> · <a target="_blank" rel="noopener" href="https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-function-score-query.html">Elasticsearch · function_score</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/elasticsearch/" class="category-chain-item">elasticsearch</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/elasticsearch/" class="print-no-link">#elasticsearch</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 062 · Elasticsearch（三）：相关性打分与 Mapping 设计</div>
+      <div>https://ethan-iopasd.github.io/2026/10/08/每日技术博客062-Elasticsearch相关性打分与Mapping/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月8日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2041-Elasticsearch%E8%81%9A%E5%90%88%E4%B8%8E%E5%88%86%E9%A1%B5/" title="每日技术博客 041 · Elasticsearch（二）：聚合、分页与性能优化">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 041 · Elasticsearch（二）：聚合、分页与性能优化</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

@@ -1,0 +1,1018 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 055 篇 Redis 系列第三篇。把「锁」和「限流」这两件最容易写错的事拆开：加锁的原子性、解锁的持有者校验、续期、Redlock 争议，以及四种限流算法的 Redis 落地与 Lua 脚本的边界。  📚 Redis 系列目录   章节 主题 状态    一 数据结构与典型场景 已发布   二 缓存三大问题与持久化 已发布   三 分布式锁、限">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 055 · Redis（三）：分布式锁、限流与 Lua">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2055-Redis%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81%E4%B8%8E%E9%99%90%E6%B5%81/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 055 篇 Redis 系列第三篇。把「锁」和「限流」这两件最容易写错的事拆开：加锁的原子性、解锁的持有者校验、续期、Redlock 争议，以及四种限流算法的 Redis 落地与 Lua 脚本的边界。  📚 Redis 系列目录   章节 主题 状态    一 数据结构与典型场景 已发布   二 缓存三大问题与持久化 已发布   三 分布式锁、限">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-08T03:10:00.000Z">
+<meta property="article:modified_time" content="2026-10-08T02:45:52.307Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="redis">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 055 · Redis（三）：分布式锁、限流与 Lua - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 055 · Redis（三）：分布式锁、限流与 Lua"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-08 11:10" pubdate>
+          2026年10月8日 上午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.7k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          23 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 055 · Redis（三）：分布式锁、限流与 Lua</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-08 · 第 055 篇</p>
+<p>Redis 系列第三篇。把「锁」和「限流」这两件最容易写错的事拆开：加锁的原子性、解锁的持有者校验、续期、Redlock 争议，以及四种限流算法的 Redis 落地与 Lua 脚本的边界。</p>
+</blockquote>
+<h2 id="📚-Redis-系列目录"><a href="#📚-Redis-系列目录" class="headerlink" title="📚 Redis 系列目录"></a>📚 Redis 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>数据结构与典型场景</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>缓存三大问题与持久化</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>分布式锁、限流与 Lua</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p>分布式锁只有两种写法：<code>SET key val NX PX ttl</code> 一条命令搞定，或者用 Redisson；其余写法都是错的。限流别自己发明算法，<code>INCR</code> + <code>EXPIRE</code> 能覆盖 80% 场景，剩下的用 ZSET 滑动窗口或 Lua 令牌桶。</p>
+<h2 id="一、加锁：为什么不能-SETNX-EXPIRE"><a href="#一、加锁：为什么不能-SETNX-EXPIRE" class="headerlink" title="一、加锁：为什么不能 SETNX + EXPIRE"></a>一、加锁：为什么不能 <code>SETNX</code> + <code>EXPIRE</code></h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># ❌ 两步非原子：SETNX 成功、EXPIRE 之前进程崩了 → 锁永不过期，死锁</span><br>SETNX lock:order:1001 <span class="hljs-string">&quot;uuid-abc&quot;</span><br>EXPIRE lock:order:1001 30<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># ✅ 一条命令原子完成「不存在才设 + 设过期」</span><br>SET lock:order:1001 <span class="hljs-string">&quot;uuid-abc&quot;</span> NX PX 30000<br><span class="hljs-comment"># 返回 OK = 拿到锁；返回 nil = 锁被别人持有</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>写法</th>
+<th>原子性</th>
+<th>后果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>SETNX</code> + <code>EXPIRE</code></td>
+<td>❌ 两步</td>
+<td>中间崩溃 → 死锁</td>
+</tr>
+<tr>
+<td><code>SET ... NX EX</code></td>
+<td>✅</td>
+<td>秒级过期</td>
+</tr>
+<tr>
+<td><code>SET ... NX PX</code></td>
+<td>✅</td>
+<td>毫秒级过期，<strong>推荐</strong></td>
+</tr>
+<tr>
+<td><code>SETEX</code></td>
+<td>❌ 无条件覆盖</td>
+<td>会抢别人的锁</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>SETNX</code> 是 <code>SET ... NX</code> 的旧别名，<strong>它没有过期参数</strong>，必须配 <code>EXPIRE</code>，这就是两步非原子的根源。用 <code>SET</code> 一条命令。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>EX</code> &#x2F; <code>PX</code> 的区别是单位：<code>EX</code> 秒、<code>PX</code> 毫秒。业务 TTL 通常按毫秒估，写 <code>PX</code>。</p>
+</blockquote>
+<h2 id="二、value-必须存「持有者标识」"><a href="#二、value-必须存「持有者标识」" class="headerlink" title="二、value 必须存「持有者标识」"></a>二、value 必须存「持有者标识」</h2><p>value 不能随便写个 <code>1</code>。必须写能唯一标识当前线程&#x2F;进程的值，解锁时才能校验「锁还是不是我的」。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 加锁：value = 本次请求的唯一 ID</span><br>SET lock:order:1001 <span class="hljs-string">&quot;req-uuid-8f3a&quot;</span> NX PX 30000<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs lua"><span class="hljs-comment">-- 解锁：先比对 value，是我的才删。比对 + 删除必须原子</span><br><span class="hljs-keyword">if</span> redis.call(<span class="hljs-string">&quot;GET&quot;</span>, KEYS[<span class="hljs-number">1</span>]) == ARGV[<span class="hljs-number">1</span>] <span class="hljs-keyword">then</span><br>    <span class="hljs-keyword">return</span> redis.call(<span class="hljs-string">&quot;DEL&quot;</span>, KEYS[<span class="hljs-number">1</span>])<br><span class="hljs-keyword">else</span><br>    <span class="hljs-keyword">return</span> <span class="hljs-number">0</span><br><span class="hljs-keyword">end</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">EVAL <span class="hljs-string">&quot;&lt;上面的脚本&gt;&quot;</span> 1 lock:order:1001 <span class="hljs-string">&quot;req-uuid-8f3a&quot;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 直接 <code>DEL</code> 是致命 bug：A 的锁因 TTL 到期自动释放，B 拿到锁，此时 A 执行完 <code>DEL</code>，<strong>删掉的是 B 的锁</strong>。后续 C 又能拿锁 → 同一临界区两个执行者。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>GET</code> 和 <code>DEL</code> 分开写同样有竞态窗口：<code>GET</code> 校验通过后、<code>DEL</code> 之前锁到期被别人拿走，删的仍是别人的。<strong>校验和删除必须在 Lua 里原子完成。</strong></p>
+</blockquote>
+<h2 id="三、锁续期与看门狗"><a href="#三、锁续期与看门狗" class="headerlink" title="三、锁续期与看门狗"></a>三、锁续期与看门狗</h2><p>TTL 是双刃剑：太短，业务没跑完锁就没了；太长，进程崩了别人要等很久。</p>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>做法</th>
+<th>问题</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>固定 TTL</td>
+<td>估一个「够长」的值</td>
+<td>估不准，业务变慢就失效</td>
+</tr>
+<tr>
+<td>手动续期</td>
+<td>业务里定时 <code>PEXPIRE</code></td>
+<td>续期逻辑和业务耦合，容易漏</td>
+</tr>
+<tr>
+<td><strong>看门狗</strong></td>
+<td>后台线程自动续期</td>
+<td>依赖客户端存活</td>
+</tr>
+</tbody></table>
+<p>Redisson 的 <code>RLock</code>：不显式传 <code>leaseTime</code> 时启用看门狗，默认 <code>lockWatchdogTimeout = 30s</code>，每 <code>10s</code>（1&#x2F;3 周期）续一次，续到业务显式 <code>unlock</code> 为止。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-type">RLock</span> <span class="hljs-variable">lock</span> <span class="hljs-operator">=</span> redisson.getLock(<span class="hljs-string">&quot;lock:order:1001&quot;</span>);<br>lock.lock();          <span class="hljs-comment">// 不传 leaseTime → 启用看门狗自动续期</span><br><span class="hljs-keyword">try</span> &#123;<br>    <span class="hljs-comment">// 临界区</span><br>&#125; <span class="hljs-keyword">finally</span> &#123;<br>    lock.unlock();    <span class="hljs-comment">// 必须放 finally</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs java">lock.lock(<span class="hljs-number">30</span>, TimeUnit.SECONDS);   <span class="hljs-comment">// 显式传 leaseTime → 看门狗失效，30s 后一定释放</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 显式传了 <code>leaseTime</code>，看门狗就<strong>不再续期</strong>。业务执行超过 <code>leaseTime</code> 时锁会提前释放，两个线程同时进临界区。要么不传靠看门狗，要么传一个确信够大的值。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 看门狗靠 JVM 存活续期。<strong>进程被 kill -9 或 STW 卡死时，续期线程一起停</strong>，锁到期自动释放 —— 这是设计上的安全兜底，不是 bug。</p>
+</blockquote>
+<h2 id="四、Redlock-与它的争议"><a href="#四、Redlock-与它的争议" class="headerlink" title="四、Redlock 与它的争议"></a>四、Redlock 与它的争议</h2><p>单实例 Redis 锁有个硬伤：<strong>主从异步复制</strong>。客户端在 master 加锁成功、master 还没同步到 slave 就宕机，slave 升主后锁丢失，另一个客户端能重新加锁。</p>
+<p>Redlock 的思路：用 N（通常 5）个<strong>独立</strong> master，客户端依次加锁，<strong>超过半数成功且总耗时小于锁 TTL</strong> 才算拿到锁。</p>
+<table>
+<thead>
+<tr>
+<th>争议方</th>
+<th>核心论点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Martin Kleppmann</td>
+<td>锁不解决「时钟漂移 &#x2F; GC 停顿」；没有 <strong>fencing token</strong> 时，锁失效后旧持有者仍能写共享资源</td>
+</tr>
+<tr>
+<td>antirez（Redis 作者）</td>
+<td>引入 fencing token 需要存储层配合；Redlock 的目标是「多数派、无单点」，是合理权衡</td>
+</tr>
+</tbody></table>
+<p>Kleppmann 的替代主张：<strong>别用分布式锁保证正确性，用带单调递增 token 的存储层做乐观并发控制</strong>（如 etcd 的 revision、数据库的行版本号）。</p>
+<blockquote>
+<p>⚠️ Redlock 不是「更安全的单机锁」，它换的是<strong>故障模型</strong>：容忍单节点宕机，代价是 5 个独立实例的运维成本 + 对时钟的假设。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 如果你要的是「防重复执行」这种<strong>性能优化</strong>，单机 <code>SET NX PX</code> + 幂等就够了；如果你要的是<strong>正确性</strong>，锁本身就不够，得上 fencing token 或数据库唯一约束。</p>
+</blockquote>
+<h2 id="五、限流：四种算法与-Redis-落地"><a href="#五、限流：四种算法与-Redis-落地" class="headerlink" title="五、限流：四种算法与 Redis 落地"></a>五、限流：四种算法与 Redis 落地</h2><table>
+<thead>
+<tr>
+<th>算法</th>
+<th>优点</th>
+<th>缺点</th>
+<th>Redis 实现</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>固定窗口</td>
+<td>最简单</td>
+<td>窗口边界双倍流量</td>
+<td><code>INCR</code> + <code>EXPIRE</code></td>
+</tr>
+<tr>
+<td>滑动窗口</td>
+<td>平滑、精确</td>
+<td>占内存（存时间戳）</td>
+<td><code>ZSET</code></td>
+</tr>
+<tr>
+<td>令牌桶</td>
+<td>允许突发</td>
+<td>实现稍复杂</td>
+<td>Lua</td>
+</tr>
+<tr>
+<td>漏桶</td>
+<td>输出恒定</td>
+<td>不允许突发</td>
+<td>Lua</td>
+</tr>
+</tbody></table>
+<h3 id="5-1-固定窗口：INCR-EXPIRE"><a href="#5-1-固定窗口：INCR-EXPIRE" class="headerlink" title="5.1 固定窗口：INCR + EXPIRE"></a>5.1 固定窗口：<code>INCR</code> + <code>EXPIRE</code></h3><figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs lua"><span class="hljs-comment">-- 原子：计数 + 首次设置过期。返回当前计数</span><br><span class="hljs-keyword">local</span> current = redis.call(<span class="hljs-string">&quot;INCR&quot;</span>, KEYS[<span class="hljs-number">1</span>])<br><span class="hljs-keyword">if</span> current == <span class="hljs-number">1</span> <span class="hljs-keyword">then</span><br>    redis.call(<span class="hljs-string">&quot;EXPIRE&quot;</span>, KEYS[<span class="hljs-number">1</span>], ARGV[<span class="hljs-number">1</span>])<br><span class="hljs-keyword">end</span><br><span class="hljs-keyword">return</span> current<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>INCR</code> 和 <code>EXPIRE</code> 分开写有坑：<code>INCR</code> 之后进程崩溃，key 没有 TTL → 计数永远累加，接口被永久限流。<strong>放进 Lua 或保证 <code>INCR</code> 返回 1 时才 <code>EXPIRE</code>。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ 固定窗口在窗口切换点可放行 2 倍流量：第 59 秒打满 100 次，第 61 秒又打满 100 次。</p>
+</blockquote>
+<h3 id="5-2-滑动窗口：ZSET"><a href="#5-2-滑动窗口：ZSET" class="headerlink" title="5.2 滑动窗口：ZSET"></a>5.2 滑动窗口：<code>ZSET</code></h3><figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs lua"><span class="hljs-comment">-- KEYS[1]=限流key  ARGV[1]=当前毫秒时间戳  ARGV[2]=窗口毫秒  ARGV[3]=阈值</span><br>redis.call(<span class="hljs-string">&quot;ZREMRANGEBYSCORE&quot;</span>, KEYS[<span class="hljs-number">1</span>], <span class="hljs-number">0</span>, ARGV[<span class="hljs-number">1</span>] - ARGV[<span class="hljs-number">2</span>])  <span class="hljs-comment">-- 移除过期</span><br><span class="hljs-keyword">local</span> count = redis.call(<span class="hljs-string">&quot;ZCARD&quot;</span>, KEYS[<span class="hljs-number">1</span>])<br><span class="hljs-keyword">if</span> count &lt; <span class="hljs-built_in">tonumber</span>(ARGV[<span class="hljs-number">3</span>]) <span class="hljs-keyword">then</span><br>    redis.call(<span class="hljs-string">&quot;ZADD&quot;</span>, KEYS[<span class="hljs-number">1</span>], ARGV[<span class="hljs-number">1</span>], ARGV[<span class="hljs-number">1</span>] .. <span class="hljs-string">&quot;-&quot;</span> .. <span class="hljs-built_in">math</span>.<span class="hljs-built_in">random</span>(<span class="hljs-number">100000</span>))<br>    redis.call(<span class="hljs-string">&quot;PEXPIRE&quot;</span>, KEYS[<span class="hljs-number">1</span>], ARGV[<span class="hljs-number">2</span>])<br>    <span class="hljs-keyword">return</span> <span class="hljs-number">1</span><br><span class="hljs-keyword">end</span><br><span class="hljs-keyword">return</span> <span class="hljs-number">0</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>结构</th>
+<th>存什么</th>
+<th>内存</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>固定窗口</td>
+<td>一个计数</td>
+<td>O(1)</td>
+</tr>
+<tr>
+<td>ZSET 滑动窗口</td>
+<td>每条请求一个 member</td>
+<td>O(阈值)</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ ZSET member 必须唯一，用时间戳做 member 时同毫秒并发会互相覆盖，<strong>要拼随机后缀或自增序号</strong>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 滑动窗口内存随 QPS 线性增长。阈值 10 万时，一个 key 存 10 万个 member，本身就成大 key 了 —— 高 QPS 场景优先令牌桶。</p>
+</blockquote>
+<h3 id="5-3-令牌桶：Lua"><a href="#5-3-令牌桶：Lua" class="headerlink" title="5.3 令牌桶：Lua"></a>5.3 令牌桶：Lua</h3><p>令牌桶只存「上次补充时间 + 当前令牌数」，内存 O(1)，且允许突发。</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><code class="hljs lua"><span class="hljs-comment">-- KEYS[1]=桶  ARGV: capacity, refill_rate(个/秒), now_ms, need</span><br><span class="hljs-keyword">local</span> data   = redis.call(<span class="hljs-string">&quot;HMGET&quot;</span>, KEYS[<span class="hljs-number">1</span>], <span class="hljs-string">&quot;tokens&quot;</span>, <span class="hljs-string">&quot;ts&quot;</span>)<br><span class="hljs-keyword">local</span> tokens = <span class="hljs-built_in">tonumber</span>(data[<span class="hljs-number">1</span>]) <span class="hljs-keyword">or</span> <span class="hljs-built_in">tonumber</span>(ARGV[<span class="hljs-number">1</span>])<br><span class="hljs-keyword">local</span> last   = <span class="hljs-built_in">tonumber</span>(data[<span class="hljs-number">2</span>]) <span class="hljs-keyword">or</span> <span class="hljs-built_in">tonumber</span>(ARGV[<span class="hljs-number">3</span>])<br><span class="hljs-keyword">local</span> cap    = <span class="hljs-built_in">tonumber</span>(ARGV[<span class="hljs-number">1</span>])<br><span class="hljs-keyword">local</span> rate   = <span class="hljs-built_in">tonumber</span>(ARGV[<span class="hljs-number">2</span>])<br><span class="hljs-keyword">local</span> now    = <span class="hljs-built_in">tonumber</span>(ARGV[<span class="hljs-number">3</span>])<br><span class="hljs-keyword">local</span> need   = <span class="hljs-built_in">tonumber</span>(ARGV[<span class="hljs-number">4</span>])<br><br><span class="hljs-comment">-- 按流逝时间补令牌，上限 capacity</span><br><span class="hljs-keyword">local</span> delta = <span class="hljs-built_in">math</span>.<span class="hljs-built_in">max</span>(<span class="hljs-number">0</span>, now - last) / <span class="hljs-number">1000.0</span><br>tokens = <span class="hljs-built_in">math</span>.<span class="hljs-built_in">min</span>(cap, tokens + delta * rate)<br><br><span class="hljs-keyword">if</span> tokens &gt;= need <span class="hljs-keyword">then</span><br>    tokens = tokens - need<br>    redis.call(<span class="hljs-string">&quot;HMSET&quot;</span>, KEYS[<span class="hljs-number">1</span>], <span class="hljs-string">&quot;tokens&quot;</span>, tokens, <span class="hljs-string">&quot;ts&quot;</span>, now)<br>    redis.call(<span class="hljs-string">&quot;PEXPIRE&quot;</span>, KEYS[<span class="hljs-number">1</span>], <span class="hljs-built_in">math</span>.<span class="hljs-built_in">ceil</span>(cap / rate * <span class="hljs-number">1000</span>) * <span class="hljs-number">2</span>)<br>    <span class="hljs-keyword">return</span> <span class="hljs-number">1</span><br><span class="hljs-keyword">end</span><br>redis.call(<span class="hljs-string">&quot;HMSET&quot;</span>, KEYS[<span class="hljs-number">1</span>], <span class="hljs-string">&quot;tokens&quot;</span>, tokens, <span class="hljs-string">&quot;ts&quot;</span>, now)<br><span class="hljs-keyword">return</span> <span class="hljs-number">0</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 时间必须由<strong>调用方传入</strong>（<code>ARGV[3]</code>），不要在脚本里调 <code>redis.call(&quot;TIME&quot;)</code>。虽然 Redis 5.0 起默认按<strong>效果复制</strong>脚本（不再把 <code>TIME</code> 当致命错误），但多实例&#x2F;主从对时仍然要求脚本行为可复现 —— 时间戳统一从外部传入最稳。</p>
+</blockquote>
+<h2 id="六、Lua-脚本的硬约束"><a href="#六、Lua-脚本的硬约束" class="headerlink" title="六、Lua 脚本的硬约束"></a>六、Lua 脚本的硬约束</h2><table>
+<thead>
+<tr>
+<th>约束</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>原子性</td>
+<td>脚本执行期间不处理其他命令，<strong>但不是事务，中途报错不回滚</strong></td>
+</tr>
+<tr>
+<td>同 slot</td>
+<td>Cluster 下所有 <code>KEYS</code> 必须落同一个 slot，否则报 <code>CROSSSLOT</code></td>
+</tr>
+<tr>
+<td>无阻塞</td>
+<td>脚本里不能有长循环 &#x2F; 大范围 <code>KEYS</code>，会卡住整个实例</td>
+</tr>
+<tr>
+<td>可缓存</td>
+<td><code>SCRIPT LOAD</code> 后可用 <code>EVALSHA</code> 按 SHA1 调用</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs bash">SCRIPT LOAD <span class="hljs-string">&quot;return redis.call(&#x27;GET&#x27;, KEYS[1])&quot;</span><br><span class="hljs-comment"># → &quot;e0e1f9fabfc9d4800c877a703b823ac0578ff831&quot;</span><br><br>EVALSHA e0e1f9fabfc9d4800c877a703b823ac0578ff831 1 mykey<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 脚本缓存<strong>不持久化、不跨重启</strong>，也<strong>不随主从同步</strong>。<code>EVALSHA</code> 报 <code>NOSCRIPT</code> 时必须降级 <code>EVAL</code> 重新加载 —— 客户端库一般内置这个回退，自己裸写要处理。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ Cluster 下想跨 key，必须用 <strong>hash tag</strong>：<code>&#123;user:1&#125;:lock</code> 和 <code>&#123;user:1&#125;:quota</code> 会落同一 slot（只取 <code>&#123;&#125;</code> 内内容算哈希）。</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash">CLUSTER KEYSLOT <span class="hljs-string">&quot;&#123;user:1&#125;:lock&quot;</span>   <span class="hljs-comment"># 同一个值</span><br>CLUSTER KEYSLOT <span class="hljs-string">&quot;&#123;user:1&#125;:quota&quot;</span><br></code></pre></td></tr></table></figure>
+
+<h2 id="七、SCAN-替代-KEYS、大-key-热-key"><a href="#七、SCAN-替代-KEYS、大-key-热-key" class="headerlink" title="七、SCAN 替代 KEYS、大 key &#x2F; 热 key"></a>七、<code>SCAN</code> 替代 <code>KEYS</code>、大 key &#x2F; 热 key</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash">KEYS user:*            <span class="hljs-comment"># ❌ 阻塞单线程，生产禁用</span><br>SCAN 0 MATCH user:* COUNT 100   <span class="hljs-comment"># ✅ 游标分批，不阻塞</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>命令</th>
+<th>阻塞</th>
+<th>保证</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>KEYS</code></td>
+<td>全量遍历，O(N)</td>
+<td>精确</td>
+</tr>
+<tr>
+<td><code>SCAN</code></td>
+<td>每批 O(COUNT)</td>
+<td>可能重复、期间新增可能漏</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>SCAN</code> 的 <code>COUNT</code> 是<strong>提示</strong>不是上限，一次可能返回更多或更少。且<strong>遍历期间新增的 key 不保证被返回、已返回的可能重复</strong> —— 做全量迁移时要能容忍。</p>
+</blockquote>
+<p>排查工具：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs bash">redis-cli --bigkeys                  <span class="hljs-comment"># 扫描各类型最大的 key（内部用 SCAN）</span><br>redis-cli --hotkeys                  <span class="hljs-comment"># 热 key，⚠️ 需 maxmemory-policy 为 *-lfu</span><br>redis-cli --memkeys                  <span class="hljs-comment"># 按实际内存占用排序</span><br>redis-cli --intrinsic-latency 100    <span class="hljs-comment"># 本机延迟基线</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>--hotkeys</code> 有硬性前提：<code>maxmemory-policy</code> 必须是 <code>allkeys-lfu</code> 或 <code>volatile-lfu</code>（Redis 4.0+ 才有 LFU）。策略是 LRU 时它直接报错或无意义。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 大 key 的删除也要注意：<code>DEL</code> 一个大 ZSET &#x2F; HASH 是 O(N)，会阻塞。用 <code>UNLINK</code>（4.0+）异步回收，或 <code>HSCAN</code> 分批删。</p>
+</blockquote>
+<h2 id="八、pipeline-与事务-MULTI-的边界"><a href="#八、pipeline-与事务-MULTI-的边界" class="headerlink" title="八、pipeline 与事务 MULTI 的边界"></a>八、<code>pipeline</code> 与事务 <code>MULTI</code> 的边界</h2><table>
+<thead>
+<tr>
+<th>特性</th>
+<th>pipeline</th>
+<th>MULTI&#x2F;EXEC</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>目的</td>
+<td>省网络 RTT</td>
+<td>原子执行</td>
+</tr>
+<tr>
+<td>原子性</td>
+<td>❌ 只是批量发送</td>
+<td>✅ 中间不插其他命令</td>
+</tr>
+<tr>
+<td>回滚</td>
+<td>❌</td>
+<td>❌ 运行期错误不回滚，只是全部执行</td>
+</tr>
+<tr>
+<td>读取中间结果</td>
+<td>❌ 发完才读</td>
+<td>❌ 命令入队时拿不到值</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># MULTI 里想「读到的值再决定写什么」是做不到的 —— 入队时不执行</span><br>MULTI<br>GET counter<br>INCR counter      <span class="hljs-comment"># 这里的 INCR 不会用到上面的 GET 结果</span><br>EXEC<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>MULTI</code> <strong>没有回滚</strong>。第 2 条命令报错（如类型不匹配），第 1、3 条照常生效。要「按读到的值决定写」必须用 <strong>Lua</strong>，不是事务。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 用 <code>WATCH</code> 做乐观锁时，<code>EXEC</code> 返回 <code>nil</code> 表示期间 key 被改过，<strong>必须重试整个读-改-写流程</strong>，不能当成失败直接放弃。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 用 <code>SETNX</code> + <code>EXPIRE</code> 两步加锁，中间崩溃导致死锁</li>
+<li><input disabled="" type="checkbox"> <code>SETNX</code> 不带过期，锁永久占用</li>
+<li><input disabled="" type="checkbox"> 加锁 value 写死 <code>1</code>，无法校验持有者</li>
+<li><input disabled="" type="checkbox"> 解锁直接 <code>DEL</code>，删掉别人的锁</li>
+<li><input disabled="" type="checkbox"> 解锁时 <code>GET</code> 和 <code>DEL</code> 分开写，中间有竞态</li>
+<li><input disabled="" type="checkbox"> <code>EX</code> &#x2F; <code>PX</code> 单位写错，TTL 差 1000 倍</li>
+<li><input disabled="" type="checkbox"> 显式传 <code>leaseTime</code> 后以为看门狗还在续期</li>
+<li><input disabled="" type="checkbox"> 看门狗依赖 JVM，进程被 kill -9 后锁靠 TTL 兜底，误以为「锁不会丢」</li>
+<li><input disabled="" type="checkbox"> 把 Redlock 当成正确性保证，没有 fencing token</li>
+<li><input disabled="" type="checkbox"> 主从架构下忽略「主宕机丢锁」的窗口</li>
+<li><input disabled="" type="checkbox"> <code>INCR</code> 和 <code>EXPIRE</code> 分开写，计数没有 TTL 被永久限流</li>
+<li><input disabled="" type="checkbox"> 固定窗口在边界放行 2 倍流量</li>
+<li><input disabled="" type="checkbox"> ZSET 滑动窗口用时间戳做 member，同毫秒并发互相覆盖</li>
+<li><input disabled="" type="checkbox"> 滑动窗口阈值开太大，key 变成大 key</li>
+<li><input disabled="" type="checkbox"> Lua 里调 <code>TIME</code> &#x2F; <code>RANDOMKEY</code>，多实例行为不一致</li>
+<li><input disabled="" type="checkbox"> Cluster 下脚本跨 slot，报 <code>CROSSSLOT</code></li>
+<li><input disabled="" type="checkbox"> <code>EVALSHA</code> 报 <code>NOSCRIPT</code> 没有降级到 <code>EVAL</code></li>
+<li><input disabled="" type="checkbox"> 生产用 <code>KEYS</code> 扫全库</li>
+<li><input disabled="" type="checkbox"> <code>--hotkeys</code> 在 LRU 策略下运行</li>
+<li><input disabled="" type="checkbox"> 用 <code>MULTI</code> 当回滚事务，以为出错会撤销</li>
+<li><input disabled="" type="checkbox"> 用 <code>DEL</code> 删大 key 阻塞主线程</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://redis.io/docs/latest/develop/use/patterns/distributed-locks/">Redis · Distributed Locks</a> · <a target="_blank" rel="noopener" href="https://redis.io/docs/latest/commands/set/">Redis · SET 命令</a> · <a target="_blank" rel="noopener" href="https://redis.io/docs/latest/develop/interact/programmability/eval-intro/">Redis · Programmable functions &#x2F; EVAL</a> · <a target="_blank" rel="noopener" href="https://redis.io/docs/latest/commands/scan/">Redis · SCAN</a> · <a target="_blank" rel="noopener" href="https://redis.io/docs/latest/develop/interact/transactions/">Redis · Transactions</a> · <a target="_blank" rel="noopener" href="https://redis.io/docs/latest/commands/cluster-keyslot/">Redis · CLUSTER KEYSLOT</a> · <a target="_blank" rel="noopener" href="https://redisson.pro/docs/data-and-services/locks-and-synchronizers/">Redisson · Locks and synchronizers</a> · <a target="_blank" rel="noopener" href="https://martin.kleppmann.com/2016/02/08/how-to-do-distributed-locking.html">Martin Kleppmann · How to do distributed locking</a> · <a target="_blank" rel="noopener" href="http://antirez.com/news/101">antirez · Is Redlock safe?</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/redis/" class="category-chain-item">redis</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/redis/" class="print-no-link">#redis</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 055 · Redis（三）：分布式锁、限流与 Lua</div>
+      <div>https://ethan-iopasd.github.io/2026/10/08/每日技术博客055-Redis分布式锁与限流/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月8日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2021-Redis%E7%BC%93%E5%AD%98%E4%B8%8E%E6%8C%81%E4%B9%85%E5%8C%96/" title="每日技术博客 021 · Redis（二）：缓存三大问题与持久化">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 021 · Redis（二）：缓存三大问题与持久化</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

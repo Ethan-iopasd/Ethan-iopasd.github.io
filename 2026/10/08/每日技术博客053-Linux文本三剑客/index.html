@@ -1,0 +1,1184 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 053 篇 grep 选行、sed 改行、awk 拆列。三者的职责边界、GNU&#x2F;BSD 差异，以及日志统计类实战管道。  📚 Linux 系列目录   章节 主题 状态    一 权限、进程与磁盘排查 已发布   二 systemd、日志与定时任务 已发布   三 grep &#x2F; sed &#x2F; awk 三剑客 本篇">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 053 · Linux（三）：grep &#x2F; sed &#x2F; awk 三剑客">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2053-Linux%E6%96%87%E6%9C%AC%E4%B8%89%E5%89%91%E5%AE%A2/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 053 篇 grep 选行、sed 改行、awk 拆列。三者的职责边界、GNU&#x2F;BSD 差异，以及日志统计类实战管道。  📚 Linux 系列目录   章节 主题 状态    一 权限、进程与磁盘排查 已发布   二 systemd、日志与定时任务 已发布   三 grep &#x2F; sed &#x2F; awk 三剑客 本篇">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-08T03:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-08T02:48:43.535Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="linux">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 053 · Linux（三）：grep / sed / awk 三剑客 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 053 · Linux（三）：grep / sed / awk 三剑客"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-08 11:00" pubdate>
+          2026年10月8日 上午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.6k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          22 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 053 · Linux（三）：grep / sed / awk 三剑客</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-08 · 第 053 篇</p>
+<p>grep 选行、sed 改行、awk 拆列。三者的职责边界、GNU&#x2F;BSD 差异，以及日志统计类实战管道。</p>
+</blockquote>
+<h2 id="📚-Linux-系列目录"><a href="#📚-Linux-系列目录" class="headerlink" title="📚 Linux 系列目录"></a>📚 Linux 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>权限、进程与磁盘排查</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>systemd、日志与定时任务</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>grep &#x2F; sed &#x2F; awk 三剑客</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>grep 按行筛选、sed 按行改写、awk 按列计算</strong>，靠管道串联各做一件事；一旦出现跨行状态机或多维聚合排序，直接换 Python，别在 awk 里硬堆。</p>
+<h2 id="一、grep：先选对正则引擎"><a href="#一、grep：先选对正则引擎" class="headerlink" title="一、grep：先选对正则引擎"></a>一、grep：先选对正则引擎</h2><table>
+<thead>
+<tr>
+<th>选项</th>
+<th>引擎</th>
+<th>元字符</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>默认 &#x2F; <code>-G</code></td>
+<td>BRE</td>
+<td><code>+ ? &#123; &#125; | ( )</code> 需转义</td>
+<td>POSIX 基本正则</td>
+</tr>
+<tr>
+<td><code>-E</code></td>
+<td>ERE</td>
+<td><code>+ ? &#123; &#125; | ( )</code> 直接可用</td>
+<td>POSIX 扩展正则，<strong>首选</strong></td>
+</tr>
+<tr>
+<td><code>-F</code></td>
+<td>无</td>
+<td>全部字面量</td>
+<td>固定字符串，最快</td>
+</tr>
+<tr>
+<td><code>-P</code></td>
+<td>PCRE</td>
+<td>额外支持 <code>\d \w \b</code>、环视</td>
+<td><strong>GNU grep 专属</strong></td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash">grep -E <span class="hljs-string">&#x27;error|warn&#x27;</span> app.log        <span class="hljs-comment"># ERE，推荐</span><br>grep -F <span class="hljs-string">&#x27;a.b*c&#x27;</span> app.log             <span class="hljs-comment"># 字面量，. 不当通配</span><br>grep -P <span class="hljs-string">&#x27;(?&lt;=user=)\w+&#x27;</span> app.log     <span class="hljs-comment"># PCRE 环视</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>-P</code> 不是 POSIX 标准，macOS 自带 BSD grep <strong>不支持</strong>。需要 PCRE 用 <code>ggrep</code>（<code>brew install grep</code>）或 <code>rg</code>。</p>
+</blockquote>
+<h3 id="输出控制"><a href="#输出控制" class="headerlink" title="输出控制"></a>输出控制</h3><table>
+<thead>
+<tr>
+<th>选项</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>-n</code> &#x2F; <code>-v</code></td>
+<td>行号 &#x2F; 反向选择</td>
+</tr>
+<tr>
+<td><code>-c</code></td>
+<td>匹配<strong>行数</strong>，不是出现次数</td>
+</tr>
+<tr>
+<td><code>-o</code></td>
+<td>只输出匹配到的部分</td>
+</tr>
+<tr>
+<td><code>-l</code> &#x2F; <code>-L</code></td>
+<td>只列匹配 &#x2F; 不匹配的文件名</td>
+</tr>
+<tr>
+<td><code>-q</code></td>
+<td>静默，命中即退出，只看退出码</td>
+</tr>
+<tr>
+<td><code>-r</code> &#x2F; <code>-R</code></td>
+<td>递归（<code>-R</code> 跟随符号链接）</td>
+</tr>
+<tr>
+<td><code>-A n</code> &#x2F; <code>-B n</code> &#x2F; <code>-C n</code></td>
+<td>后 &#x2F; 前 &#x2F; 前后各 n 行上下文</td>
+</tr>
+<tr>
+<td><code>-m n</code></td>
+<td>每文件最多匹配 n 次后停</td>
+</tr>
+<tr>
+<td><code>--include</code> &#x2F; <code>--exclude</code> &#x2F; <code>--exclude-dir</code></td>
+<td>按 glob 过滤文件与目录</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs bash">grep -rn --include=<span class="hljs-string">&#x27;*.py&#x27;</span> --exclude-dir=&#123;.git,venv,__pycache__&#125; <span class="hljs-string">&#x27;TODO&#x27;</span> .<br>grep -c <span class="hljs-string">&#x27;ERROR&#x27;</span> app.log            <span class="hljs-comment"># 行数</span><br>grep -o <span class="hljs-string">&#x27;ERROR&#x27;</span> app.log | <span class="hljs-built_in">wc</span> -l    <span class="hljs-comment"># 出现次数</span><br>grep -n -B 2 -A 5 <span class="hljs-string">&#x27;Traceback&#x27;</span> app.log<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>grep -r .</code> 会连 <code>.git</code>、<code>node_modules</code> 一起扫，**递归必须配 <code>--exclude-dir</code>**。</p>
+</blockquote>
+<h3 id="词边界与退出码"><a href="#词边界与退出码" class="headerlink" title="词边界与退出码"></a>词边界与退出码</h3><table>
+<thead>
+<tr>
+<th>写法</th>
+<th>含义</th>
+<th>可移植性</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>\b</code></td>
+<td>词边界</td>
+<td>GNU 扩展，ERE&#x2F;BRE 均可</td>
+</tr>
+<tr>
+<td><code>\&lt;</code> <code>\&gt;</code></td>
+<td>词首 &#x2F; 词尾</td>
+<td>GNU 扩展</td>
+</tr>
+<tr>
+<td><code>[[:&lt;:]]</code> <code>[[:&gt;:]]</code></td>
+<td>词首 &#x2F; 词尾</td>
+<td>BSD 风格，GNU 不支持</td>
+</tr>
+<tr>
+<td><code>-w</code></td>
+<td>整词</td>
+<td>最保险，两侧自动加边界</td>
+</tr>
+</tbody></table>
+<table>
+<thead>
+<tr>
+<th>退出码</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>0</code></td>
+<td>至少选中了一行</td>
+</tr>
+<tr>
+<td><code>1</code></td>
+<td>一行都没选中</td>
+</tr>
+<tr>
+<td><code>2</code></td>
+<td>出错（文件不存在 &#x2F; 正则非法 &#x2F; 权限不足）</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>退出码 <code>1</code> 是「没匹配到」，不是错误</strong>。<code>set -e</code> 脚本里 <code>grep pattern file</code><br>未命中会让整个脚本退出。判断存在性用 <code>grep -q</code> 或 <code>|| true</code>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>-w</code> 的边界按「单词字符」判定，<code>-w &#39;1.2&#39;</code> 会匹配到 <code>1.23</code>。含标点的模式用 <code>\b</code> 手动控制。</p>
+</blockquote>
+<h2 id="二、sed：默认打印，-n-才静默"><a href="#二、sed：默认打印，-n-才静默" class="headerlink" title="二、sed：默认打印，-n 才静默"></a>二、sed：默认打印，<code>-n</code> 才静默</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs bash">sed -n <span class="hljs-string">&#x27;1,10p&#x27;</span> file          <span class="hljs-comment"># 打印 1~10 行</span><br>sed -n <span class="hljs-string">&#x27;$p&#x27;</span> file             <span class="hljs-comment"># 最后一行</span><br>sed <span class="hljs-string">&#x27;2d&#x27;</span> file                <span class="hljs-comment"># 删除第 2 行</span><br>sed <span class="hljs-string">&#x27;/^#/d;/^$/d&#x27;</span> file       <span class="hljs-comment"># 删注释行与空行</span><br>sed -n <span class="hljs-string">&#x27;/BEGIN/,/END/p&#x27;</span> file <span class="hljs-comment"># 地址范围</span><br></code></pre></td></tr></table></figure>
+
+<h3 id="替换、分隔符与反向引用"><a href="#替换、分隔符与反向引用" class="headerlink" title="替换、分隔符与反向引用"></a>替换、分隔符与反向引用</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs bash">sed <span class="hljs-string">&#x27;s/old/new/&#x27;</span>      <span class="hljs-comment"># 每行第一处</span><br>sed <span class="hljs-string">&#x27;s/old/new/g&#x27;</span>     <span class="hljs-comment"># 每行全部</span><br>sed <span class="hljs-string">&#x27;s/old/new/2&#x27;</span>     <span class="hljs-comment"># 每行第 2 处</span><br>sed -n <span class="hljs-string">&#x27;s/foo/bar/gp&#x27;</span> <span class="hljs-comment"># 只打印发生替换的行</span><br>sed <span class="hljs-string">&#x27;s/old/new/gi&#x27;</span>    <span class="hljs-comment"># 忽略大小写（GNU 扩展）</span><br>sed <span class="hljs-string">&#x27;s|/usr/local/bin|/opt/bin|g&#x27;</span> file   <span class="hljs-comment"># 换分隔符，免转义斜杠</span><br>sed <span class="hljs-string">&#x27;s/\([a-z]*\)@\([a-z]*\)/\2:\1/&#x27;</span> file   <span class="hljs-comment"># BRE：分组要转义</span><br>sed -E <span class="hljs-string">&#x27;s/([a-z]+)@([a-z]+)/\2:\1/&#x27;</span> file    <span class="hljs-comment"># ERE：括号直接用</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>写法</th>
+<th>分组语法</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>默认 BRE</td>
+<td><code>\(...\)</code></td>
+<td>POSIX</td>
+</tr>
+<tr>
+<td><code>-E</code> &#x2F; <code>-r</code></td>
+<td><code>(...)</code></td>
+<td>GNU 两者等价；<strong>BSD 只有 <code>-E</code></strong></td>
+</tr>
+</tbody></table>
+<h3 id="地址范围-替换"><a href="#地址范围-替换" class="headerlink" title="地址范围 + 替换"></a>地址范围 + 替换</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash">sed <span class="hljs-string">&#x27;1,10s/foo/bar/g&#x27;</span> file                    <span class="hljs-comment"># 只在前 10 行替换</span><br>sed <span class="hljs-string">&#x27;/^\[server\]/,/^\[/s/debug/info/&#x27;</span> file   <span class="hljs-comment"># 只在 section 内替换</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>1,10s/.../</code> 里的 <code>1,10</code> 是<strong>地址</strong>，不是替换参数。写成 <code>s/1,10//</code> 会被当成搜索串。</p>
+</blockquote>
+<h2 id="三、sed-多行与增删改"><a href="#三、sed-多行与增删改" class="headerlink" title="三、sed 多行与增删改"></a>三、sed 多行与增删改</h2><table>
+<thead>
+<tr>
+<th>命令</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>N</code></td>
+<td>把下一行读进 pattern space，用 <code>\n</code> 连接</td>
+</tr>
+<tr>
+<td><code>P</code></td>
+<td>只打印 pattern space 的第一行</td>
+</tr>
+<tr>
+<td><code>D</code></td>
+<td>删掉第一行并<strong>重新开始脚本</strong>（不读新行）</td>
+</tr>
+<tr>
+<td><code>h</code> &#x2F; <code>H</code></td>
+<td>复制 &#x2F; 追加到 hold space</td>
+</tr>
+<tr>
+<td><code>g</code> &#x2F; <code>G</code></td>
+<td>从 hold space 取回 &#x2F; 追加</td>
+</tr>
+<tr>
+<td><code>x</code></td>
+<td>交换 pattern space 与 hold space</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 合并以反斜杠结尾的续行</span><br>sed -e :a -e <span class="hljs-string">&#x27;/\\$/&#123;N;s/\\\n//;ba&#125;&#x27;</span> file<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>命令</th>
+<th>位置</th>
+<th>GNU 写法</th>
+<th>POSIX 写法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>a</code></td>
+<td>匹配行<strong>之后</strong></td>
+<td><code>sed &#39;/p/a text&#39;</code></td>
+<td><code>a\</code> + 换行 + <code>text</code></td>
+</tr>
+<tr>
+<td><code>i</code></td>
+<td>匹配行<strong>之前</strong></td>
+<td><code>sed &#39;/p/i text&#39;</code></td>
+<td><code>i\</code> + 换行 + <code>text</code></td>
+</tr>
+<tr>
+<td><code>c</code></td>
+<td>替换<strong>匹配行</strong></td>
+<td><code>sed &#39;/p/c text&#39;</code></td>
+<td><code>c\</code> + 换行 + <code>text</code></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>a\</code> &#x2F; <code>i\</code> &#x2F; <code>c\</code> 在 POSIX 里后面必须跟一个真实换行，GNU 允许同一行。跨平台写 <code>sed -e &#39;a\&#39; -e &#39;text&#39;</code> 最稳。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>N</code> 是状态机，可读性差、文件末尾无下一行时易报错或死循环。超过两行逻辑用 <code>perl -0777 -pe</code> 或 Python。</p>
+</blockquote>
+<h2 id="四、sed-i：GNU-与-BSD-的分歧点"><a href="#四、sed-i：GNU-与-BSD-的分歧点" class="headerlink" title="四、sed -i：GNU 与 BSD 的分歧点"></a>四、<code>sed -i</code>：GNU 与 BSD 的分歧点</h2><table>
+<thead>
+<tr>
+<th>平台</th>
+<th>语法</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>GNU（Linux）</td>
+<td><code>sed -i &#39;s/a/b/&#39; file</code></td>
+<td>后缀可选</td>
+</tr>
+<tr>
+<td>GNU 带备份</td>
+<td><code>sed -i.bak &#39;s/a/b/&#39; file</code></td>
+<td>生成 <code>file.bak</code></td>
+</tr>
+<tr>
+<td>BSD（macOS）</td>
+<td><code>sed -i &#39;&#39; &#39;s/a/b/&#39; file</code></td>
+<td><strong><code>-i</code> 必须带一个参数</strong>，空串表示不备份</td>
+</tr>
+<tr>
+<td>BSD 带备份</td>
+<td><code>sed -i &#39;.bak&#39; &#39;s/a/b/&#39; file</code></td>
+<td>后缀要单独一个参数</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">sed -i.bak <span class="hljs-string">&#x27;s/old/new/g&#x27;</span> file &amp;&amp; <span class="hljs-built_in">rm</span> -f file.bak   <span class="hljs-comment"># 兼容两端的写法</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ macOS 上 <code>sed -i &#39;s/a/b/&#39; f</code> 报 <code>sed: 1: &quot;f&quot;: invalid command code f</code> ——<br>它把 <code>f</code> 当成备份后缀了，<strong>不是正则写错了</strong>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>sed -i</code> 是原地重写（内部写临时文件再 rename），对硬链接文件会断链，对正在写的日志可能丢数据。日志统计一律用只读的 <code>sed -n</code>。</p>
+</blockquote>
+<h2 id="五、awk：按列计算"><a href="#五、awk：按列计算" class="headerlink" title="五、awk：按列计算"></a>五、awk：按列计算</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs bash">awk -F: <span class="hljs-string">&#x27;&#123;print $1, $3&#125;&#x27;</span> /etc/passwd<br>awk -F<span class="hljs-string">&#x27;\t&#x27;</span> <span class="hljs-string">&#x27;&#123;print $2&#125;&#x27;</span> data.tsv<br>awk -F<span class="hljs-string">&#x27;[ ,]+&#x27;</span> <span class="hljs-string">&#x27;&#123;print $1&#125;&#x27;</span> <span class="hljs-built_in">log</span><br>awk -v OFS=<span class="hljs-string">&#x27;-&#x27;</span> <span class="hljs-string">&#x27;&#123;print $1, $2&#125;&#x27;</span> file<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>变量</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>$0</code></td>
+<td>整行</td>
+</tr>
+<tr>
+<td><code>$1</code> … <code>$n</code></td>
+<td>第 n 列</td>
+</tr>
+<tr>
+<td><code>$NF</code> &#x2F; <code>$(NF-1)</code></td>
+<td>最后一列 &#x2F; 倒数第二列</td>
+</tr>
+<tr>
+<td><code>NF</code></td>
+<td>当前行的列数</td>
+</tr>
+<tr>
+<td><code>NR</code> &#x2F; <code>FNR</code></td>
+<td>已读记录数（累计）&#x2F; 当前文件内记录号</td>
+</tr>
+<tr>
+<td><code>FS</code> &#x2F; <code>OFS</code></td>
+<td>输入 &#x2F; 输出分隔符</td>
+</tr>
+<tr>
+<td><code>RS</code> &#x2F; <code>ORS</code></td>
+<td>输入 &#x2F; 输出记录分隔符</td>
+</tr>
+<tr>
+<td><code>FILENAME</code></td>
+<td>当前文件名</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash">awk <span class="hljs-string">&#x27;NF&#x27;</span> file                 <span class="hljs-comment"># 打印非空行</span><br>awk <span class="hljs-string">&#x27;NR&gt;1&#x27;</span> file               <span class="hljs-comment"># 跳过表头</span><br>awk <span class="hljs-string">&#x27;$3 &gt; 100 &#123;print $1&#125;&#x27;</span> f   <span class="hljs-comment"># 模式-动作</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 多文件判断「是不是第一个文件」用 <code>NR==FNR</code>，但<strong>第一个文件为空时会失效</strong>；更稳的是比较 <code>FILENAME==ARGV[1]</code>。</p>
+</blockquote>
+<h3 id="BEGIN-END-next-exit"><a href="#BEGIN-END-next-exit" class="headerlink" title="BEGIN &#x2F; END &#x2F; next &#x2F; exit"></a><code>BEGIN</code> &#x2F; <code>END</code> &#x2F; <code>next</code> &#x2F; <code>exit</code></h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs bash">awk <span class="hljs-string">&#x27;BEGIN&#123;FS=&quot;,&quot;; OFS=&quot;|&quot;; print &quot;name|qty&quot;&#125;</span><br><span class="hljs-string">     NR==1 &#123;next&#125;</span><br><span class="hljs-string">     &#123;s += $3; cnt[$1]++&#125;</span><br><span class="hljs-string">     END  &#123;print &quot;total|&quot; s&#125;&#x27;</span> data.csv<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>语句</th>
+<th>时机</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>BEGIN&#123;...&#125;</code></td>
+<td>读输入<strong>之前</strong>执行一次</td>
+</tr>
+<tr>
+<td><code>END&#123;...&#125;</code></td>
+<td>输入读完<strong>之后</strong>执行一次</td>
+</tr>
+<tr>
+<td><code>next</code></td>
+<td>跳过本行剩余规则，读下一行</td>
+</tr>
+<tr>
+<td><code>exit</code></td>
+<td>跳到 <code>END</code> 块</td>
+</tr>
+</tbody></table>
+<h3 id="关联数组与统计"><a href="#关联数组与统计" class="headerlink" title="关联数组与统计"></a>关联数组与统计</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs bash">awk <span class="hljs-string">&#x27;&#123;c[$1]++&#125; END&#123;for (k in c) printf &quot;%-20s %d\n&quot;, k, c[k]&#125;&#x27;</span> access.log<br>awk <span class="hljs-string">&#x27;!seen[$0]++&#x27;</span> file                       <span class="hljs-comment"># 保持顺序去重</span><br>awk <span class="hljs-string">&#x27;&#123;s+=$2; if ($2&gt;m) m=$2&#125; END&#123;printf &quot;sum=%d avg=%.2f max=%d\n&quot;, s, s/NR, m&#125;&#x27;</span> f<br>awk <span class="hljs-string">&#x27;&#123;g[$1]+=$3&#125; END&#123;for (k in g) print k, g[k]&#125;&#x27;</span> sales.csv | <span class="hljs-built_in">sort</span> -k2 -rn<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>for (k in arr)</code> 的遍历顺序<strong>不保证</strong>。需要有序输出必须接 <code>| sort</code>，或用 <code>PROCINFO[&quot;sorted_in&quot;]</code>（<strong>gawk 专有</strong>）。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>awk</code> 在不同发行版可能是 <code>gawk</code> &#x2F; <code>mawk</code> &#x2F; <code>busybox awk</code>。<code>asort</code>、<code>asorti</code>、<code>gensub</code>、<code>\s</code> 都是 <strong>gawk 扩展</strong>，Alpine 容器里直接报语法错误。</p>
+</blockquote>
+<h3 id="printf-格式化"><a href="#printf-格式化" class="headerlink" title="printf 格式化"></a><code>printf</code> 格式化</h3><table>
+<thead>
+<tr>
+<th>格式</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>%s</code> &#x2F; <code>%d</code></td>
+<td>字符串 &#x2F; 整数</td>
+</tr>
+<tr>
+<td><code>%f</code> &#x2F; <code>%.2f</code></td>
+<td>浮点 &#x2F; 保留两位</td>
+</tr>
+<tr>
+<td><code>%5s</code> &#x2F; <code>%-5s</code></td>
+<td>右对齐 &#x2F; 左对齐，宽度 5</td>
+</tr>
+<tr>
+<td><code>%06d</code></td>
+<td>补零</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">awk <span class="hljs-string">&#x27;&#123;printf &quot;%-10s %6.2f %s\n&quot;, $1, $2, $3&#125;&#x27;</span> f<br></code></pre></td></tr></table></figure>
+
+<h2 id="六、组合实战"><a href="#六、组合实战" class="headerlink" title="六、组合实战"></a>六、组合实战</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># TOP 10 IP</span><br>awk <span class="hljs-string">&#x27;&#123;c[$1]++&#125; END&#123;for (i in c) print c[i], i&#125;&#x27;</span> access.log | <span class="hljs-built_in">sort</span> -rn | <span class="hljs-built_in">head</span> -10<br><br><span class="hljs-comment"># 状态码分布 + 5xx 占比</span><br>awk <span class="hljs-string">&#x27;&#123;code[$9]++&#125; END&#123;for (c in code) print c, code[c]&#125;&#x27;</span> access.log | <span class="hljs-built_in">sort</span> -k2 -rn<br>awk <span class="hljs-string">&#x27;&#123;t++; if ($9 ~ /^5/) e++&#125; END&#123;printf &quot;5xx=%.2f%%\n&quot;, e*100/t&#125;&#x27;</span> access.log<br><br><span class="hljs-comment"># 抽取字段并逗号连接</span><br>grep -oE <span class="hljs-string">&#x27;user_id=[0-9]+&#x27;</span> app.log | sed <span class="hljs-string">&#x27;s/user_id=//&#x27;</span> | <span class="hljs-built_in">paste</span> -sd, -<br><br><span class="hljs-comment"># 只统计 200 且含 /api/ 的请求，按接口聚合平均耗时</span><br>awk <span class="hljs-string">&#x27;$9==200 &amp;&amp; $7 ~ /\/api\// &#123;t[$7]+=$NF; n[$7]++&#125;</span><br><span class="hljs-string">     END&#123;for (u in t) printf &quot;%-40s %8.1f ms\n&quot;, u, t[u]/n[u]&#125;&#x27;</span> access.log | <span class="hljs-built_in">sort</span> -k2 -rn<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 批量改名：先 dry-run 再执行</span><br><span class="hljs-built_in">ls</span> *.<span class="hljs-built_in">log</span> | sed <span class="hljs-string">&#x27;s/\(.*\)\.log/mv &quot;\1.log&quot; &quot;\1.log.bak&quot;/&#x27;</span> &gt; rename.sh<br><span class="hljs-built_in">cat</span> rename.sh &amp;&amp; sh rename.sh<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>... | sh</code> 是<strong>任意代码执行</strong>。文件名含空格、引号、<code>$(...)</code> 时直接变成注入或误删。先 <code>cat</code> 人工过一遍，或用 <code>for f in *.log; do mv -- &quot;$f&quot; &quot;$f.bak&quot;; done</code>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>rename</code> 有两套不兼容实现：Debian 系是 <code>rename &#39;s/a/b/&#39;</code>（Perl 版），RHEL 旧版是 <code>rename a b files</code>。脚本里别依赖它。</p>
+</blockquote>
+<h2 id="七、grep-vs-ripgrep，以及何时换-Python"><a href="#七、grep-vs-ripgrep，以及何时换-Python" class="headerlink" title="七、grep vs ripgrep，以及何时换 Python"></a>七、grep vs ripgrep，以及何时换 Python</h2><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>GNU grep</th>
+<th>ripgrep (<code>rg</code>)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>引擎</td>
+<td>BRE&#x2F;ERE&#x2F;PCRE</td>
+<td>Rust regex &#x2F; PCRE2</td>
+</tr>
+<tr>
+<td>速度</td>
+<td>快</td>
+<td><strong>明显更快</strong>，多线程 + SIMD</td>
+</tr>
+<tr>
+<td>递归</td>
+<td>需 <code>-r</code></td>
+<td>递归是默认行为</td>
+</tr>
+<tr>
+<td>忽略规则</td>
+<td>无</td>
+<td><strong>自动读 <code>.gitignore</code>、跳过隐藏文件</strong></td>
+</tr>
+<tr>
+<td>可移植性</td>
+<td>POSIX 环境必有</td>
+<td>需单独安装，容器里常没有</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash">rg -n --hidden --no-ignore <span class="hljs-string">&#x27;TODO&#x27;</span> src/<br>LC_ALL=C grep -F <span class="hljs-string">&#x27;needle&#x27;</span> huge.log     <span class="hljs-comment"># 免费的加速</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 默认 UTF-8 locale 下 grep&#x2F;awk 走多字节字符处理，大文件开销显著。<strong>只处理 ASCII 日志时加 <code>LC_ALL=C</code>。</strong></p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>该换 Python 的信号</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>需要排序后「下一行依赖上一行」</td>
+<td>awk 状态机难维护</td>
+</tr>
+<tr>
+<td>需要 JSON &#x2F; CSV 语义解析</td>
+<td>引号内逗号会骗过 <code>-F,</code></td>
+</tr>
+<tr>
+<td>需要访问数据库 &#x2F; 发 HTTP</td>
+<td>shell 管道做不了</td>
+</tr>
+<tr>
+<td>awk 脚本超过 ~15 行</td>
+<td>调试成本高于重写</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ awk 的 <code>-F,</code> <strong>不认 CSV 引号规则</strong>，<code>&quot;a,b&quot;,c</code> 会被切成三列。带引号的 CSV 用 <code>csv</code> 模块或 <code>mlr</code> &#x2F; <code>xsv</code>。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 用 <code>grep -c</code> 当出现次数（实际是匹配<strong>行数</strong>）</li>
+<li><input disabled="" type="checkbox"> 在 macOS&#x2F;BSD 上用 <code>grep -P</code></li>
+<li><input disabled="" type="checkbox"> <code>grep -r</code> 没加 <code>--exclude-dir</code>，扫进 <code>.git</code> &#x2F; <code>node_modules</code></li>
+<li><input disabled="" type="checkbox"> <code>set -e</code> 脚本里 <code>grep pattern file</code> 未命中（退出码 1）导致脚本中断</li>
+<li><input disabled="" type="checkbox"> 把退出码 <code>1</code> 当错误处理（<code>2</code> 才是真错误）</li>
+<li><input disabled="" type="checkbox"> 递归 grep 二进制文件，输出乱码还慢（加 <code>-I</code>）</li>
+<li><input disabled="" type="checkbox"> macOS 上 <code>sed -i</code> 报 <code>invalid command code</code>，其实是少了备份后缀参数</li>
+<li><input disabled="" type="checkbox"> <code>sed -i</code> 用在硬链接文件上导致断链</li>
+<li><input disabled="" type="checkbox"> 替换路径不换分隔符，写成一串 <code>\/</code> 转义</li>
+<li><input disabled="" type="checkbox"> BRE 里写 <code>s/(\w+)/\1/</code>，忘了分组要转义或加 <code>-E</code></li>
+<li><input disabled="" type="checkbox"> 把 <code>1,10s/foo/bar/</code> 写成 <code>s/1,10//</code>，地址被当成搜索串</li>
+<li><input disabled="" type="checkbox"> <code>a\</code> &#x2F; <code>i\</code> &#x2F; <code>c\</code> 后面漏了换行（POSIX 要求）</li>
+<li><input disabled="" type="checkbox"> 用 <code>N</code> 合并多行，文件末尾无下一行时报错</li>
+<li><input disabled="" type="checkbox"> awk 里混用 <code>NR</code> 和 <code>FNR</code> 判断第一个文件</li>
+<li><input disabled="" type="checkbox"> 依赖 <code>for (k in arr)</code> 的输出顺序</li>
+<li><input disabled="" type="checkbox"> 在 Alpine &#x2F; busybox 里用 <code>asort</code>、<code>gensub</code>、<code>\s</code></li>
+<li><input disabled="" type="checkbox"> <code>awk -F,</code> 解析带引号的 CSV</li>
+<li><input disabled="" type="checkbox"> <code>ls | sed ... | sh</code> 直接执行，文件名含空格或 <code>$()</code> 时注入</li>
+<li><input disabled="" type="checkbox"> 大文件不加 <code>LC_ALL=C</code>，白白多花几倍 CPU</li>
+<li><input disabled="" type="checkbox"> 用 <code>rename</code> 却不知道发行版是哪套实现</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://www.gnu.org/software/grep/manual/grep.html">GNU Grep 3.12 手册</a> · <a target="_blank" rel="noopener" href="https://www.gnu.org/software/grep/manual/html_node/Exit-Status.html">GNU Grep · 退出状态</a> · <a target="_blank" rel="noopener" href="https://www.gnu.org/software/sed/manual/sed.html">GNU sed 手册</a> · <a target="_blank" rel="noopener" href="https://www.gnu.org/software/gawk/manual/gawk.html">GNU awk (gawk) 手册</a> · <a target="_blank" rel="noopener" href="https://pubs.opengroup.org/onlinepubs/9799919799/utilities/sed.html">POSIX sed</a> · <a target="_blank" rel="noopener" href="https://github.com/BurntSushi/ripgrep/blob/master/GUIDE.md">ripgrep 用户指南</a> · <a target="_blank" rel="noopener" href="https://www.gnu.org/software/coreutils/manual/coreutils.html">GNU coreutils</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/linux/" class="category-chain-item">linux</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/linux/" class="print-no-link">#linux</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 053 · Linux（三）：grep / sed / awk 三剑客</div>
+      <div>https://ethan-iopasd.github.io/2026/10/08/每日技术博客053-Linux文本三剑客/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月8日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2017-Linux%E6%9C%8D%E5%8A%A1%E4%B8%8E%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1/" title="每日技术博客 017 · Linux（二）：systemd、日志与定时任务">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 017 · Linux（二）：systemd、日志与定时任务</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

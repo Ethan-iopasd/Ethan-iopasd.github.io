@@ -1,0 +1,1125 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 058 篇 Go 系列第三篇。逃逸分析决定变量去哪、三色标记 + 混合写屏障决定何时回收、GOGC &#x2F; GOMEMLIMIT 决定回收多激进，剩下的事交给 pprof。  📚 Go 系列目录   章节 主题 状态    一 并发模型与 channel 已发布   二 错误处理与工程实践 已发布   三 内存管理、GC 与性能剖析 本篇">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 058 · Go（三）：内存管理、GC 与性能剖析">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2058-Go%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86%E4%B8%8EGC/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 058 篇 Go 系列第三篇。逃逸分析决定变量去哪、三色标记 + 混合写屏障决定何时回收、GOGC &#x2F; GOMEMLIMIT 决定回收多激进，剩下的事交给 pprof。  📚 Go 系列目录   章节 主题 状态    一 并发模型与 channel 已发布   二 错误处理与工程实践 已发布   三 内存管理、GC 与性能剖析 本篇">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-08T03:25:00.000Z">
+<meta property="article:modified_time" content="2026-10-08T02:50:24.969Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="go">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 058 · Go（三）：内存管理、GC 与性能剖析 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 058 · Go（三）：内存管理、GC 与性能剖析"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-08 11:25" pubdate>
+          2026年10月8日 上午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.3k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          20 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 058 · Go（三）：内存管理、GC 与性能剖析</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-08 · 第 058 篇</p>
+<p>Go 系列第三篇。逃逸分析决定变量去哪、三色标记 + 混合写屏障决定何时回收、<code>GOGC</code> &#x2F; <code>GOMEMLIMIT</code> 决定回收多激进，剩下的事交给 pprof。</p>
+</blockquote>
+<h2 id="📚-Go-系列目录"><a href="#📚-Go-系列目录" class="headerlink" title="📚 Go 系列目录"></a>📚 Go 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>并发模型与 channel</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>错误处理与工程实践</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>内存管理、GC 与性能剖析</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p>Go 的内存问题只有三类：<strong>分配太多</strong>（看逃逸分析和 <code>-benchmem</code>）、<strong>回收太频繁</strong>（调 <code>GOGC</code>）、<strong>根本没收</strong>（goroutine 泄漏 &#x2F; 全局容器只增不减）。pprof 负责定位，<code>GOMEMLIMIT</code> 负责兜底。</p>
+<h2 id="一、goroutine-栈"><a href="#一、goroutine-栈" class="headerlink" title="一、goroutine 栈"></a>一、goroutine 栈</h2><table>
+<thead>
+<tr>
+<th>项</th>
+<th>值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>初始栈大小</td>
+<td><strong>2KB</strong>（Go 1.4 起；此前 8KB）</td>
+</tr>
+<tr>
+<td>增长方式</td>
+<td>需要时<strong>翻倍</strong>，由编译器插入的栈检查触发</td>
+</tr>
+<tr>
+<td>收缩时机</td>
+<td>GC 时，使用量小于 1&#x2F;4 则收缩</td>
+</tr>
+<tr>
+<td>默认上限</td>
+<td>64 位平台 1GB（<code>debug.SetMaxStack</code> 可调）</td>
+</tr>
+</tbody></table>
+<p>栈是连续内存，翻倍时分配新栈并<strong>复制</strong>旧内容，指向栈的指针会被调整 —— 所以「栈上变量的地址」在 goroutine 生命周期内<strong>会变</strong>。</p>
+<blockquote>
+<p>⚠️ goroutine 栈不是「泄漏就无限涨」：上限 1GB，超了直接 <code>fatal error: stack overflow</code>，程序崩溃而非优雅降级。</p>
+</blockquote>
+<h2 id="二、逃逸分析"><a href="#二、逃逸分析" class="headerlink" title="二、逃逸分析"></a>二、逃逸分析</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash">go build -gcflags=-m ./...          <span class="hljs-comment"># 逃逸决策</span><br>go build -gcflags=<span class="hljs-string">&quot;-m -m&quot;</span> ./...     <span class="hljs-comment"># 更详细，含内联决策</span><br>go build -gcflags=<span class="hljs-string">&quot;all=-m&quot;</span> ./...    <span class="hljs-comment"># 含标准库</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">f</span><span class="hljs-params">()</span></span> *<span class="hljs-type">int</span> &#123; x := <span class="hljs-number">1</span>; <span class="hljs-keyword">return</span> &amp;x &#125;   <span class="hljs-comment">// x 逃逸到堆：地址被返回</span><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">g</span><span class="hljs-params">()</span></span> <span class="hljs-type">int</span>   &#123; y := <span class="hljs-number">1</span>; <span class="hljs-keyword">return</span> y &#125;   <span class="hljs-comment">// y 留栈：不逃逸</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>返回局部变量地址</td>
+<td>逃逸到堆</td>
+</tr>
+<tr>
+<td>传给 <code>interface&#123;&#125;</code> 参数</td>
+<td>逃逸（装箱）</td>
+</tr>
+<tr>
+<td>存入全局变量 &#x2F; map &#x2F; slice</td>
+<td>逃逸</td>
+</tr>
+<tr>
+<td>只在函数内使用的局部变量</td>
+<td>留栈</td>
+</tr>
+<tr>
+<td>闭包捕获但闭包不外传</td>
+<td>可能留栈</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ Go 的逃逸分析<strong>必须保守</strong>：只要无法证明安全就丢到堆上。<strong>看 <code>-m</code> 输出比猜有用</strong>，别为消灭逃逸写出反直觉代码。</p>
+</blockquote>
+<h2 id="三、三色标记-混合写屏障"><a href="#三、三色标记-混合写屏障" class="headerlink" title="三、三色标记 + 混合写屏障"></a>三、三色标记 + 混合写屏障</h2><table>
+<thead>
+<tr>
+<th>颜色</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>白</td>
+<td>未访问，回收候选</td>
+</tr>
+<tr>
+<td>灰</td>
+<td>已发现，其引用未扫描完</td>
+</tr>
+<tr>
+<td>黑</td>
+<td>已发现且引用已扫描完</td>
+</tr>
+</tbody></table>
+<p>标记从根（栈、全局变量、寄存器）出发，灰集合为空时，剩下的白对象全部回收。</p>
+<p>并发标记时程序还在改指针，可能把「黑对象指向的白对象」藏起来。Go 1.8 起用<strong>混合写屏障</strong>解决：</p>
+<ul>
+<li>写入时，<strong>被覆盖的旧值</strong>若为灰&#x2F;白 → 置灰</li>
+<li>写入时，<strong>新值</strong>若为白 → 置灰</li>
+</ul>
+<blockquote>
+<p>⚠️ 混合写屏障让 Go 1.8 起<strong>彻底移除了标记结束阶段的栈重扫描 STW</strong>，停顿从「几十毫秒」降到「亚毫秒」。别引用 Go 1.7 及之前的 GC 文章。</p>
+</blockquote>
+<h3 id="GC-阶段与-STW"><a href="#GC-阶段与-STW" class="headerlink" title="GC 阶段与 STW"></a>GC 阶段与 STW</h3><table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>是否 STW</th>
+<th>干什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Sweep Termination</td>
+<td>✅ 短</td>
+<td>确认上一轮清扫完成</td>
+</tr>
+<tr>
+<td>Mark Setup</td>
+<td>✅ 短</td>
+<td><strong>开启写屏障</strong></td>
+</tr>
+<tr>
+<td>Marking</td>
+<td>❌ 并发</td>
+<td>三色标记，占用 25% CPU</td>
+</tr>
+<tr>
+<td>Mark Termination</td>
+<td>✅ 短</td>
+<td>关闭写屏障，重扫</td>
+</tr>
+<tr>
+<td>Sweeping</td>
+<td>❌ 并发</td>
+<td>后台懒清扫</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ GC 期间 Go 会<strong>偷 25% 的 CPU</strong> 做标记（<code>GOMAXPROCS</code> 的 1&#x2F;4）。CPU 密集型服务在 GC 高峰掉 25% 吞吐是正常的。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>runtime.GC()</code> 是<strong>阻塞式</strong>全量 GC，只用于测试&#x2F;诊断，生产代码里调用会把 STW 拉满。</p>
+</blockquote>
+<h2 id="四、GOGC-与-GOMEMLIMIT"><a href="#四、GOGC-与-GOMEMLIMIT" class="headerlink" title="四、GOGC 与 GOMEMLIMIT"></a>四、<code>GOGC</code> 与 <code>GOMEMLIMIT</code></h2><table>
+<thead>
+<tr>
+<th>变量</th>
+<th>引入版本</th>
+<th>含义</th>
+<th>默认</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>GOGC</code></td>
+<td>远古</td>
+<td>堆增长百分比触发 GC</td>
+<td><code>100</code></td>
+</tr>
+<tr>
+<td><code>GOMEMLIMIT</code></td>
+<td><strong>Go 1.19</strong></td>
+<td>软内存上限（字节或 <code>1GiB</code>）</td>
+<td><code>math.MaxInt64</code></td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash">GOGC=200 ./app                  <span class="hljs-comment"># 堆翻 2 倍才 GC：省 CPU、费内存</span><br>GOMEMLIMIT=1GiB ./app           <span class="hljs-comment"># 软上限</span><br>GOGC=200 GOMEMLIMIT=1GiB ./app  <span class="hljs-comment"># 组合：通常的最优解</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-keyword">import</span> <span class="hljs-string">&quot;runtime/debug&quot;</span><br>debug.SetGCPercent(<span class="hljs-number">200</span>)<br>debug.SetMemoryLimit(<span class="hljs-number">1</span> &lt;&lt; <span class="hljs-number">30</span>)   <span class="hljs-comment">// 1GiB</span><br></code></pre></td></tr></table></figure>
+
+<p><code>GOGC=100</code> 的含义：上次 GC 后存活堆 10MB，涨到 20MB 时触发下一次。</p>
+<blockquote>
+<p>⚠️ <code>GOMEMLIMIT</code> 是<strong>软</strong>限制，不阻止堆超过该值，<strong>不适合当 cgroup 硬配额</strong>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>GOMEMLIMIT</code> 设得太低且存活堆接近该值时，GC 会<strong>持续运行（death spiral）</strong>，CPU 打满。设它之前先测出真实存活堆大小。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>GOGC=off</code> 与 <code>GOMEMLIMIT</code> 同时关闭 → 一直涨到 OOM。<strong>两者至少要留一个生效。</strong></p>
+</blockquote>
+<h2 id="五、内存复用：sync-Pool"><a href="#五、内存复用：sync-Pool" class="headerlink" title="五、内存复用：sync.Pool"></a>五、内存复用：<code>sync.Pool</code></h2><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-keyword">var</span> bufPool = sync.Pool&#123;<br>    New: <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">()</span></span> any &#123; <span class="hljs-keyword">return</span> <span class="hljs-built_in">make</span>([]<span class="hljs-type">byte</span>, <span class="hljs-number">0</span>, <span class="hljs-number">4096</span>) &#125;,<br>&#125;<br><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">handle</span><span class="hljs-params">()</span></span> &#123;<br>    buf := bufPool.Get().([]<span class="hljs-type">byte</span>)<br>    <span class="hljs-keyword">defer</span> bufPool.Put(buf[:<span class="hljs-number">0</span>])   <span class="hljs-comment">// 归还前重置长度，容量保留</span><br>    <span class="hljs-comment">// 用 buf</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>特性</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>用途</td>
+<td>临时对象复用，降低 GC 压力</td>
+</tr>
+<tr>
+<td>清空时机</td>
+<td><strong>每次 GC 可能清空</strong>（Go 1.13 起有 victim cache，跨一次 GC）</td>
+</tr>
+<tr>
+<td>适用</td>
+<td>高频、短生命周期、大小相近的对象</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>sync.Pool</code> <strong>不保证 <code>Get</code> 拿到什么</strong>。每次 Get 后必须自己重置状态，不能假设是干净的。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 归还大对象（如 1MB 切片）会让池常驻大内存 —— 池化必须限制对象大小，否则等于内存泄漏。</p>
+</blockquote>
+<h2 id="六、slice-map-的扩容与预分配"><a href="#六、slice-map-的扩容与预分配" class="headerlink" title="六、slice &#x2F; map 的扩容与预分配"></a>六、slice &#x2F; map 的扩容与预分配</h2><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs go">s := <span class="hljs-built_in">make</span>([]<span class="hljs-type">int</span>, <span class="hljs-number">0</span>, <span class="hljs-number">1024</span>)   <span class="hljs-comment">// ✅ 预分配</span><br>s := []<span class="hljs-type">int</span>&#123;&#125;                <span class="hljs-comment">// ❌ 每次 append 可能扩容+复制</span><br>m := <span class="hljs-built_in">make</span>(<span class="hljs-keyword">map</span>[<span class="hljs-type">string</span>]<span class="hljs-type">int</span>, <span class="hljs-number">10000</span>)   <span class="hljs-comment">// ✅ 一次分配够</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>当前容量</th>
+<th>slice 新容量</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>&lt; 256</td>
+<td>翻倍</td>
+</tr>
+<tr>
+<td>≥ 256</td>
+<td>约 <code>old + (old+3*256)/4</code>，趋近 <strong>1.25 倍</strong>（Go 1.18+）</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 扩容会<strong>重新分配底层数组并复制</strong>。<code>append</code> 返回的新切片<strong>必须接住</strong>：<code>s = append(s, x)</code>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>s2 := s1[1:3]</code> 产生的子切片<strong>共享底层数组</strong>：改 <code>s2</code> 会影响 <code>s1</code>，且 <code>s2</code> 存活时整个底层数组都无法回收。要独立就 <code>copy</code>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 已知元素数量时<strong>一定给 <code>make</code> 传容量</strong>。map 扩容要重新哈希全部元素。Go 1.24（2025-02）把 map 换成 <strong>Swiss Table</strong>，但「必须预分配」的结论不变。</p>
+</blockquote>
+<h2 id="七、unsafe-与零拷贝"><a href="#七、unsafe-与零拷贝" class="headerlink" title="七、unsafe 与零拷贝"></a>七、<code>unsafe</code> 与零拷贝</h2><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs go">s := *(*<span class="hljs-type">string</span>)(unsafe.Pointer(&amp;b))   <span class="hljs-comment">// 旧写法</span><br>s := unsafe.String(&amp;b[<span class="hljs-number">0</span>], <span class="hljs-built_in">len</span>(b))     <span class="hljs-comment">// Go 1.20+</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>操作</th>
+<th>是否拷贝</th>
+<th>安全性</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>string(b)</code> &#x2F; <code>[]byte(s)</code></td>
+<td>✅ 拷贝</td>
+<td>安全</td>
+</tr>
+<tr>
+<td><code>unsafe.String</code> &#x2F; <code>unsafe.Slice</code></td>
+<td>❌</td>
+<td>调用方保证原 buffer 不再被改</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 零拷贝转换出的 string <strong>共享底层数组</strong>。原 <code>[]byte</code> 被复用（如来自 <code>sync.Pool</code>）时，string 内容会<strong>静默变化</strong> —— 最难查的 bug 之一。</p>
+</blockquote>
+<h2 id="八、pprof-实操"><a href="#八、pprof-实操" class="headerlink" title="八、pprof 实操"></a>八、pprof 实操</h2><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-keyword">import</span> _ <span class="hljs-string">&quot;net/http/pprof&quot;</span>   <span class="hljs-comment">// 注册 /debug/pprof/ 到 DefaultServeMux</span><br><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">main</span><span class="hljs-params">()</span></span> &#123;<br>    <span class="hljs-keyword">go</span> <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">()</span></span> &#123; http.ListenAndServe(<span class="hljs-string">&quot;localhost:6060&quot;</span>, <span class="hljs-literal">nil</span>) &#125;()<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs bash">go tool pprof http://localhost:6060/debug/pprof/profile?seconds=30   <span class="hljs-comment"># CPU</span><br>go tool pprof http://localhost:6060/debug/pprof/heap                 <span class="hljs-comment"># 堆</span><br>go tool pprof http://localhost:6060/debug/pprof/goroutine            <span class="hljs-comment"># goroutine</span><br>go tool pprof http://localhost:6060/debug/pprof/block<br>go tool pprof http://localhost:6060/debug/pprof/mutex<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>Profile</th>
+<th>定位什么</th>
+<th>需要额外开启</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>profile</code></td>
+<td>CPU 热点</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>heap</code></td>
+<td>内存分配 &#x2F; 存活</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>goroutine</code></td>
+<td>泄漏、卡死</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>block</code></td>
+<td>阻塞时长</td>
+<td><code>runtime.SetBlockProfileRate</code></td>
+</tr>
+<tr>
+<td><code>mutex</code></td>
+<td>锁竞争</td>
+<td><code>runtime.SetMutexProfileFraction</code></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>block</code> &#x2F; <code>mutex</code> 默认<strong>不采样</strong>，要显式设置采样率才有数据，且有性能开销，别长期开着。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>heap</code> 默认看 <strong>inuse_space</strong>（存活）。要看「谁在疯狂分配又马上回收」，切 <code>-sample_index=alloc_space</code>：</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">go tool pprof -sample_index=alloc_space http://localhost:6060/debug/pprof/heap<br></code></pre></td></tr></table></figure>
+
+<p>常用交互命令：<code>top10</code>、<code>list FuncName</code>（逐行开销）、<code>web</code>（调用图，需 graphviz）、<code>peek FuncName</code>。</p>
+<h2 id="九、benchmark"><a href="#九、benchmark" class="headerlink" title="九、benchmark"></a>九、benchmark</h2><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">BenchmarkParse</span><span class="hljs-params">(b *testing.B)</span></span> &#123;<br>    data := loadFixture()<br>    b.ReportAllocs()      <span class="hljs-comment">// 输出 allocs/op、B/op</span><br>    b.ResetTimer()        <span class="hljs-comment">// 排除准备阶段</span><br>    <span class="hljs-keyword">for</span> i := <span class="hljs-number">0</span>; i &lt; b.N; i++ &#123;<br>        parse(data)<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">go <span class="hljs-built_in">test</span> -bench=. -benchmem -count=5 ./...<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight tap"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs tap">BenchmarkParse-8  <span class="hljs-number"> 1000000 </span> <span class="hljs-number"> 1052 </span>ns/op  <span class="hljs-number"> 512 </span>B/op  <span class="hljs-number"> 4 </span>allocs/op<br>                             ↑耗时        ↑每次字节  ↑每次分配次数<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>-benchmem</code> 才输出 <code>B/op</code> &#x2F; <code>allocs/op</code>。<strong>只跑 <code>-bench=.</code> 看不到分配</strong>，而分配次数往往是根因。</p>
+</blockquote>
+<h2 id="十、runtime-MemStats-关键字段"><a href="#十、runtime-MemStats-关键字段" class="headerlink" title="十、runtime.MemStats 关键字段"></a>十、<code>runtime.MemStats</code> 关键字段</h2><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-keyword">var</span> m runtime.MemStats<br>runtime.ReadMemStats(&amp;m)<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>HeapAlloc</code></td>
+<td>当前堆上<strong>存活</strong>字节数（最该盯的）</td>
+</tr>
+<tr>
+<td><code>HeapInuse</code> &#x2F; <code>HeapIdle</code> &#x2F; <code>HeapReleased</code></td>
+<td>在用 &#x2F; 空闲未归还 &#x2F; 已归还 OS</td>
+</tr>
+<tr>
+<td><code>HeapSys</code></td>
+<td>向 OS 申请的总堆内存</td>
+</tr>
+<tr>
+<td><code>StackInuse</code></td>
+<td>goroutine 栈占用</td>
+</tr>
+<tr>
+<td><code>NextGC</code></td>
+<td>下次 GC 的堆目标</td>
+</tr>
+<tr>
+<td><code>NumGC</code> &#x2F; <code>PauseTotalNs</code></td>
+<td>GC 次数 &#x2F; 累计 STW 时间</td>
+</tr>
+<tr>
+<td><code>GCCPUFraction</code></td>
+<td>GC 占用的 CPU 比例</td>
+</tr>
+<tr>
+<td><code>Mallocs</code> &#x2F; <code>Frees</code></td>
+<td>累计分配 &#x2F; 释放对象数</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>runtime.ReadMemStats</code> <strong>会短暂 STW</strong>，高频调用本身就是性能问题。Go 1.19+ 优先用 <code>runtime/metrics</code>（无 STW）。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>HeapSys - HeapReleased</code> 才是「OS 视角的真实占用」。**<code>HeapAlloc</code> 小不代表进程 RSS 小**。</p>
+</blockquote>
+<h2 id="十一、常见内存泄漏"><a href="#十一、常见内存泄漏" class="headerlink" title="十一、常见内存泄漏"></a>十一、常见内存泄漏</h2><table>
+<thead>
+<tr>
+<th>类型</th>
+<th>表现</th>
+<th>修法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>goroutine 泄漏</td>
+<td>goroutine 数持续涨</td>
+<td><code>context</code> 取消 &#x2F; 加退出条件</td>
+</tr>
+<tr>
+<td><code>time.Ticker</code> 不 <code>Stop</code></td>
+<td>定时器 + goroutine 不释放</td>
+<td><code>defer ticker.Stop()</code></td>
+</tr>
+<tr>
+<td>循环里 <code>time.After</code></td>
+<td>每次新建 timer，等超时才回收</td>
+<td>改 <code>Ticker</code> + <code>select</code></td>
+</tr>
+<tr>
+<td>全局 map 只增不减</td>
+<td><code>HeapAlloc</code> 单调上升</td>
+<td>定期清理 &#x2F; 带淘汰的缓存</td>
+</tr>
+<tr>
+<td>子切片持有大数组</td>
+<td>小切片拖住大底层数组</td>
+<td><code>copy</code> 出独立切片</td>
+</tr>
+<tr>
+<td>channel 阻塞无人收</td>
+<td>发送方 goroutine 永久阻塞</td>
+<td>缓冲 &#x2F; <code>default</code> &#x2F; <code>ctx</code></td>
+</tr>
+</tbody></table>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-comment">// ❌ ticker 从不 Stop</span><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">poll</span><span class="hljs-params">()</span></span> &#123; t := time.NewTicker(time.Second); <span class="hljs-keyword">for</span> <span class="hljs-keyword">range</span> t.C &#123; doWork() &#125; &#125;<br><br><span class="hljs-comment">// ✅ 有退出路径</span><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">poll</span><span class="hljs-params">(ctx context.Context)</span></span> &#123;<br>    t := time.NewTicker(time.Second)<br>    <span class="hljs-keyword">defer</span> t.Stop()<br>    <span class="hljs-keyword">for</span> &#123;<br>        <span class="hljs-keyword">select</span> &#123;<br>        <span class="hljs-keyword">case</span> &lt;-ctx.Done(): <span class="hljs-keyword">return</span><br>        <span class="hljs-keyword">case</span> &lt;-t.C:        doWork()<br>        &#125;<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>time.After</code> 在 <code>for</code> 循环里是经典泄漏：<strong>每个 <code>After</code> 都新建 timer</strong>，即使 select 走别的分支也要等超时才回收。高频循环用 <code>time.NewTimer</code> + <code>Reset</code>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 判断 goroutine 泄漏最直接：<code>go tool pprof .../goroutine</code> 看栈聚合，或对比 <code>runtime.NumGoroutine()</code> 在稳定负载前后的值。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 用 Go 1.7 及之前的 GC 资料，以为 STW 还有几十毫秒</li>
+<li><input disabled="" type="checkbox"> 相信「goroutine 栈固定 8KB」（1.4 起是 2KB 且可增长）</li>
+<li><input disabled="" type="checkbox"> 不看 <code>-gcflags=-m</code> 就猜变量逃逸</li>
+<li><input disabled="" type="checkbox"> 为消灭逃逸写出难维护的代码</li>
+<li><input disabled="" type="checkbox"> 以为 <code>GOMEMLIMIT</code> 是硬上限，拿它当 cgroup 配额</li>
+<li><input disabled="" type="checkbox"> <code>GOMEMLIMIT</code> 设得低于存活堆，GC death spiral</li>
+<li><input disabled="" type="checkbox"> <code>GOGC</code> 和 <code>GOMEMLIMIT</code> 同时关闭，等 OOM</li>
+<li><input disabled="" type="checkbox"> 生产代码里调 <code>runtime.GC()</code></li>
+<li><input disabled="" type="checkbox"> <code>sync.Pool</code> 取出后不重置状态</li>
+<li><input disabled="" type="checkbox"> 池化大对象，池变成内存黑洞</li>
+<li><input disabled="" type="checkbox"> <code>append</code> 返回值不接住</li>
+<li><input disabled="" type="checkbox"> 已知长度的 slice &#x2F; map 不预分配</li>
+<li><input disabled="" type="checkbox"> 子切片共享底层数组导致内存拖挂或意外修改</li>
+<li><input disabled="" type="checkbox"> <code>unsafe</code> 零拷贝转换后原 buffer 被复用</li>
+<li><input disabled="" type="checkbox"> 只跑 <code>-bench=.</code> 不加 <code>-benchmem</code></li>
+<li><input disabled="" type="checkbox"> benchmark 里 <code>-count=1</code> 就下结论</li>
+<li><input disabled="" type="checkbox"> <code>block</code> &#x2F; <code>mutex</code> profile 不开采样率，拿不到数据</li>
+<li><input disabled="" type="checkbox"> <code>heap</code> profile 只看 inuse，找不到高频分配</li>
+<li><input disabled="" type="checkbox"> 高频调用 <code>runtime.ReadMemStats</code></li>
+<li><input disabled="" type="checkbox"> <code>time.Ticker</code> 忘记 <code>Stop</code></li>
+<li><input disabled="" type="checkbox"> 循环里用 <code>time.After</code> 造 timer 泄漏</li>
+<li><input disabled="" type="checkbox"> 全局 map 只增不减当缓存</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://pkg.go.dev/runtime">Go 官方文档 · runtime</a> · <a target="_blank" rel="noopener" href="https://pkg.go.dev/runtime/debug">Go 官方文档 · runtime&#x2F;debug</a> · <a target="_blank" rel="noopener" href="https://pkg.go.dev/runtime/metrics">Go 官方文档 · runtime&#x2F;metrics</a> · <a target="_blank" rel="noopener" href="https://go.dev/doc/go1.19">Go 1.19 Release Notes（GOMEMLIMIT）</a> · <a target="_blank" rel="noopener" href="https://go.dev/doc/go1.24">Go 1.24 Release Notes（Swiss Table map）</a> · <a target="_blank" rel="noopener" href="https://go.dev/blog/pprof">Go · Profiling Go Programs</a> · <a target="_blank" rel="noopener" href="https://go.dev/doc/gc-guide">Go · A Guide to the Go Garbage Collector</a> · <a target="_blank" rel="noopener" href="https://go.dev/doc/diagnostics">Go · Diagnostics</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/go/" class="category-chain-item">go</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/go/" class="print-no-link">#go</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 058 · Go（三）：内存管理、GC 与性能剖析</div>
+      <div>https://ethan-iopasd.github.io/2026/10/08/每日技术博客058-Go内存管理与GC/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月8日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2030-Go%E5%B7%A5%E7%A8%8B%E5%AE%9E%E8%B7%B5/" title="每日技术博客 030 · Go（二）：错误处理与工程实践">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 030 · Go（二）：错误处理与工程实践</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

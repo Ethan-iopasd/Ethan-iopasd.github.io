@@ -1,0 +1,1210 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 071 篇 轮询 &#x2F; 长轮询 &#x2F; SSE &#x2F; WebSocket 四者怎么选、WebSocket 握手与心跳、SSE 的重连语义，以及 Nginx 反代、鉴权、顺序与幂等这几处必踩的坑。  📚 HTTP 系列目录   章节 主题 状态    一 状态码与缓存 已发布   二 CORS、Cookie 与安全响应头 已发">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 071 · HTTP（五）：WebSocket、SSE 与实时通信">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2071-HTTPWebSocket%E4%B8%8ESSE/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 071 篇 轮询 &#x2F; 长轮询 &#x2F; SSE &#x2F; WebSocket 四者怎么选、WebSocket 握手与心跳、SSE 的重连语义，以及 Nginx 反代、鉴权、顺序与幂等这几处必踩的坑。  📚 HTTP 系列目录   章节 主题 状态    一 状态码与缓存 已发布   二 CORS、Cookie 与安全响应头 已发">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-08T04:30:00.000Z">
+<meta property="article:modified_time" content="2026-10-08T02:52:57.886Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="http">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 071 · HTTP（五）：WebSocket、SSE 与实时通信 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 071 · HTTP（五）：WebSocket、SSE 与实时通信"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-08 12:30" pubdate>
+          2026年10月8日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          3.3k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          28 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 071 · HTTP（五）：WebSocket、SSE 与实时通信</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-08 · 第 071 篇</p>
+<p>轮询 &#x2F; 长轮询 &#x2F; SSE &#x2F; WebSocket 四者怎么选、WebSocket 握手与心跳、SSE 的重连语义，以及 Nginx 反代、鉴权、顺序与幂等这几处必踩的坑。</p>
+</blockquote>
+<h2 id="📚-HTTP-系列目录"><a href="#📚-HTTP-系列目录" class="headerlink" title="📚 HTTP 系列目录"></a>📚 HTTP 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>状态码与缓存</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>CORS、Cookie 与安全响应头</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>HTTP&#x2F;2、HTTP&#x2F;3 与连接管理</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td>REST 与 API 设计</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>五</td>
+<td>WebSocket、SSE 与实时通信</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p>只要服务端<strong>不需要</strong>主动接收消息，就优先用 <strong>SSE</strong>（协议简单、自动重连、天然过 HTTP 中间件）；需要<strong>双向</strong>且高频，才上 <strong>WebSocket</strong>。轮询是兜底，不是方案。</p>
+<h2 id="一、四种方案对比"><a href="#一、四种方案对比" class="headerlink" title="一、四种方案对比"></a>一、四种方案对比</h2><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>短轮询</th>
+<th>长轮询</th>
+<th>SSE</th>
+<th>WebSocket</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>方向</td>
+<td>客户端拉</td>
+<td>客户端拉</td>
+<td><strong>服务端单向推</strong></td>
+<td><strong>双向</strong></td>
+</tr>
+<tr>
+<td>底层协议</td>
+<td>HTTP</td>
+<td>HTTP</td>
+<td>HTTP</td>
+<td>独立协议（TCP）</td>
+</tr>
+<tr>
+<td>握手成本</td>
+<td>每轮一次</td>
+<td>每轮一次</td>
+<td>一次</td>
+<td>一次（HTTP Upgrade）</td>
+</tr>
+<tr>
+<td>断线重连</td>
+<td>天然</td>
+<td>天然</td>
+<td><strong>浏览器自动</strong></td>
+<td>需自己实现</td>
+</tr>
+<tr>
+<td>消息格式</td>
+<td>任意</td>
+<td>任意</td>
+<td>UTF-8 文本</td>
+<td>文本 &#x2F; 二进制</td>
+</tr>
+<tr>
+<td>同源 6 连接限制</td>
+<td>受影响</td>
+<td>受影响</td>
+<td>⚠️ 受影响</td>
+<td>通常不受</td>
+</tr>
+<tr>
+<td>代理友好度</td>
+<td>高</td>
+<td>高</td>
+<td>高</td>
+<td>⚠️ 需配置透传</td>
+</tr>
+<tr>
+<td>服务端状态</td>
+<td>无</td>
+<td>无</td>
+<td>无</td>
+<td>有（每连接一份）</td>
+</tr>
+<tr>
+<td>适合</td>
+<td>低频可容忍延迟</td>
+<td>中低频需即时</td>
+<td>通知流、日志、AI 流式</td>
+<td>聊天、协同、游戏</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ HTTP&#x2F;1.1 下<strong>同源最多 6 个并发连接</strong>。开 6 个 SSE 标签页就会占满整个域名的连接池，其余请求全部排队 —— 这是 SSE 最经典的线上事故。WebSocket 不占用 HTTP 请求队列，因此不受这条限制，但服务端要为每条连接维持一个长生命周期对象。</p>
+</blockquote>
+<h2 id="二、WebSocket-握手"><a href="#二、WebSocket-握手" class="headerlink" title="二、WebSocket 握手"></a>二、WebSocket 握手</h2><p>客户端发起的是标准 HTTP&#x2F;1.1 请求，方法必须为 <code>GET</code>，版本至少 1.1：</p>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs http"><span class="hljs-keyword">GET</span> <span class="hljs-string">/chat</span> <span class="hljs-meta">HTTP/1.1</span><br><span class="hljs-attribute">Host</span><span class="hljs-punctuation">: </span>server.example.com<br><span class="hljs-attribute">Upgrade</span><span class="hljs-punctuation">: </span>websocket<br><span class="hljs-attribute">Connection</span><span class="hljs-punctuation">: </span>Upgrade<br><span class="hljs-attribute">Sec-WebSocket-Key</span><span class="hljs-punctuation">: </span>dGhlIHNhbXBsZSBub25jZQ==<br><span class="hljs-attribute">Sec-WebSocket-Version</span><span class="hljs-punctuation">: </span>13<br><span class="hljs-attribute">Origin</span><span class="hljs-punctuation">: </span>http://example.com<br><span class="hljs-attribute">Sec-WebSocket-Protocol</span><span class="hljs-punctuation">: </span>chat, superchat<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>头</th>
+<th>必需</th>
+<th>值要求</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Upgrade</code></td>
+<td>✅</td>
+<td>必须包含 <code>websocket</code></td>
+</tr>
+<tr>
+<td><code>Connection</code></td>
+<td>✅</td>
+<td>必须包含 <code>Upgrade</code> token</td>
+</tr>
+<tr>
+<td><code>Sec-WebSocket-Key</code></td>
+<td>✅</td>
+<td>16 字节随机数 base64 编码</td>
+</tr>
+<tr>
+<td><code>Sec-WebSocket-Version</code></td>
+<td>✅</td>
+<td>必须为 <strong>13</strong></td>
+</tr>
+<tr>
+<td><code>Sec-WebSocket-Protocol</code></td>
+<td>可选</td>
+<td>子协议列表，逗号分隔</td>
+</tr>
+<tr>
+<td><code>Origin</code></td>
+<td>浏览器必带</td>
+<td>用于服务端校验来源</td>
+</tr>
+</tbody></table>
+<p>服务端接受时返回 <strong>101</strong>，并带上 <code>Sec-WebSocket-Accept</code>，其值为 <code>base64(SHA1(Key + &quot;258EAFA5-E914-47DA-95CA-C5AB0DC85B11&quot;))</code>。那个 GUID 是固定常量，作用只是证明服务端<strong>真的读了</strong>这次握手（防缓存 &#x2F; 误连接）。</p>
+<blockquote>
+<p>⚠️ 握手返回<strong>非 101</strong> 时 HTTP 语义依然生效，浏览器 <code>onerror</code> 里拿不到状态码。要靠 <code>onclose</code> 的 <code>code</code>，或者先发一个 HTTP 预检接口拿 token。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>Sec-WebSocket-Protocol</code> 若服务端返回了客户端<strong>没请求</strong>的子协议，客户端必须判定握手失败。子协议不是「随便协商」的。另外 WebSocket 是<strong>独立协议</strong>，与 HTTP 的唯一关系是握手被解释为 Upgrade 请求 —— 缓存、重定向这些 HTTP 语义都不适用。</p>
+</blockquote>
+<p>默认端口 <code>ws://</code> → <strong>80</strong>、<code>wss://</code> → <strong>443</strong>。RFC 明确指出 <strong>443 上的连接成功率显著更高</strong>（能穿过大多数企业代理），生产环境一律用 <code>wss</code>。</p>
+<h2 id="三、帧与心跳"><a href="#三、帧与心跳" class="headerlink" title="三、帧与心跳"></a>三、帧与心跳</h2><table>
+<thead>
+<tr>
+<th>帧类型</th>
+<th>Opcode</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Continuation</td>
+<td><code>0x0</code></td>
+<td>分片消息的后续帧</td>
+</tr>
+<tr>
+<td>Text &#x2F; Binary</td>
+<td><code>0x1</code> &#x2F; <code>0x2</code></td>
+<td>UTF-8 文本 &#x2F; 二进制</td>
+</tr>
+<tr>
+<td>Close</td>
+<td><code>0x8</code></td>
+<td>关闭连接</td>
+</tr>
+<tr>
+<td>Ping &#x2F; Pong</td>
+<td><code>0x9</code> &#x2F; <code>0xA</code></td>
+<td>探活 &#x2F; 响应，payload ≤ 125 字节</td>
+</tr>
+</tbody></table>
+<p>常用关闭码：<code>1000</code> 正常 · <code>1001</code> 端点离开（服务重启、页面导航）· <code>1002</code> 协议错误 · <strong><code>1006</code> 异常关闭</strong> · <code>1007</code> payload 非法（如非 UTF-8）· <code>1008</code> 违反策略（常见于鉴权失败）· <code>1011</code> 服务端内部错误。</p>
+<blockquote>
+<p>⚠️ <code>1006</code> 是<strong>本地合成的</strong>，永远不会由对端发来。收到 1006 意味着连接<strong>异常断开</strong>（网络断、进程被杀），此时<strong>必须重连</strong>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 浏览器原生 <code>WebSocket</code> API <strong>不暴露 Ping&#x2F;Pong</strong>，想用心跳只能在<strong>应用层</strong>自己发文本消息。另外控制帧 payload <strong>不能超过 125 字节</strong>且<strong>不可分片</strong>，用它传业务数据会直接被协议层拒绝。</p>
+</blockquote>
+<p>心跳的必要性：中间的 Nginx、SLB、云防火墙普遍有 <strong>60s 空闲超时</strong>，会静默切断无流量的长连接。心跳间隔取 <strong>30s</strong> 左右比较安全。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-keyword">let</span> hb;<br>ws.<span class="hljs-property">onopen</span> = <span class="hljs-function">() =&gt;</span> &#123;<br>  hb = <span class="hljs-built_in">setInterval</span>(<span class="hljs-function">() =&gt;</span> &#123;<br>    <span class="hljs-keyword">if</span> (ws.<span class="hljs-property">readyState</span> === <span class="hljs-title class_">WebSocket</span>.<span class="hljs-property">OPEN</span>) ws.<span class="hljs-title function_">send</span>(<span class="hljs-title class_">JSON</span>.<span class="hljs-title function_">stringify</span>(&#123; <span class="hljs-attr">type</span>: <span class="hljs-string">&#x27;ping&#x27;</span> &#125;));<br>  &#125;, <span class="hljs-number">30000</span>);<br>&#125;;<br>ws.<span class="hljs-property">onclose</span> = <span class="hljs-function">() =&gt;</span> <span class="hljs-built_in">clearInterval</span>(hb);<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 心跳要<strong>双向</strong>：客户端发 ping 服务端回 pong，同时服务端也要检测「多久没收到任何帧」并主动关闭僵尸连接。只做单向心跳会留下大量假活连接。</p>
+</blockquote>
+<h2 id="四、断线重连与指数退避"><a href="#四、断线重连与指数退避" class="headerlink" title="四、断线重连与指数退避"></a>四、断线重连与指数退避</h2><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-keyword">function</span> <span class="hljs-title function_">connect</span>(<span class="hljs-params">url</span>) &#123;<br>  <span class="hljs-keyword">let</span> retries = <span class="hljs-number">0</span>;<br>  <span class="hljs-keyword">const</span> ws = <span class="hljs-keyword">new</span> <span class="hljs-title class_">WebSocket</span>(url);<br>  ws.<span class="hljs-property">onopen</span>  = <span class="hljs-function">() =&gt;</span> &#123; retries = <span class="hljs-number">0</span>; &#125;;<br>  ws.<span class="hljs-property">onclose</span> = <span class="hljs-function">() =&gt;</span> &#123;<br>    <span class="hljs-keyword">const</span> base  = <span class="hljs-title class_">Math</span>.<span class="hljs-title function_">min</span>(<span class="hljs-number">1000</span> * <span class="hljs-number">2</span> ** retries, <span class="hljs-number">30000</span>);<br>    <span class="hljs-keyword">const</span> delay = base * (<span class="hljs-number">0.5</span> + <span class="hljs-title class_">Math</span>.<span class="hljs-title function_">random</span>() * <span class="hljs-number">0.5</span>);   <span class="hljs-comment">// 抖动</span><br>    retries++;<br>    <span class="hljs-built_in">setTimeout</span>(<span class="hljs-function">() =&gt;</span> <span class="hljs-title function_">connect</span>(url), delay);<br>  &#125;;<br>  <span class="hljs-keyword">return</span> ws;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>要素</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>指数退避 <code>2^n</code></td>
+<td>避免服务端刚重启就被打爆</td>
+</tr>
+<tr>
+<td>上限（如 30s）</td>
+<td>防止退避到几小时</td>
+</tr>
+<tr>
+<td>抖动 jitter</td>
+<td>避免所有客户端<strong>同时</strong>重连（惊群）</td>
+</tr>
+<tr>
+<td>成功即重置计数</td>
+<td>否则正常波动也会累积到上限</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>没有抖动的指数退避 &#x3D; 惊群</strong>。服务端重启后所有客户端会在同一毫秒重连，加 <code>Math.random()</code> 抖动是最低要求。同时重连期间要<strong>缓存待发送消息</strong>并补齐，否则用户在网络抖动时输入的内容会静默丢失。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 重连成功后<strong>必须重新鉴权</strong>。token 可能已过期，服务端会立刻用 <code>1008</code> 关闭，形成「连上就断」的死循环。要在 <code>onopen</code> 里重发认证消息。</p>
+</blockquote>
+<h2 id="五、SSE"><a href="#五、SSE" class="headerlink" title="五、SSE"></a>五、SSE</h2><p>服务端响应 <code>Content-Type: text/event-stream</code>，事件流格式（WHATWG HTML Standard）：</p>
+<figure class="highlight avrasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs avrasm">: 这是一条注释，可作为心跳<br><br><span class="hljs-symbol">event:</span> <span class="hljs-keyword">add</span><br><span class="hljs-symbol">data:</span> <span class="hljs-number">73857293</span><br><span class="hljs-symbol">id:</span> <span class="hljs-number">1</span><br><br><span class="hljs-symbol">data:</span> 多行数据<br><span class="hljs-symbol">data:</span> 第二行<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>data:</code></td>
+<td>数据内容，多行会以 <code>\n</code> 拼接</td>
+</tr>
+<tr>
+<td><code>event:</code></td>
+<td>事件类型名，默认 <code>message</code></td>
+</tr>
+<tr>
+<td><code>id:</code></td>
+<td>设置 <code>lastEventId</code>，重连时通过 <code>Last-Event-ID</code> 发回</td>
+</tr>
+<tr>
+<td><code>retry:</code></td>
+<td>指定重连间隔（毫秒）</td>
+</tr>
+<tr>
+<td><code>:</code> 开头</td>
+<td>注释，常用来做心跳保活</td>
+</tr>
+</tbody></table>
+<table>
+<thead>
+<tr>
+<th>规则</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>编码</td>
+<td>必须 <strong>UTF-8</strong>，无法指定其他编码</td>
+</tr>
+<tr>
+<td>行分隔</td>
+<td>CRLF &#x2F; LF &#x2F; CR 均可</td>
+</tr>
+<tr>
+<td>事件分隔</td>
+<td><strong>空行</strong>触发派发，流末尾不算</td>
+</tr>
+<tr>
+<td>冒号后空格</td>
+<td>若存在会被忽略（<code>data: x</code> 与 <code>data:x</code> 等价）</td>
+</tr>
+<tr>
+<td>重定向 &#x2F; 停止重连</td>
+<td>支持 301 &#x2F; 307；服务端返回 <strong>204</strong> 可让客户端停止重连</td>
+</tr>
+</tbody></table>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-keyword">const</span> es = <span class="hljs-keyword">new</span> <span class="hljs-title class_">EventSource</span>(<span class="hljs-string">&#x27;/api/stream&#x27;</span>, &#123; <span class="hljs-attr">withCredentials</span>: <span class="hljs-literal">true</span> &#125;);<br>es.<span class="hljs-property">onmessage</span> = <span class="hljs-function"><span class="hljs-params">e</span> =&gt;</span> <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(e.<span class="hljs-property">data</span>);<br>es.<span class="hljs-title function_">addEventListener</span>(<span class="hljs-string">&#x27;add&#x27;</span>, <span class="hljs-function"><span class="hljs-params">e</span> =&gt;</span> <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;add&#x27;</span>, e.<span class="hljs-property">data</span>));<br>es.<span class="hljs-property">onerror</span> = <span class="hljs-function">() =&gt;</span> &#123; <span class="hljs-comment">/* 浏览器会自动重连 */</span> &#125;;<br>es.<span class="hljs-title function_">close</span>();<br></code></pre></td></tr></table></figure>
+
+<p><code>readyState</code>：<code>CONNECTING</code>(0) 未建立或正在重连 · <code>OPEN</code>(1) 已连接 · <code>CLOSED</code>(2) 已关闭且不再重连。</p>
+<blockquote>
+<p>⚠️ 断线重连时浏览器会带上 <strong><code>Last-Event-ID</code></strong> 请求头（值为最后收到的 <code>id</code>）。服务端<strong>必须</strong>据此续传，否则重连后会丢消息或重复推送。不实现这个，自动重连就是「看起来能用」的假象。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>EventSource</code> <strong>只能发 GET</strong>，不能带自定义请求头，也不能设 body。要 POST 或加 <code>Authorization</code> 头，只能用 <code>fetch</code> + <code>ReadableStream</code> 自己解析事件流。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>retry</code> 字段控制重连间隔，未指定时用 UA 默认值（主流浏览器约 <strong>3 秒</strong>）。这个默认值<strong>偏激进</strong>，服务端故障时会造成重连风暴，建议显式下发 <code>retry:</code>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ SSE 的 6 连接限制在 <strong>HTTP&#x2F;2 下被消除</strong>；但若 Nginx 到上游仍是 HTTP&#x2F;1.1，瓶颈只是从浏览器挪到了 Nginx。规范还提醒<strong>中间层 chunked 传输可能破坏 SSE 时序</strong>，代理层要关掉 <code>text/event-stream</code> 的缓冲。</p>
+</blockquote>
+<h2 id="六、Nginx-反代配置"><a href="#六、Nginx-反代配置" class="headerlink" title="六、Nginx 反代配置"></a>六、Nginx 反代配置</h2><figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><code class="hljs nginx"><span class="hljs-attribute">map</span> <span class="hljs-variable">$http_upgrade</span> <span class="hljs-variable">$connection_upgrade</span> &#123;   <span class="hljs-comment"># 非 Upgrade 请求必须发 close</span><br>    <span class="hljs-attribute">default</span> upgrade;<br>    &#x27;&#x27;      close;<br>&#125;<br><br><span class="hljs-section">location</span> /ws/ &#123;                            <span class="hljs-comment"># WebSocket</span><br>    <span class="hljs-attribute">proxy_pass</span> http://backend;<br>    <span class="hljs-attribute">proxy_http_version</span> <span class="hljs-number">1</span>.<span class="hljs-number">1</span>;<br>    <span class="hljs-attribute">proxy_set_header</span> Upgrade <span class="hljs-variable">$http_upgrade</span>;<br>    <span class="hljs-attribute">proxy_set_header</span> Connection <span class="hljs-variable">$connection_upgrade</span>;<br>    <span class="hljs-attribute">proxy_read_timeout</span> <span class="hljs-number">3600s</span>;<br>&#125;<br><br><span class="hljs-section">location</span> /api/stream &#123;                     <span class="hljs-comment"># SSE</span><br>    <span class="hljs-attribute">proxy_pass</span> http://backend;<br>    <span class="hljs-attribute">proxy_http_version</span> <span class="hljs-number">1</span>.<span class="hljs-number">1</span>;<br>    <span class="hljs-attribute">proxy_set_header</span> Connection <span class="hljs-string">&quot;&quot;</span>;<br>    <span class="hljs-attribute">proxy_buffering</span> <span class="hljs-literal">off</span>;<br>    <span class="hljs-attribute">proxy_cache</span> <span class="hljs-literal">off</span>;<br>    <span class="hljs-attribute">chunked_transfer_encoding</span> <span class="hljs-literal">off</span>;<br>    <span class="hljs-attribute">proxy_read_timeout</span> <span class="hljs-number">3600s</span>;<br>    <span class="hljs-attribute">add_header</span> X-Accel-Buffering <span class="hljs-literal">no</span>;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>指令</th>
+<th>作用</th>
+<th>漏掉的后果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>proxy_http_version 1.1</code></td>
+<td>启用 Upgrade 机制</td>
+<td>⚠️ 默认 1.0，握手直接失败</td>
+</tr>
+<tr>
+<td><code>proxy_set_header Upgrade</code></td>
+<td>透传升级头</td>
+<td>⚠️ 服务端收不到 Upgrade</td>
+</tr>
+<tr>
+<td><code>proxy_set_header Connection</code></td>
+<td>透传连接头</td>
+<td>⚠️ 握手 400 &#x2F; 连接被复用</td>
+</tr>
+<tr>
+<td><code>proxy_read_timeout</code></td>
+<td>延长读超时</td>
+<td>⚠️ 默认 60s 后静默断开</td>
+</tr>
+<tr>
+<td><code>proxy_buffering off</code></td>
+<td>关缓冲（SSE）</td>
+<td>⚠️ 消息被攒着不发</td>
+</tr>
+<tr>
+<td><code>X-Accel-Buffering: no</code></td>
+<td>应用层关 Nginx 缓冲</td>
+<td>⚠️ 同上</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ Nginx 默认 <code>proxy_read_timeout 60s</code>。心跳间隔必须<strong>小于</strong>这个值，否则连接会在两次心跳之间被掐掉，表现为「每分钟断一次」。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 多实例部署时，WebSocket 需要<strong>会话保持（sticky）或共享的发布订阅</strong>（Redis Pub&#x2F;Sub）。否则 A 实例上的用户发的消息，B 实例上的用户收不到。</p>
+</blockquote>
+<h2 id="七、鉴权"><a href="#七、鉴权" class="headerlink" title="七、鉴权"></a>七、鉴权</h2><p>WebSocket <strong>不能携带自定义请求头</strong>（浏览器 <code>WebSocket</code> 构造函数只有 URL 和子协议两个参数），<code>Authorization: Bearer xxx</code> 这条路走不通。</p>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>做法</th>
+<th>风险</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>URL 查询参数</td>
+<td><code>wss://x/ws?token=xxx</code></td>
+<td>⚠️ token 进访问日志、Referer</td>
+</tr>
+<tr>
+<td>Cookie</td>
+<td>依赖同源 Cookie 自动携带</td>
+<td>✅ 简单，但需防 CSRF</td>
+</tr>
+<tr>
+<td>子协议传 token</td>
+<td><code>new WebSocket(url, [&#39;bearer&#39;, token])</code></td>
+<td>非标准用法，易被中间件拦</td>
+</tr>
+<tr>
+<td>首帧认证</td>
+<td>连上后立刻发一条 auth 消息</td>
+<td>⚠️ 认证前连接已建立</td>
+</tr>
+<tr>
+<td>一次性 ticket</td>
+<td>先用 HTTP 换短时 ticket 再连</td>
+<td>✅ 推荐</td>
+</tr>
+</tbody></table>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-comment">// 先用普通 HTTP 拿一次性 ticket（可带 Authorization 头）</span><br><span class="hljs-keyword">const</span> &#123; ticket &#125; = <span class="hljs-keyword">await</span> <span class="hljs-title function_">fetch</span>(<span class="hljs-string">&#x27;/api/ws-ticket&#x27;</span>, &#123;<br>  <span class="hljs-attr">method</span>: <span class="hljs-string">&#x27;POST&#x27;</span>,<br>  <span class="hljs-attr">headers</span>: &#123; <span class="hljs-title class_">Authorization</span>: <span class="hljs-string">`Bearer <span class="hljs-subst">$&#123;accessToken&#125;</span>`</span> &#125;,<br>&#125;).<span class="hljs-title function_">then</span>(<span class="hljs-function"><span class="hljs-params">r</span> =&gt;</span> r.<span class="hljs-title function_">json</span>());<br><br><span class="hljs-keyword">const</span> ws = <span class="hljs-keyword">new</span> <span class="hljs-title class_">WebSocket</span>(<span class="hljs-string">`wss://api.example.com/ws?ticket=<span class="hljs-subst">$&#123;ticket&#125;</span>`</span>);<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ URL 里的 token 会进入 <strong>Nginx access log、浏览器历史、Referer 头</strong>，还可能被 CDN 缓存。要用就必须是一次性、短过期（秒级）的 ticket。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 用 Cookie 鉴权时，WebSocket 握手<strong>不受同源策略保护</strong>（没有 CORS 预检）。服务端<strong>必须</strong>校验 <code>Origin</code> 头，否则存在跨站 WebSocket 劫持（CSWSH）。认证也应尽量在<strong>握手阶段</strong>完成（用 <code>101</code> 与 <code>401</code> 区分），否则攻击者可先占连接资源做耗尽攻击。</p>
+</blockquote>
+<h2 id="八、消息顺序与幂等"><a href="#八、消息顺序与幂等" class="headerlink" title="八、消息顺序与幂等"></a>八、消息顺序与幂等</h2><table>
+<thead>
+<tr>
+<th>问题</th>
+<th>原因</th>
+<th>对策</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>乱序</td>
+<td>分片、多路复用、多实例</td>
+<td>带<strong>单调递增序号</strong>，前端按序缓冲</td>
+</tr>
+<tr>
+<td>丢失</td>
+<td>断线期间的消息</td>
+<td><code>Last-Event-ID</code> &#x2F; 重连后拉增量</td>
+</tr>
+<tr>
+<td>重复</td>
+<td>重连重放、重试</td>
+<td>消息带唯一 <code>id</code>，消费端去重</td>
+</tr>
+<tr>
+<td>积压</td>
+<td>消费慢</td>
+<td>背压控制，超阈值丢弃或降级</td>
+</tr>
+</tbody></table>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs js">&#123; <span class="hljs-attr">seq</span>: <span class="hljs-number">1024</span>, <span class="hljs-attr">id</span>: <span class="hljs-string">&#x27;evt_abc&#x27;</span>, <span class="hljs-attr">type</span>: <span class="hljs-string">&#x27;message&#x27;</span>, <span class="hljs-attr">payload</span>: &#123;...&#125; &#125;   <span class="hljs-comment">// 带序号与 id</span><br><br><span class="hljs-keyword">const</span> buf = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Map</span>();                                          <span class="hljs-comment">// 前端按 seq 缓冲</span><br><span class="hljs-keyword">function</span> <span class="hljs-title function_">onMessage</span>(<span class="hljs-params">m</span>) &#123;<br>  buf.<span class="hljs-title function_">set</span>(m.<span class="hljs-property">seq</span>, m);<br>  <span class="hljs-keyword">while</span> (buf.<span class="hljs-title function_">has</span>(nextSeq)) &#123; <span class="hljs-title function_">handle</span>(buf.<span class="hljs-title function_">get</span>(nextSeq)); buf.<span class="hljs-title function_">delete</span>(nextSeq++); &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ TCP 保证<strong>单连接内</strong>有序，但<strong>不保证跨连接</strong>。重连后是新连接，多实例又是不同连接 —— 序号必须由<strong>业务层</strong>给出，不能依赖 TCP。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 客户端发送也要带 <code>clientMsgId</code> 作幂等键，否则重连重发会让服务端收到两条相同的业务消息。生产级场景推荐 <strong>at-least-once + 去重</strong>，而不是追求 exactly-once。</p>
+</blockquote>
+<h2 id="九、Socket-IO-与选型边界"><a href="#九、Socket-IO-与选型边界" class="headerlink" title="九、Socket.IO 与选型边界"></a>九、Socket.IO 与选型边界</h2><p>Socket.IO 在 WebSocket 之上加了一层协议，提供自动重连、房间、广播、ack 回调，以及<strong>降级到 HTTP 长轮询</strong>的能力。</p>
+<table>
+<thead>
+<tr>
+<th>能力</th>
+<th>原生 WebSocket</th>
+<th>Socket.IO</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>自动重连 &#x2F; 房间 &#x2F; ack</td>
+<td>自己写</td>
+<td>✅ 内置</td>
+</tr>
+<tr>
+<td>降级到长轮询</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>包体积</td>
+<td>0（浏览器原生）</td>
+<td>~40KB+</td>
+</tr>
+<tr>
+<td>协议</td>
+<td>标准 RFC 6455</td>
+<td>⚠️ 私有（非标准 WS 客户端连不上）</td>
+</tr>
+</tbody></table>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>更优选择</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>只要服务端推（通知、日志、AI 流式）</td>
+<td><strong>SSE</strong></td>
+<td>自动重连、无私有协议、<code>curl -N</code> 就能调试</td>
+</tr>
+<tr>
+<td>更新频率 &lt; 1 次&#x2F;分钟</td>
+<td>短轮询</td>
+<td>长连接成本 &gt; 收益</td>
+</tr>
+<tr>
+<td>需要 CDN &#x2F; 多层代理</td>
+<td>SSE</td>
+<td>WebSocket 需逐层配置 Upgrade</td>
+</tr>
+<tr>
+<td>不想引入 Pub&#x2F;Sub 还要水平扩展</td>
+<td>轮询 &#x2F; SSE</td>
+<td>有状态连接会绑死实例</td>
+</tr>
+<tr>
+<td>双向高频（聊天、协同、游戏）</td>
+<td><strong>WebSocket</strong></td>
+<td>唯一合适的选择</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ Socket.IO <strong>不是</strong> WebSocket 的封装，而是一套<strong>私有协议</strong>。标准 WebSocket 客户端（<code>wscat</code>、Go 的 <code>gorilla/websocket</code>）<strong>连不上</strong> Socket.IO 服务端，反之亦然。降级到长轮询也会让每台客户端占更多连接、延迟显著上升 —— 它是保险，不是常态。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 长连接最大的隐性成本是<strong>有状态</strong>：滚动发布、扩缩容、负载均衡都必须处理「连接该断在哪、消息怎么补」。轮询天然无状态，运维复杂度低一个量级。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 移动端切后台、网络切换（4G ↔ WiFi）会导致连接静默失效。必须有 <code>visibilitychange</code> 与 <code>online</code> &#x2F; <code>offline</code> 事件驱动的重连逻辑，不能只靠 <code>onclose</code>。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 用短轮询做「实时」，靠缩短间隔硬撑，打爆后端</li>
+<li><input disabled="" type="checkbox"> 开多个 SSE 标签页，占满同源 6 连接导致其他请求排队</li>
+<li><input disabled="" type="checkbox"> Nginx 没配 <code>proxy_http_version 1.1</code>，WebSocket 握手直接失败</li>
+<li><input disabled="" type="checkbox"> 只透传 <code>Upgrade</code> 忘了 <code>Connection</code>，或没配 <code>map $http_upgrade</code></li>
+<li><input disabled="" type="checkbox"> <code>proxy_read_timeout</code> 保持默认 60s，连接每分钟被掐一次</li>
+<li><input disabled="" type="checkbox"> 心跳间隔大于 Nginx 空闲超时</li>
+<li><input disabled="" type="checkbox"> 只做单向心跳，服务端留下大量僵尸连接</li>
+<li><input disabled="" type="checkbox"> 重连没加抖动，服务端重启引发惊群</li>
+<li><input disabled="" type="checkbox"> 重连后没重新鉴权，陷入「连上就被 1008 关闭」的死循环</li>
+<li><input disabled="" type="checkbox"> 重连期间不缓存待发消息，用户输入静默丢失</li>
+<li><input disabled="" type="checkbox"> 把 <code>1006</code> 当成服务端发来的关闭码</li>
+<li><input disabled="" type="checkbox"> SSE 服务端不处理 <code>Last-Event-ID</code>，重连后丢消息或重复推</li>
+<li><input disabled="" type="checkbox"> 用 <code>EventSource</code> 发 POST 或加自定义请求头</li>
+<li><input disabled="" type="checkbox"> SSE 响应没关 Nginx 缓冲，消息攒着不发</li>
+<li><input disabled="" type="checkbox"> WebSocket token 放 URL 且长期有效，进了 access log</li>
+<li><input disabled="" type="checkbox"> 用 Cookie 鉴权但不校验 <code>Origin</code>，存在跨站 WebSocket 劫持</li>
+<li><input disabled="" type="checkbox"> 多实例部署没有 sticky session 或 Redis Pub&#x2F;Sub，消息投递不全</li>
+<li><input disabled="" type="checkbox"> 客户端重发不带幂等键，服务端收到重复业务消息</li>
+<li><input disabled="" type="checkbox"> 以为标准 WebSocket 客户端能连 Socket.IO 服务端</li>
+<li><input disabled="" type="checkbox"> 移动端只监听 <code>onclose</code>，忽略 <code>visibilitychange</code> 与 <code>online</code> 事件</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://datatracker.ietf.org/doc/html/rfc6455">RFC 6455 · The WebSocket Protocol</a> · <a target="_blank" rel="noopener" href="https://html.spec.whatwg.org/dev/server-sent-events.html">WHATWG HTML Standard · Server-sent events</a> · <a target="_blank" rel="noopener" href="https://developer.mozilla.org/zh-CN/docs/Web/API/WebSocket">MDN · WebSocket</a> · <a target="_blank" rel="noopener" href="https://developer.mozilla.org/zh-CN/docs/Web/API/Server-sent_events">MDN · Server-sent events</a> · <a target="_blank" rel="noopener" href="https://developer.mozilla.org/zh-CN/docs/Web/API/EventSource">MDN · EventSource</a> · <a target="_blank" rel="noopener" href="https://nginx.org/en/docs/http/websocket.html">Nginx · WebSocket 代理</a> · <a target="_blank" rel="noopener" href="https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_buffering">Nginx · proxy_buffering</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/http/" class="category-chain-item">http</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/http/" class="print-no-link">#http</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 071 · HTTP（五）：WebSocket、SSE 与实时通信</div>
+      <div>https://ethan-iopasd.github.io/2026/10/08/每日技术博客071-HTTPWebSocket与SSE/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月8日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2043-REST%E4%B8%8EAPI%E8%AE%BE%E8%AE%A1/" title="每日技术博客 043 · HTTP（四）：REST 与 API 设计">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 043 · HTTP（四）：REST 与 API 设计</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

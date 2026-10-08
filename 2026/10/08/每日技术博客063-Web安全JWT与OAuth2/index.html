@@ -1,0 +1,1215 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 063 篇 安全系列第三篇。JWT 是签名不是加密、三种经典算法攻击、无法主动失效的解法、refresh token 轮换、OAuth 四种模式与 PKCE、OIDC 在 OAuth 上加了什么。  📚 Web 安全 系列目录   章节 主题 状态    一 XSS、CSRF 与注入 已发布   二 认证、授权与密钥管理 已发布   三 JWT">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 063 · Web 安全（三）：JWT 与 OAuth 2.0 &#x2F; OIDC">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2063-Web%E5%AE%89%E5%85%A8JWT%E4%B8%8EOAuth2/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 063 篇 安全系列第三篇。JWT 是签名不是加密、三种经典算法攻击、无法主动失效的解法、refresh token 轮换、OAuth 四种模式与 PKCE、OIDC 在 OAuth 上加了什么。  📚 Web 安全 系列目录   章节 主题 状态    一 XSS、CSRF 与注入 已发布   二 认证、授权与密钥管理 已发布   三 JWT">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-08T03:50:00.000Z">
+<meta property="article:modified_time" content="2026-10-08T02:47:42.140Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="security">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 063 · Web 安全（三）：JWT 与 OAuth 2.0 / OIDC - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 063 · Web 安全（三）：JWT 与 OAuth 2.0 / OIDC"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-08 11:50" pubdate>
+          2026年10月8日 中午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          3.7k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          32 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 063 · Web 安全（三）：JWT 与 OAuth 2.0 / OIDC</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-08 · 第 063 篇</p>
+<p>安全系列第三篇。JWT 是签名不是加密、三种经典算法攻击、无法主动失效的解法、refresh token 轮换、OAuth 四种模式与 PKCE、OIDC 在 OAuth 上加了什么。</p>
+</blockquote>
+<h2 id="📚-Web-安全-系列目录"><a href="#📚-Web-安全-系列目录" class="headerlink" title="📚 Web 安全 系列目录"></a>📚 Web 安全 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>XSS、CSRF 与注入</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>认证、授权与密钥管理</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>JWT 与 OAuth 2.0 &#x2F; OIDC</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>JWT 是一份「可被验证、但不可被撤销」的声明</strong>；OAuth 2.0 是<strong>授权</strong>协议不是认证协议；要「用 Google 登录」必须上 OIDC。</p>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>规范</th>
+<th>解决什么</th>
+<th>不解决什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>JWT</td>
+<td>RFC 7519</td>
+<td>令牌怎么编码、怎么验签</td>
+<td>谁发的、发给谁、能不能撤销</td>
+</tr>
+<tr>
+<td>OAuth 2.0</td>
+<td>RFC 6749</td>
+<td>第三方怎么拿到<strong>受限</strong>访问权</td>
+<td>用户是谁</td>
+</tr>
+<tr>
+<td>OIDC</td>
+<td>OpenID Connect Core 1.0</td>
+<td>用户是谁（认证）</td>
+<td>授权</td>
+</tr>
+<tr>
+<td>OAuth 2.0 安全 BCP</td>
+<td><strong>RFC 9700</strong></td>
+<td>上面这些怎么用才不出事</td>
+<td>——</td>
+</tr>
+</tbody></table>
+<h2 id="一、JWT-结构：三段-base64url，签名-≠-加密"><a href="#一、JWT-结构：三段-base64url，签名-≠-加密" class="headerlink" title="一、JWT 结构：三段 base64url，签名 ≠ 加密"></a>一、JWT 结构：三段 base64url，签名 ≠ 加密</h2><figure class="highlight lasso"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs lasso">eyJhbGciOiJSUzI1NiIsImtpZCI6ImtleS0xIn0 . eyJzdWIiOiIxMjMiLCJleHAiOjE3<span class="hljs-params">...</span> . Rk5v_<span class="hljs-params">...</span><br>└──────────── <span class="hljs-keyword">Header</span> ─────────────┘  └────────── Payload ──────────┘  └─ Signature ─┘<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>段</th>
+<th>内容</th>
+<th>是否可读</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Header</td>
+<td><code>&#123;&quot;alg&quot;:&quot;RS256&quot;,&quot;typ&quot;:&quot;JWT&quot;,&quot;kid&quot;:&quot;key-1&quot;&#125;</code></td>
+<td>✅ 明文</td>
+</tr>
+<tr>
+<td>Payload</td>
+<td><code>sub</code> &#x2F; <code>exp</code> &#x2F; <code>iss</code> &#x2F; <code>aud</code> &#x2F; 自定义 claim</td>
+<td>✅ 明文</td>
+</tr>
+<tr>
+<td>Signature</td>
+<td>对 <code>header.payload</code> 的签名</td>
+<td>只能验，不能改</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-built_in">echo</span> <span class="hljs-string">&#x27;eyJzdWIiOiIxMjMifQ&#x27;</span> | <span class="hljs-built_in">base64</span> -d    <span class="hljs-comment"># &#123;&quot;sub&quot;:&quot;123&quot;&#125; —— 不需要任何密钥</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>base64url 是编码不是加密。</strong> payload 放密码、身份证 &#x3D; 明文泄露；签名只保证「没被篡改」，不保证「看不到」。而且签名**只覆盖 <code>header</code> + <code>payload</code>**，不覆盖任何外部上下文 —— 令牌里的 <code>role: admin</code> 不能证明服务端现在真认为你是 admin，得看签名密钥在谁手里、有没有撤销机制。JWT 用的是 <strong>base64url</strong>（标准 base64 的 <code>+</code> <code>/</code> 换成 <code>-</code> <code>_</code>，去掉 <code>=</code> 填充）。</p>
+</blockquote>
+<h2 id="二、三种经典算法攻击"><a href="#二、三种经典算法攻击" class="headerlink" title="二、三种经典算法攻击"></a>二、三种经典算法攻击</h2><p><strong><code>alg: none</code></strong> —— 把 <code>alg</code> 改成 <code>none</code>，<strong>删掉第三段签名</strong>，服务端若信 header 就无条件通过。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs json"><span class="hljs-punctuation">&#123;</span><span class="hljs-attr">&quot;alg&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;none&quot;</span><span class="hljs-punctuation">,</span><span class="hljs-attr">&quot;typ&quot;</span><span class="hljs-punctuation">:</span><span class="hljs-string">&quot;JWT&quot;</span><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<p><strong>算法混淆 RS256 → HS256</strong> —— 服务端用 <strong>RSA 公钥</strong>验签（RS256），攻击者改成 <code>HS256</code>，<strong>拿那个公钥当 HMAC 密钥</strong>重新签名。公钥是公开的，攻击者拿得到。</p>
+<figure class="highlight dos"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs dos">服务端期望： RS256  →  用 RSA 公钥 <span class="hljs-built_in">verify</span><br>攻击者改成： HS256  →  服务端若用同一把「公钥」做 HMAC 校验，<br>                       而攻击者也用公钥 HMAC 签名 → 验签通过 ✗<br></code></pre></td></tr></table></figure>
+
+<p><strong><code>kid</code> 注入</strong> —— <code>kid</code>（key id）是给服务端<strong>选密钥用的</strong>，直接拿去拼路径 &#x2F; SQL &#x2F; URL：</p>
+<table>
+<thead>
+<tr>
+<th>攻击载荷</th>
+<th>目标</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>&quot;kid&quot;: &quot;../../../../dev/null&quot;</code></td>
+<td>读到空文件当密钥</td>
+</tr>
+<tr>
+<td><code>&quot;kid&quot;: &quot;key1&#39; UNION SELECT &#39;attacker_secret&#39;--&quot;</code></td>
+<td>SQL 注入替换密钥</td>
+</tr>
+<tr>
+<td><code>&quot;kid&quot;: &quot;http://evil.com/key&quot;</code></td>
+<td>服务端去攻击者服务器取密钥（SSRF + 自签）</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># ✅ 固定算法 + 白名单 kid + 显式校验所有声明</span><br>jwt.decode(<br>    token,<br>    jwks_key_for(kid_from_trusted_jwks),   <span class="hljs-comment"># kid 只在可信 JWKS 里查</span><br>    algorithms=[<span class="hljs-string">&quot;RS256&quot;</span>],                    <span class="hljs-comment"># 写死，不读 header</span><br>    audience=<span class="hljs-string">&quot;https://api.example.com&quot;</span>,<br>    issuer=<span class="hljs-string">&quot;https://auth.example.com&quot;</span>,<br>    options=&#123;<span class="hljs-string">&quot;require&quot;</span>: [<span class="hljs-string">&quot;exp&quot;</span>, <span class="hljs-string">&quot;iat&quot;</span>, <span class="hljs-string">&quot;sub&quot;</span>, <span class="hljs-string">&quot;aud&quot;</span>, <span class="hljs-string">&quot;iss&quot;</span>]&#125;,<br>)<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>algorithms</code> 参数永远写死</strong>，绝不从 token header 里读 —— 这是防 <code>alg:none</code> 和算法混淆的唯一要点。<code>kid</code> 必须先在服务端 JWKS 白名单里查，绝不当文件名 &#x2F; URL &#x2F; SQL 参数用；<code>jku</code> &#x2F; <code>x5u</code> 头部让服务端去取远程密钥，是最直接的伪造入口，<strong>默认应禁用</strong>。另外 <strong>HS256 密钥要 ≥ 32 字节随机值</strong>（RFC 7518 最低要求），用 <code>secret</code> &#x2F; <code>changeme</code> &#x2F; RSA 公钥当 HMAC 密钥，签名形同虚设。</p>
+</blockquote>
+<h2 id="三、必须校验的声明（claim）"><a href="#三、必须校验的声明（claim）" class="headerlink" title="三、必须校验的声明（claim）"></a>三、必须校验的声明（claim）</h2><table>
+<thead>
+<tr>
+<th>claim</th>
+<th>含义</th>
+<th>不校验的后果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>exp</code></td>
+<td>过期时间</td>
+<td>令牌<strong>永不过期</strong></td>
+</tr>
+<tr>
+<td><code>nbf</code></td>
+<td>生效时间</td>
+<td>未生效的令牌被接受</td>
+</tr>
+<tr>
+<td><code>iss</code></td>
+<td>签发者</td>
+<td><strong>别的系统的令牌能在你这儿用</strong></td>
+</tr>
+<tr>
+<td><code>aud</code></td>
+<td>接收方</td>
+<td>给 A 服务的令牌拿去调 B 服务</td>
+</tr>
+<tr>
+<td><code>sub</code></td>
+<td>主体（用户 id）</td>
+<td>无法定位到具体用户</td>
+</tr>
+<tr>
+<td><code>jti</code></td>
+<td>令牌唯一 id</td>
+<td>无法做黑名单 &#x2F; 防重放</td>
+</tr>
+<tr>
+<td><code>azp</code></td>
+<td>授权方（OIDC）</td>
+<td>无法校验令牌发给哪个客户端</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>aud</code> 不校验是跨服务重放的头号成因。</strong> 同一个 IdP 给所有服务签令牌时，给「只读服务」的令牌能直接调「支付服务」—— 只要不校验 <code>aud</code>。同理<strong>不要用「解码成功」当「验签成功」</strong>（<code>decode(..., verify_signature=False)</code> 只解码不验签），写一个「篡改 payload 后必须被拒」的测试用例；<strong>时钟偏移要留容差</strong>（通常 <code>leeway=60</code> 秒），否则多机时间不同步时，刚签发的令牌会被判为「未生效」。</p>
+</blockquote>
+<h2 id="四、JWT-无法主动失效-——-三个解法"><a href="#四、JWT-无法主动失效-——-三个解法" class="headerlink" title="四、JWT 无法主动失效 —— 三个解法"></a>四、JWT 无法主动失效 —— 三个解法</h2><p>JWT 无状态、服务端不存它，所以<strong>用户改密码、封号、令牌被盗，都只能等 <code>exp</code> 到点</strong>。</p>
+<table>
+<thead>
+<tr>
+<th>解法</th>
+<th>机制</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>短有效期</strong></td>
+<td>access token 5–15 分钟</td>
+<td>只能缩小窗口，不能撤销</td>
+</tr>
+<tr>
+<td><strong>黑名单</strong></td>
+<td>存 <code>jti</code> 到 Redis，验签后查</td>
+<td><strong>引入服务端状态</strong></td>
+</tr>
+<tr>
+<td><strong>令牌版本号</strong></td>
+<td>用户表存 <code>token_version</code>，令牌带上；改密码时 +1</td>
+<td>每次请求查一次用户（可缓存）</td>
+</tr>
+</tbody></table>
+<figure class="highlight nix"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs nix">版本号方案：<br>  <span class="hljs-attr">users.token_version</span> <span class="hljs-operator">=</span> <span class="hljs-number">7</span><br>  令牌 <span class="hljs-params">payload:</span> &#123; <span class="hljs-string">&quot;sub&quot;</span>: <span class="hljs-string">&quot;123&quot;</span>, <span class="hljs-string">&quot;tv&quot;</span>: <span class="hljs-number">7</span> &#125;<br>  改密码 <span class="hljs-symbol">/</span> 封号 → token_version <span class="hljs-operator">=</span> <span class="hljs-number">8</span><br>  旧令牌 tv<span class="hljs-operator">=</span><span class="hljs-number">7</span> ≠ <span class="hljs-number">8</span> → 拒绝。所有旧令牌瞬间失效，无需遍历黑名单。<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs redis"># 黑名单方案：只存到令牌自然过期为止<br>SET blacklist:jti:&lt;jti&gt; 1 EX &lt;剩余秒数&gt;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>黑名单必须设 TTL &#x3D; 令牌剩余有效期</strong>，永不过期的黑名单会无限膨胀，且令牌本身早失效了。更重要的是：<strong>一旦上了黑名单或版本号，JWT 就退回成「有状态令牌」</strong> —— 这时要问「那我为什么不用 Session」。JWT 的价值在<strong>服务间无状态调用</strong>和<strong>跨域传递</strong>，不是「比 Session 高级」。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>不要给 access token 设几天有效期来「省刷新」。</strong> 有效期越长，撤销窗口越大。正确做法是短 access token + 长 refresh token。</p>
+</blockquote>
+<h2 id="五、Refresh-Token：轮换-重放检测"><a href="#五、Refresh-Token：轮换-重放检测" class="headerlink" title="五、Refresh Token：轮换 + 重放检测"></a>五、Refresh Token：轮换 + 重放检测</h2><figure class="highlight avrasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs avrasm">客户端                          授权服务器<br>  │ POST /token (refresh_token=<span class="hljs-built_in">R1</span>) │<br>  │ ───────────────────────────────&gt;│<br>  │  access_token (<span class="hljs-number">15</span>m)             │<br>  │  refresh_token=<span class="hljs-built_in">R2</span>（轮换）       │<br>  │ &lt;───────────────────────────────│<br>  │ 攻击者拿着 <span class="hljs-built_in">R1</span> 再来一次：        │<br>  │ POST /token (refresh_token=<span class="hljs-built_in">R1</span>)  │<br>  │ ───────────────────────────────&gt;│<br>  │  <span class="hljs-built_in">R1</span> 已作废 → 判定令牌链被窃取   │<br>  │  → 作废 <span class="hljs-built_in">R2</span> 及该用户全部会话      │<br>  │ &lt;───────────────────────────────│<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>机制</th>
+<th>行为</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>轮换（rotation）</td>
+<td>每次刷新签发<strong>新的</strong> refresh token，旧的立即失效</td>
+</tr>
+<tr>
+<td>重放检测（reuse detection）</td>
+<td>已用过的 refresh token 再次出现 → <strong>整条链作废</strong></td>
+</tr>
+<tr>
+<td>令牌族（token family）</td>
+<td>一个 refresh 链共用一个 family id，重放时按 family 全清</td>
+</tr>
+<tr>
+<td>发送方约束</td>
+<td>DPoP &#x2F; mTLS 绑定，令牌只能被持有密钥的那一方用</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>只轮换不检测 &#x3D; 没做。</strong> 攻击者拿着旧令牌照样能一直刷新。检测到重放时，<strong>必须把该用户 &#x2F; 该 family 的所有会话全部踢掉</strong>，因为无法分辨谁是攻击者。RFC 9700 明确要求：公共客户端（SPA &#x2F; 移动端）的 refresh token <strong>必须轮换 + 发送方约束</strong>，且必须<strong>存在服务端可撤销</strong> —— 纯无状态的 refresh token 等于一个长效 access token。</p>
+</blockquote>
+<h2 id="六、令牌存哪：localStorage-vs-httpOnly-Cookie"><a href="#六、令牌存哪：localStorage-vs-httpOnly-Cookie" class="headerlink" title="六、令牌存哪：localStorage vs httpOnly Cookie"></a>六、令牌存哪：localStorage vs httpOnly Cookie</h2><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>localStorage</th>
+<th><strong>httpOnly Cookie</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>XSS 能否读走</td>
+<td>❌ <strong>能</strong></td>
+<td>✅ 读不到</td>
+</tr>
+<tr>
+<td>CSRF 风险</td>
+<td>✅ 无（要手动加头）</td>
+<td>⚠️ 有（浏览器自动携带）</td>
+</tr>
+<tr>
+<td>跨域调用</td>
+<td>✅ 方便</td>
+<td>⚠️ 需要 CORS + <code>credentials</code></td>
+</tr>
+<tr>
+<td>服务端注销</td>
+<td>做不到</td>
+<td>✅ 删 Cookie</td>
+</tr>
+</tbody></table>
+<figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs http"><span class="hljs-attribute">Set-Cookie</span><span class="hljs-punctuation">: </span>rt=&lt;refresh_token&gt;; HttpOnly; Secure; SameSite=Lax; Path=/auth/refresh; Max-Age=2592000<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>Cookie 属性</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>HttpOnly</code></td>
+<td>JS 读不到（防 XSS 窃取）</td>
+</tr>
+<tr>
+<td><code>Secure</code></td>
+<td>只在 HTTPS 发送</td>
+</tr>
+<tr>
+<td><code>SameSite=Lax</code></td>
+<td>顶级导航带 Cookie，跨站 POST 不带（防 CSRF）</td>
+</tr>
+<tr>
+<td><code>Path=/auth/refresh</code></td>
+<td><strong>限制只在刷新接口发送</strong>，缩小暴露面</td>
+</tr>
+<tr>
+<td><code>__Host-</code> 前缀</td>
+<td>强制 <code>Secure</code> + 无 <code>Domain</code> + <code>Path=/</code></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>推荐组合：access token 放内存（不落盘），refresh token 放 <code>HttpOnly</code> Cookie。</strong> 页面刷新时用 refresh 换新的 access token，XSS 也拿不到长效凭据。<strong>BFF（Backend for Frontend）模式</strong>更稳：浏览器只跟同源后端会话（Cookie），令牌全留在后端，前端完全接触不到令牌。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>SameSite=Lax</code> 不是万能的</strong>，它只拦跨站 POST，不拦顶级 GET 导航。若刷新接口是 GET，仍会被利用 —— <strong>刷新 &#x2F; 写操作一律用 POST</strong>。</p>
+</blockquote>
+<h2 id="七、签名算法怎么选"><a href="#七、签名算法怎么选" class="headerlink" title="七、签名算法怎么选"></a>七、签名算法怎么选</h2><table>
+<thead>
+<tr>
+<th>算法</th>
+<th>类型</th>
+<th>密钥</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>HS256</strong></td>
+<td>对称 HMAC</td>
+<td>共享密钥</td>
+<td>单一服务自签自验、内部服务</td>
+</tr>
+<tr>
+<td><strong>RS256</strong></td>
+<td>非对称 RSA</td>
+<td>私钥签 &#x2F; 公钥验</td>
+<td><strong>多服务验签、第三方 IdP</strong>（首选）</td>
+</tr>
+<tr>
+<td><strong>ES256</strong></td>
+<td>非对称 ECDSA</td>
+<td>同上</td>
+<td>令牌体积小、移动端友好</td>
+</tr>
+<tr>
+<td><code>none</code></td>
+<td>——</td>
+<td>——</td>
+<td>❌ <strong>永远不要接受</strong></td>
+</tr>
+</tbody></table>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs json"><span class="hljs-comment">// JWKS：服务端公开的公钥集合，验签方从这里取 key</span><br><span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;keys&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span> <span class="hljs-punctuation">&#123;</span> <span class="hljs-attr">&quot;kty&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;RSA&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;kid&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;key-2026-10&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;use&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;sig&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;alg&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;RS256&quot;</span><span class="hljs-punctuation">,</span><br>              <span class="hljs-attr">&quot;n&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;...&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;e&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;AQAB&quot;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">]</span> <span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>只要验签方和签名方不是同一进程，就用非对称算法。</strong> HS256 要求验签方持有同一把密钥 —— 每个下游服务都拿到「能签发」的密钥，等于每个下游都能伪造令牌。<strong>JWKS 只从 <code>iss</code> 对应的可信 URL 加载</strong>（如 <code>https://auth.example.com/.well-known/jwks.json</code>），不要跟着令牌里的 <code>jku</code> 走。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>轮换密钥靠 JWKS 多密钥并存</strong>：新旧公钥同时发布，新令牌用新私钥签，旧令牌用旧公钥验，等最大有效期过后再摘旧公钥。直接换密钥会让<strong>所有在线用户瞬间掉线</strong>。</p>
+</blockquote>
+<h2 id="八、OAuth-2-0-四种授权模式"><a href="#八、OAuth-2-0-四种授权模式" class="headerlink" title="八、OAuth 2.0 四种授权模式"></a>八、OAuth 2.0 四种授权模式</h2><table>
+<thead>
+<tr>
+<th>模式</th>
+<th>状态</th>
+<th>场景</th>
+<th>令牌在哪</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>授权码 + PKCE</strong></td>
+<td>✅ <strong>唯一推荐</strong></td>
+<td>Web &#x2F; SPA &#x2F; 移动端 &#x2F; 桌面</td>
+<td>后端用 code 换</td>
+</tr>
+<tr>
+<td>授权码（无 PKCE）</td>
+<td>❌ 不推荐</td>
+<td>仅机密客户端历史遗留</td>
+<td>同上</td>
+</tr>
+<tr>
+<td><strong>隐式 Implicit</strong></td>
+<td>❌ <strong>已废弃</strong></td>
+<td>旧 SPA</td>
+<td>URL fragment（进历史 &#x2F; Referer）</td>
+</tr>
+<tr>
+<td><strong>密码 Password (ROPC)</strong></td>
+<td>❌ <strong>已废弃</strong></td>
+<td>旧第一方 App</td>
+<td>客户端直接拿密码</td>
+</tr>
+<tr>
+<td><strong>客户端凭证</strong></td>
+<td>⚠️ 仅服务间</td>
+<td>无用户参与的服务调用</td>
+<td>客户端自己换</td>
+</tr>
+</tbody></table>
+<figure class="highlight pf"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs pf">授权码 + PKCE 完整流程：<br><span class="hljs-number">1</span>. 客户端生成 code_verifier（<span class="hljs-number">43</span>–<span class="hljs-number">128</span> 字符随机串）<br>   code_challenge = BASE64URL( SHA256(code_verifier) )<br><span class="hljs-number">2</span>. 浏览器 → /authorize?response_type=code&amp;client_id=...&amp;redirect_uri=https://app.example.com/cb<br>             &amp;scope=openid <span class="hljs-keyword">profile</span> email&amp;<span class="hljs-keyword">state</span>=<span class="hljs-variable">&lt;随机值&gt;</span><br>             &amp;code_challenge=...&amp;code_challenge_method=S256<br><span class="hljs-number">3</span>. 用户在授权服务器登录 + 同意<br><span class="hljs-number">4</span>. 浏览器 ← <span class="hljs-number">302</span> https://app.example.com/cb?code=...&amp;<span class="hljs-keyword">state</span>=...<br><span class="hljs-number">5</span>. 客户端校验 <span class="hljs-keyword">state</span> 一致 → POST /token 带 code + code_verifier<br><span class="hljs-number">6</span>. 授权服务器校验 SHA256(code_verifier) == code_challenge → 返回令牌<br></code></pre></td></tr></table></figure>
+
+<p><strong>PKCE 解决的是授权码拦截</strong>：即使攻击者截获 <code>code</code>（自定义 URL scheme、Referer、日志、共享浏览器），没有 <code>code_verifier</code> 也换不到令牌。</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>要求</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>code_challenge_method</code></td>
+<td>**只用 <code>S256</code>**；<code>plain</code> 等于没保护</td>
+</tr>
+<tr>
+<td><code>code_verifier</code></td>
+<td>43–128 字符，每次授权重新生成，绝不复用</td>
+</tr>
+<tr>
+<td><code>state</code></td>
+<td>必须带 + 必须校验，防 CSRF</td>
+</tr>
+<tr>
+<td><code>nonce</code></td>
+<td>OIDC 才需要，防 id_token 重放</td>
+</tr>
+<tr>
+<td><code>redirect_uri</code></td>
+<td><strong>精确字符串匹配</strong>注册值</td>
+</tr>
+<tr>
+<td><code>code</code></td>
+<td>一次性，用完立即失效</td>
+</tr>
+<tr>
+<td><code>scope</code></td>
+<td>最小权限，别默认要一堆</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>redirect_uri</code> 前缀匹配是最常见也最致命的 OAuth 漏洞。</strong> 注册了 <code>https://app.example.com/cb</code> 却做前缀匹配，攻击者用 <code>https://app.example.com/cb.evil.com</code> 或 <code>https://app.example.com/cb?x=</code> 就能把 <code>code</code> 引到自己服务器。<strong>必须逐字符精确匹配，注册时就拒绝通配符和片段。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>state</code> 不能省</strong>，它防的是「攻击者用自己的账号走完授权、把 <code>code</code> 塞给受害者」的账号混淆攻击。<strong>PKCE 现在对机密客户端也推荐</strong>（RFC 9700 &#x2F; OAuth 2.1 草案要求<strong>所有客户端</strong>）—— 别以为「我有 client_secret 就不用 PKCE」，授权码在浏览器链路里就能被拦。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>OAuth 2.1 至今仍是 IETF 草案</strong>（<code>draft-ietf-oauth-v2-1</code>，2026 年仍在迭代），<strong>没有成为 RFC</strong>。方向已定：PKCE 强制、移除隐式与密码模式、refresh token 必须轮换或发送方约束。已发布可引用的正式文件是 <strong>RFC 9700</strong>（2025-01）。另外<strong>客户端凭证模式没有用户</strong>，它拿到的是「这个应用能干什么」，不是「这个用户能干什么」。</p>
+</blockquote>
+<h2 id="九、OIDC：在-OAuth-之上加的身份层"><a href="#九、OIDC：在-OAuth-之上加的身份层" class="headerlink" title="九、OIDC：在 OAuth 之上加的身份层"></a>九、OIDC：在 OAuth 之上加的身份层</h2><p>OAuth 只解决<strong>授权</strong>（拿到 access token 去调 API），不告诉你「用户是谁」。OIDC 补了这块：</p>
+<table>
+<thead>
+<tr>
+<th>新增</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>scope=openid</code></td>
+<td>请求 OIDC，必须有它才返回 <code>id_token</code></td>
+</tr>
+<tr>
+<td><strong><code>id_token</code></strong></td>
+<td>一个 JWT，声明用户身份（<code>sub</code> &#x2F; <code>name</code> &#x2F; <code>email</code> …）</td>
+</tr>
+<tr>
+<td><code>nonce</code></td>
+<td>请求时带上，校验 <code>id_token.nonce</code> 一致，防重放</td>
+</tr>
+<tr>
+<td><code>/userinfo</code></td>
+<td>用 access token 换用户信息端点</td>
+</tr>
+<tr>
+<td><code>/.well-known/openid-configuration</code></td>
+<td>发现文档：端点、支持算法、JWKS 地址</td>
+</tr>
+</tbody></table>
+<figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs actionscript">id_token 典型 payload：<br>&#123; <span class="hljs-string">&quot;iss&quot;</span>: <span class="hljs-string">&quot;https://auth.example.com&quot;</span>,<br>  <span class="hljs-string">&quot;sub&quot;</span>: <span class="hljs-string">&quot;1234567890&quot;</span>,          ← 用户唯一标识（用它做账号关联）<br>  <span class="hljs-string">&quot;aud&quot;</span>: <span class="hljs-string">&quot;my-client-id&quot;</span>,        ← 必须是你的 client_id<br>  <span class="hljs-string">&quot;exp&quot;</span>: <span class="hljs-number">1735689600</span>, <span class="hljs-string">&quot;iat&quot;</span>: <span class="hljs-number">1735686000</span>,<br>  <span class="hljs-string">&quot;nonce&quot;</span>: <span class="hljs-string">&quot;...&quot;</span>,               ← 必须与请求时一致<br>  <span class="hljs-string">&quot;email&quot;</span>: <span class="hljs-string">&quot;u@example.com&quot;</span>, <span class="hljs-string">&quot;email_verified&quot;</span>: <span class="hljs-literal">true</span> &#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>用途</th>
+<th>用哪个令牌</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>调业务 API</td>
+<td><strong>access token</strong></td>
+</tr>
+<tr>
+<td>判断「用户是谁」</td>
+<td><strong>id_token</strong> 的 <code>sub</code></td>
+</tr>
+<tr>
+<td>取更多用户信息</td>
+<td>access token 调 <code>/userinfo</code></td>
+</tr>
+<tr>
+<td>❌ 拿 access token 当身份</td>
+<td>错误 —— 它的格式、受众都是给资源服务器的</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>id_token</code> 只用来认证，不用来调 API</strong>；反过来 <strong>access token 不是身份凭证</strong>，别解出里面的 <code>sub</code> 就当真。<code>id_token</code> 的 <code>aud</code> 必须等于你的 <code>client_id</code>、<code>iss</code> 必须是你信任的 IdP、<code>nonce</code> 必须与请求时一致 —— 三项缺一就是「任何 IdP 的令牌都能登进你的系统」或「id_token 可被重放」。**账号关联用 <code>(iss, sub)</code>，不要用 <code>email</code>**（可能被改、被回收、被多个 IdP 共用）。</p>
+</blockquote>
+<h2 id="十、SSO-单点登录流程"><a href="#十、SSO-单点登录流程" class="headerlink" title="十、SSO 单点登录流程"></a>十、SSO 单点登录流程</h2><figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs css">用户 → 应用 <span class="hljs-selector-tag">A</span>（未登录）→ 重定向到 IdP（SSO 中心）<br>                          │<br>            已有 IdP 会话？ ├── 有 → 直接签授权码回 <span class="hljs-selector-tag">A</span><br>                          └── 无 → 用户在 IdP 登录一次 → 签授权码回 <span class="hljs-selector-tag">A</span><br>应用 <span class="hljs-selector-tag">A</span> → 用 <span class="hljs-selector-tag">code</span> 换令牌 → 建立本地会话<br>用户 → 应用 <span class="hljs-selector-tag">B</span> → 重定向到 IdP → 已有会话 → 直接签码 → <span class="hljs-selector-tag">B</span> 登录成功<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>IdP（Identity Provider）</td>
+<td>统一认证中心，如 Keycloak &#x2F; Okta &#x2F; Auth0 &#x2F; Entra ID</td>
+</tr>
+<tr>
+<td>SP &#x2F; RP（服务提供方）</td>
+<td>各个业务应用</td>
+</tr>
+<tr>
+<td>全局会话 &#x2F; 本地会话</td>
+<td>IdP 的会话 &#x2F; 各应用自己的会话</td>
+</tr>
+<tr>
+<td>SLO（单点登出）</td>
+<td>登出时通知所有 SP 清会话 —— <strong>实践中很难做全</strong></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>登出是个坑。</strong> OIDC 的 <code>end_session_endpoint</code> 只保证 IdP 会话被清，<strong>各 SP 的本地会话不一定同步清掉</strong>。要真登出，得靠后端会话中心化（共享会话存储）或缩短本地会话有效期，且 IdP 侧要能强制吊销 —— 否则员工离职后，各 SP 里还挂着登录态。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 把 JWT payload 当加密内容，往里塞敏感信息</li>
+<li><input disabled="" type="checkbox"> 接受 <code>alg: none</code>，或从 token header 读 <code>alg</code> 再据此验签</li>
+<li><input disabled="" type="checkbox"> 服务端 RS256 验签却不固定算法，被 RS256→HS256 打穿</li>
+<li><input disabled="" type="checkbox"> HS256 密钥用弱口令，或复用 RSA 公钥当 HMAC 密钥</li>
+<li><input disabled="" type="checkbox"> <code>kid</code> 直接当文件名 &#x2F; SQL 参数 &#x2F; URL 用；允许 <code>jku</code> &#x2F; <code>x5u</code></li>
+<li><input disabled="" type="checkbox"> 不校验 <code>exp</code> &#x2F; <code>iss</code> &#x2F; <code>aud</code>，或用「解码成功」当「验签成功」</li>
+<li><input disabled="" type="checkbox"> 手写 JWT 验签逻辑；时钟偏移不留容差</li>
+<li><input disabled="" type="checkbox"> 需要「踢下线」却用纯无状态 JWT，靠等过期糊弄</li>
+<li><input disabled="" type="checkbox"> 黑名单不设 TTL；access token 有效期设成几天来「省刷新」</li>
+<li><input disabled="" type="checkbox"> refresh token 只轮换不做重放检测，或纯无状态不可撤销</li>
+<li><input disabled="" type="checkbox"> 公共客户端的 refresh token 不做发送方约束</li>
+<li><input disabled="" type="checkbox"> 把令牌放 localStorage；刷新接口用 GET</li>
+<li><input disabled="" type="checkbox"> 会话 Cookie 缺 <code>HttpOnly</code> &#x2F; <code>Secure</code> &#x2F; <code>SameSite</code></li>
+<li><input disabled="" type="checkbox"> 用隐式流 &#x2F; 密码模式；PKCE 用 <code>plain</code> 或复用 <code>code_verifier</code></li>
+<li><input disabled="" type="checkbox"> 不带或不校验 <code>state</code>；<code>redirect_uri</code> 做前缀匹配</li>
+<li><input disabled="" type="checkbox"> 授权码可被重复使用；scope 一上来就要最大权限</li>
+<li><input disabled="" type="checkbox"> 拿 OAuth access token 当身份凭证</li>
+<li><input disabled="" type="checkbox"> 前端解出 JWT payload 就信任里面的 <code>role</code> &#x2F; <code>user_id</code></li>
+<li><input disabled="" type="checkbox"> <code>id_token</code> 不校验 <code>aud</code> &#x2F; <code>iss</code> &#x2F; <code>nonce</code>；用 <code>email</code> 做账号关联</li>
+<li><input disabled="" type="checkbox"> 以为登出 IdP 就等于所有应用都登出了</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://www.rfc-editor.org/rfc/rfc7519.html">RFC 7519 · JWT</a> · <a target="_blank" rel="noopener" href="https://www.rfc-editor.org/rfc/rfc7515.html">RFC 7515 · JWS</a> · <a target="_blank" rel="noopener" href="https://www.rfc-editor.org/rfc/rfc7518.html">RFC 7518 · JWA</a> · <a target="_blank" rel="noopener" href="https://www.rfc-editor.org/rfc/rfc6749.html">RFC 6749 · OAuth 2.0</a> · <a target="_blank" rel="noopener" href="https://www.rfc-editor.org/rfc/rfc6750.html">RFC 6750 · Bearer Token</a> · <a target="_blank" rel="noopener" href="https://www.rfc-editor.org/rfc/rfc7636.html">RFC 7636 · PKCE</a> · <a target="_blank" rel="noopener" href="https://www.rfc-editor.org/rfc/rfc9700.html">RFC 9700 · OAuth 2.0 Security BCP</a> · <a target="_blank" rel="noopener" href="https://www.rfc-editor.org/rfc/rfc9449.html">RFC 9449 · DPoP</a> · <a target="_blank" rel="noopener" href="https://datatracker.ietf.org/doc/draft-ietf-oauth-v2-1/">draft-ietf-oauth-v2-1</a> · <a target="_blank" rel="noopener" href="https://openid.net/specs/openid-connect-core-1_0.html">OpenID Connect Core 1.0</a> · <a target="_blank" rel="noopener" href="https://cheatsheetseries.owasp.org/cheatsheets/JSON_Web_Token_for_Java_Cheat_Sheet.html">OWASP · JWT Cheat Sheet</a> · <a target="_blank" rel="noopener" href="https://cheatsheetseries.owasp.org/cheatsheets/OAuth2_Cheat_Sheet.html">OWASP · OAuth2 Cheat Sheet</a> · <a target="_blank" rel="noopener" href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Reference/Headers/Set-Cookie">MDN · Set-Cookie</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/security/" class="category-chain-item">security</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/security/" class="print-no-link">#security</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 063 · Web 安全（三）：JWT 与 OAuth 2.0 / OIDC</div>
+      <div>https://ethan-iopasd.github.io/2026/10/08/每日技术博客063-Web安全JWT与OAuth2/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月8日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2045-Web%E5%AE%89%E5%85%A8%E8%AE%A4%E8%AF%81%E4%B8%8E%E6%8E%88%E6%9D%83/" title="每日技术博客 045 · Web 安全（二）：认证、授权与密钥管理">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 045 · Web 安全（二）：认证、授权与密钥管理</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

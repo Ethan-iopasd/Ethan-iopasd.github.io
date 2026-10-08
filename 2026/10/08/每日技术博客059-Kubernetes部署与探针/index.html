@@ -1,0 +1,1106 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 059 篇 Deployment 的更新策略、三种探针的职责划分、QoS 与 OOMKilled 的因果关系，以及滚动更新期间 Service 断流的排查路径。  📚 Kubernetes 系列目录   章节 主题 状态    一 核心概念与 Pod 已发布   二 Service、Ingress 与配置管理 已发布   三 部署、滚动更新与探针">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 059 · Kubernetes（三）：部署、滚动更新与探针">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2059-Kubernetes%E9%83%A8%E7%BD%B2%E4%B8%8E%E6%8E%A2%E9%92%88/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 059 篇 Deployment 的更新策略、三种探针的职责划分、QoS 与 OOMKilled 的因果关系，以及滚动更新期间 Service 断流的排查路径。  📚 Kubernetes 系列目录   章节 主题 状态    一 核心概念与 Pod 已发布   二 Service、Ingress 与配置管理 已发布   三 部署、滚动更新与探针">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-08T03:30:00.000Z">
+<meta property="article:modified_time" content="2026-10-08T02:53:36.822Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="kubernetes">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 059 · Kubernetes（三）：部署、滚动更新与探针 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 059 · Kubernetes（三）：部署、滚动更新与探针"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-08 11:30" pubdate>
+          2026年10月8日 中午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.1k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          18 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 059 · Kubernetes（三）：部署、滚动更新与探针</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-08 · 第 059 篇</p>
+<p>Deployment 的更新策略、三种探针的职责划分、QoS 与 OOMKilled 的因果关系，以及滚动更新期间 Service 断流的排查路径。</p>
+</blockquote>
+<h2 id="📚-Kubernetes-系列目录"><a href="#📚-Kubernetes-系列目录" class="headerlink" title="📚 Kubernetes 系列目录"></a>📚 Kubernetes 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>核心概念与 Pod</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>Service、Ingress 与配置管理</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>部署、滚动更新与探针</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>滚动更新的正确性由「探针 + 优雅停机 + PDB」三者共同保证</strong> —— 探针配错会把好 Pod 反复杀掉，<code>terminationGracePeriodSeconds</code> 配错会让请求打到已停止的容器，缺 PDB 会在更新时把副本打到零。</p>
+<h2 id="一、Deployment-关键字段"><a href="#一、Deployment-关键字段" class="headerlink" title="一、Deployment 关键字段"></a>一、Deployment 关键字段</h2><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-attr">apiVersion:</span> <span class="hljs-string">apps/v1</span><br><span class="hljs-attr">kind:</span> <span class="hljs-string">Deployment</span><br><span class="hljs-attr">metadata:</span> &#123; <span class="hljs-attr">name:</span> <span class="hljs-string">web</span> &#125;<br><span class="hljs-attr">spec:</span><br>  <span class="hljs-attr">replicas:</span> <span class="hljs-number">3</span><br>  <span class="hljs-attr">revisionHistoryLimit:</span> <span class="hljs-number">10</span><br>  <span class="hljs-attr">progressDeadlineSeconds:</span> <span class="hljs-number">600</span><br>  <span class="hljs-attr">minReadySeconds:</span> <span class="hljs-number">5</span><br>  <span class="hljs-attr">strategy:</span><br>    <span class="hljs-attr">type:</span> <span class="hljs-string">RollingUpdate</span><br>    <span class="hljs-attr">rollingUpdate:</span> &#123; <span class="hljs-attr">maxSurge:</span> <span class="hljs-number">1</span>, <span class="hljs-attr">maxUnavailable:</span> <span class="hljs-number">0</span> &#125;<br>  <span class="hljs-attr">selector:</span> &#123; <span class="hljs-attr">matchLabels:</span> &#123; <span class="hljs-attr">app:</span> <span class="hljs-string">web</span> &#125; &#125;<br>  <span class="hljs-attr">template:</span><br>    <span class="hljs-attr">metadata:</span> &#123; <span class="hljs-attr">labels:</span> &#123; <span class="hljs-attr">app:</span> <span class="hljs-string">web</span> &#125; &#125;<br>    <span class="hljs-attr">spec:</span><br>      <span class="hljs-attr">containers:</span><br>        <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">web</span><br>          <span class="hljs-attr">image:</span> <span class="hljs-string">registry/web:1.4.0</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>默认值</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>replicas</code></td>
+<td><code>1</code></td>
+<td>期望副本数</td>
+</tr>
+<tr>
+<td><code>revisionHistoryLimit</code></td>
+<td><code>10</code></td>
+<td>保留多少个旧 ReplicaSet（回滚用）</td>
+</tr>
+<tr>
+<td><code>progressDeadlineSeconds</code></td>
+<td><code>600</code></td>
+<td>更新多久没进展就标记 <code>ProgressDeadlineExceeded</code></td>
+</tr>
+<tr>
+<td><code>minReadySeconds</code></td>
+<td><code>0</code></td>
+<td>Pod Ready 后再等多久才算「可用」</td>
+</tr>
+<tr>
+<td><code>strategy.type</code></td>
+<td><code>RollingUpdate</code></td>
+<td>另一种是 <code>Recreate</code></td>
+</tr>
+<tr>
+<td><code>maxSurge</code></td>
+<td><code>25%</code></td>
+<td>更新期间<strong>最多超出</strong> <code>replicas</code> 的 Pod 数</td>
+</tr>
+<tr>
+<td><code>maxUnavailable</code></td>
+<td><code>25%</code></td>
+<td>更新期间<strong>最多不可用</strong>的 Pod 数</td>
+</tr>
+</tbody></table>
+<table>
+<thead>
+<tr>
+<th>策略</th>
+<th>行为</th>
+<th>可用性</th>
+<th>适合</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>RollingUpdate</code></td>
+<td>逐批替换，新旧共存，峰值 <code>replicas + maxSurge</code></td>
+<td>全程有副本服务</td>
+<td>无状态服务</td>
+</tr>
+<tr>
+<td><code>Recreate</code></td>
+<td>先删光所有 Pod 再建新的</td>
+<td><strong>更新期间完全不可用</strong></td>
+<td>有独占资源、不能新旧并存</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>maxSurge</code> 和 <code>maxUnavailable</code> <strong>不能同时为 0</strong>，API server 会直接拒绝创建，<br>因为没有任何副本可以被替换，更新永远推进不了。</p>
+</blockquote>
+<h2 id="二、rollout-命令与回滚"><a href="#二、rollout-命令与回滚" class="headerlink" title="二、rollout 命令与回滚"></a>二、rollout 命令与回滚</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs bash">kubectl rollout status deploy/web --<span class="hljs-built_in">timeout</span>=120s<br>kubectl rollout <span class="hljs-built_in">history</span> deploy/web --revision=3<br>kubectl rollout undo deploy/web --to-revision=2<br>kubectl rollout restart deploy/web        <span class="hljs-comment"># 触发一次「无变更」的滚动重启</span><br>kubectl rollout pause / resume deploy/web <span class="hljs-comment"># 暂停做金丝雀验证</span><br><br>kubectl <span class="hljs-built_in">set</span> image deploy/web web=registry/web:1.5.0<br>kubectl annotate deploy/web kubernetes.io/change-cause=<span class="hljs-string">&quot;release 1.4.0&quot;</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>命令</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>rollout status</code></td>
+<td>阻塞等待更新完成，<strong>CI 里必加</strong></td>
+</tr>
+<tr>
+<td><code>rollout history</code></td>
+<td>看历史 revision（<code>CHANGE-CAUSE</code> 常为空）</td>
+</tr>
+<tr>
+<td><code>rollout undo</code></td>
+<td>回滚到上一个 revision</td>
+</tr>
+<tr>
+<td><code>rollout restart</code></td>
+<td>换 ConfigMap &#x2F; Secret 后常用</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>rollout history</code> 的 <code>CHANGE-CAUSE</code> 默认是 <code>&lt;none&gt;</code>，Deployment 不会自动记录原因。<br>**必须 <code>kubectl annotate ... kubernetes.io/change-cause</code>**，否则回滚时面对一串<br>revision 号根本不知道哪个是哪个。</p>
+</blockquote>
+<h2 id="三、三种探针的职责"><a href="#三、三种探针的职责" class="headerlink" title="三、三种探针的职责"></a>三、三种探针的职责</h2><table>
+<thead>
+<tr>
+<th>探针</th>
+<th>回答的问题</th>
+<th>失败后果</th>
+<th>生命周期</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>startupProbe</code></td>
+<td>应用启动完了吗</td>
+<td>达到 <code>failureThreshold</code> 后<strong>杀掉容器重启</strong></td>
+<td>只在启动阶段</td>
+</tr>
+<tr>
+<td><code>livenessProbe</code></td>
+<td>应用还活着吗</td>
+<td><strong>重启容器</strong></td>
+<td>全程</td>
+</tr>
+<tr>
+<td><code>readinessProbe</code></td>
+<td>能接流量了吗</td>
+<td>从 Service EndpointSlice <strong>摘除</strong>，不重启</td>
+<td>全程</td>
+</tr>
+</tbody></table>
+<p>四种检查机制（每个探针只能选一种）：</p>
+<table>
+<thead>
+<tr>
+<th>机制</th>
+<th>成功判定</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>httpGet</code></td>
+<td><code>200 &lt;= code &lt; 400</code></td>
+<td>最常用</td>
+</tr>
+<tr>
+<td><code>tcpSocket</code></td>
+<td>端口能连上</td>
+<td>连接后立刻断开也算成功</td>
+</tr>
+<tr>
+<td><code>exec</code></td>
+<td>命令退出码为 <code>0</code></td>
+<td>每次会 fork 进程，Pod 密度高时开销大</td>
+</tr>
+<tr>
+<td><code>grpc</code></td>
+<td>健康检查返回 <code>SERVING</code></td>
+<td>需应用实现 gRPC Health Checking</td>
+</tr>
+</tbody></table>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-attr">startupProbe:</span><br>  <span class="hljs-attr">httpGet:</span> &#123; <span class="hljs-attr">path:</span> <span class="hljs-string">/healthz</span>, <span class="hljs-attr">port:</span> <span class="hljs-number">8080</span> &#125;<br>  <span class="hljs-attr">failureThreshold:</span> <span class="hljs-number">30</span><br>  <span class="hljs-attr">periodSeconds:</span> <span class="hljs-number">10</span><br><span class="hljs-attr">livenessProbe:</span><br>  <span class="hljs-attr">httpGet:</span> &#123; <span class="hljs-attr">path:</span> <span class="hljs-string">/healthz</span>, <span class="hljs-attr">port:</span> <span class="hljs-number">8080</span> &#125;<br>  <span class="hljs-attr">periodSeconds:</span> <span class="hljs-number">10</span><br>  <span class="hljs-attr">timeoutSeconds:</span> <span class="hljs-number">3</span><br>  <span class="hljs-attr">failureThreshold:</span> <span class="hljs-number">3</span><br><span class="hljs-attr">readinessProbe:</span><br>  <span class="hljs-attr">httpGet:</span> &#123; <span class="hljs-attr">path:</span> <span class="hljs-string">/ready</span>, <span class="hljs-attr">port:</span> <span class="hljs-number">8080</span> &#125;<br>  <span class="hljs-attr">periodSeconds:</span> <span class="hljs-number">5</span><br>  <span class="hljs-attr">failureThreshold:</span> <span class="hljs-number">2</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>liveness 探针不等待 readiness 成功</strong>（官方原话：<em>Liveness probes do not wait for<br>readiness probes to succeed</em>）。启动慢的服务不配 <code>startupProbe</code> 时，会出现<br>「liveness 超时 → 重启 → 又没启动完 → 又超时」的<strong>无限重启循环</strong>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>liveness 探针指向依赖外部组件的接口（如「能连上数据库」）是最常见的误配</strong>。<br>数据库抖动 30 秒 → 所有 Pod 同时被判死 → 全体重启 → 雪崩。<br><strong>liveness 只检查「进程自身是否卡死」，依赖健康放 readiness。</strong></p>
+</blockquote>
+<h2 id="四、探针参数与默认值"><a href="#四、探针参数与默认值" class="headerlink" title="四、探针参数与默认值"></a>四、探针参数与默认值</h2><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>默认</th>
+<th>最小</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>initialDelaySeconds</code></td>
+<td><code>0</code></td>
+<td>0</td>
+<td>容器启动后等多久才开始探测</td>
+</tr>
+<tr>
+<td><code>periodSeconds</code></td>
+<td><code>10</code></td>
+<td>1</td>
+<td>探测间隔</td>
+</tr>
+<tr>
+<td><code>timeoutSeconds</code></td>
+<td><code>1</code></td>
+<td>1</td>
+<td>单次探测超时</td>
+</tr>
+<tr>
+<td><code>successThreshold</code></td>
+<td><code>1</code></td>
+<td>1</td>
+<td>连续成功几次算成功</td>
+</tr>
+<tr>
+<td><code>failureThreshold</code></td>
+<td><code>3</code></td>
+<td>1</td>
+<td>连续失败几次算失败</td>
+</tr>
+<tr>
+<td><code>terminationGracePeriodSeconds</code></td>
+<td>继承 Pod（默认 <code>30</code>）</td>
+<td>1</td>
+<td>探针级宽限期（v1.28+ Stable）</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>liveness</code> 和 <code>startup</code> 的 <code>successThreshold</code> 必须为 1</strong>，写成 2 会被 API server<br>拒绝；<code>readiness</code> 才允许 &gt;1，且<strong>不能</strong>设 <code>terminationGracePeriodSeconds</code>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>timeoutSeconds</code> 默认只有 <strong>1 秒</strong>。应用在 GC 停顿或高负载下响应 1.5 秒很常见，<br>于是探针连续失败被误判为「死」。<strong>这个默认值是生产事故的高频来源。</strong></p>
+</blockquote>
+<h2 id="五、resources、QoS-与-OOMKilled"><a href="#五、resources、QoS-与-OOMKilled" class="headerlink" title="五、resources、QoS 与 OOMKilled"></a>五、resources、QoS 与 OOMKilled</h2><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-attr">resources:</span><br>  <span class="hljs-attr">requests:</span> &#123; <span class="hljs-attr">cpu:</span> <span class="hljs-string">250m</span>, <span class="hljs-attr">memory:</span> <span class="hljs-string">256Mi</span> &#125;   <span class="hljs-comment"># 调度依据</span><br>  <span class="hljs-attr">limits:</span>   &#123; <span class="hljs-attr">cpu:</span> <span class="hljs-string">500m</span>, <span class="hljs-attr">memory:</span> <span class="hljs-string">512Mi</span> &#125;   <span class="hljs-comment"># 运行时上限</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>QoS 等级</th>
+<th>判定条件</th>
+<th>驱逐优先级</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Guaranteed</code></td>
+<td>每个容器的 CPU 和内存都设了 <code>requests == limits</code></td>
+<td>最低（最后被驱逐）</td>
+</tr>
+<tr>
+<td><code>Burstable</code></td>
+<td>至少一个容器设了 request 或 limit，但不满足 Guaranteed</td>
+<td>中</td>
+</tr>
+<tr>
+<td><code>BestEffort</code></td>
+<td>所有容器都没设 requests 和 limits</td>
+<td>最高（最先被驱逐）</td>
+</tr>
+</tbody></table>
+<table>
+<thead>
+<tr>
+<th>资源</th>
+<th>超 limit 的后果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>CPU（可压缩）</td>
+<td>CFS 限流，延迟升高，<code>container_cpu_cfs_throttled</code> 飙高，<strong>进程不死</strong></td>
+</tr>
+<tr>
+<td>内存（不可压缩）</td>
+<td><strong>直接 OOMKilled</strong></td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash">kubectl get pod web-xxx -o jsonpath=<span class="hljs-string">&#x27;&#123;.status.qosClass&#125;&#x27;</span><br>kubectl get pod web-xxx -o jsonpath=<span class="hljs-string">&#x27;&#123;.status.containerStatuses[*].lastState.terminated&#125;&#x27;</span><br>kubectl top pod web-xxx<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>Exit Code 137</code> 不等于 OOMKilled</strong>。liveness 探针失败后 kubelet 发的也是 <code>SIGKILL</code>，<br>必须看 <code>lastState.terminated.reason</code> 才能区分。Java 容器的 <code>-Xmx</code> 若没考虑堆外内存<br>（Metaspace、Direct Buffer、线程栈），JVM 总内存超 cgroup limit 一样会被杀，<br>**<code>-Xmx</code> 应设成 limit 的 60%~75%**。</p>
+</blockquote>
+<h2 id="六、HPA-与-metrics-server"><a href="#六、HPA-与-metrics-server" class="headerlink" title="六、HPA 与 metrics-server"></a>六、HPA 与 metrics-server</h2><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-attr">apiVersion:</span> <span class="hljs-string">autoscaling/v2</span><br><span class="hljs-attr">kind:</span> <span class="hljs-string">HorizontalPodAutoscaler</span><br><span class="hljs-attr">spec:</span><br>  <span class="hljs-attr">scaleTargetRef:</span> &#123; <span class="hljs-attr">apiVersion:</span> <span class="hljs-string">apps/v1</span>, <span class="hljs-attr">kind:</span> <span class="hljs-string">Deployment</span>, <span class="hljs-attr">name:</span> <span class="hljs-string">web</span> &#125;<br>  <span class="hljs-attr">minReplicas:</span> <span class="hljs-number">3</span><br>  <span class="hljs-attr">maxReplicas:</span> <span class="hljs-number">20</span><br>  <span class="hljs-attr">metrics:</span><br>    <span class="hljs-bullet">-</span> <span class="hljs-attr">type:</span> <span class="hljs-string">Resource</span><br>      <span class="hljs-attr">resource:</span><br>        <span class="hljs-attr">name:</span> <span class="hljs-string">cpu</span><br>        <span class="hljs-attr">target:</span> &#123; <span class="hljs-attr">type:</span> <span class="hljs-string">Utilization</span>, <span class="hljs-attr">averageUtilization:</span> <span class="hljs-number">70</span> &#125;<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">kubectl top pods &amp;&amp; kubectl top nodes &amp;&amp; kubectl get hpa &amp;&amp; kubectl describe hpa web<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>HPA 必须依赖 metrics-server</strong>。没装时 <code>kubectl get hpa</code> 显示<br><code>TARGETS: &lt;unknown&gt;/70%</code>，副本数永远不动。</p>
+</blockquote>
+<h2 id="七、PodDisruptionBudget"><a href="#七、PodDisruptionBudget" class="headerlink" title="七、PodDisruptionBudget"></a>七、PodDisruptionBudget</h2><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-attr">apiVersion:</span> <span class="hljs-string">policy/v1</span><br><span class="hljs-attr">kind:</span> <span class="hljs-string">PodDisruptionBudget</span><br><span class="hljs-attr">metadata:</span> &#123; <span class="hljs-attr">name:</span> <span class="hljs-string">web-pdb</span> &#125;<br><span class="hljs-attr">spec:</span><br>  <span class="hljs-attr">minAvailable:</span> <span class="hljs-number">2</span>          <span class="hljs-comment"># 或 maxUnavailable: 1</span><br>  <span class="hljs-attr">selector:</span><br>    <span class="hljs-attr">matchLabels:</span> &#123; <span class="hljs-attr">app:</span> <span class="hljs-string">web</span> &#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ PDB <strong>只管自愿中断</strong>（节点 drain、<code>kubectl evict</code>），<strong>不管滚动更新</strong>。<br>滚动更新的可用性由 <code>maxUnavailable</code> 控制，两者各管一段，别混淆。</p>
+</blockquote>
+<h2 id="八、优雅停机：preStop-宽限期"><a href="#八、优雅停机：preStop-宽限期" class="headerlink" title="八、优雅停机：preStop + 宽限期"></a>八、优雅停机：<code>preStop</code> + 宽限期</h2><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-attr">spec:</span><br>  <span class="hljs-attr">terminationGracePeriodSeconds:</span> <span class="hljs-number">60</span><br>  <span class="hljs-attr">containers:</span><br>    <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">web</span><br>      <span class="hljs-attr">lifecycle:</span><br>        <span class="hljs-attr">preStop:</span><br>          <span class="hljs-attr">exec:</span><br>            <span class="hljs-attr">command:</span> [<span class="hljs-string">&quot;sh&quot;</span>, <span class="hljs-string">&quot;-c&quot;</span>, <span class="hljs-string">&quot;sleep 5 &amp;&amp; nginx -s quit&quot;</span>]<br></code></pre></td></tr></table></figure>
+
+<p>停机顺序：Pod 标记 Terminating → EndpointSlice 标记 not ready（kube-proxy &#x2F; Ingress 异步更新）→ 并行执行 <code>preStop</code> → 结束后 kubelet 发 <code>SIGTERM</code> → 超宽限期则 <code>SIGKILL</code>。</p>
+<blockquote>
+<p>⚠️ <strong>Endpoint 摘除与 SIGTERM 是并行的，且传播有延迟</strong>。应用收到 SIGTERM 就立刻退出时，<br>那些已按旧 Endpoint 发过来的请求会全部连接失败。**<code>preStop</code> 里 sleep 几秒是标准解法**，<br>用来覆盖 Endpoint 传播窗口。</p>
+</blockquote>
+<h2 id="九、StatefulSet-vs-Deployment"><a href="#九、StatefulSet-vs-Deployment" class="headerlink" title="九、StatefulSet vs Deployment"></a>九、StatefulSet vs Deployment</h2><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>Deployment</th>
+<th>StatefulSet</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Pod 名称</td>
+<td>随机后缀 <code>web-7d9f-x2k</code></td>
+<td><strong>有序固定</strong> <code>db-0</code> <code>db-1</code></td>
+</tr>
+<tr>
+<td>网络标识</td>
+<td>无稳定域名</td>
+<td>配合 Headless Service 有稳定 DNS</td>
+</tr>
+<tr>
+<td>启动顺序</td>
+<td>并行，无序</td>
+<td><strong>按序号串行</strong>（<code>OrderedReady</code>）</td>
+</tr>
+<tr>
+<td>存储</td>
+<td>共享 PVC 或不用</td>
+<td><code>volumeClaimTemplates</code> 每 Pod 一个独立 PVC</td>
+</tr>
+<tr>
+<td>扩缩容 &#x2F; 更新</td>
+<td>无顺序保证 &#x2F; 滚动更新</td>
+<td>缩容从最大序号开始；默认从最大序号倒序更新</td>
+</tr>
+<tr>
+<td>适合</td>
+<td>无状态服务</td>
+<td>数据库、消息队列、有状态中间件</td>
+</tr>
+</tbody></table>
+<h2 id="十、Job-与-CronJob"><a href="#十、Job-与-CronJob" class="headerlink" title="十、Job 与 CronJob"></a>十、Job 与 CronJob</h2><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-attr">kind:</span> <span class="hljs-string">CronJob</span><br><span class="hljs-attr">spec:</span><br>  <span class="hljs-attr">schedule:</span> <span class="hljs-string">&quot;0 2 * * *&quot;</span><br>  <span class="hljs-attr">concurrencyPolicy:</span> <span class="hljs-string">Forbid</span>        <span class="hljs-comment"># Allow | Forbid | Replace（默认 Allow）</span><br>  <span class="hljs-attr">startingDeadlineSeconds:</span> <span class="hljs-number">300</span><br>  <span class="hljs-attr">successfulJobsHistoryLimit:</span> <span class="hljs-number">3</span><br>  <span class="hljs-attr">jobTemplate:</span><br>    <span class="hljs-attr">spec:</span><br>      <span class="hljs-attr">backoffLimit:</span> <span class="hljs-number">4</span><br>      <span class="hljs-attr">activeDeadlineSeconds:</span> <span class="hljs-number">3600</span><br>      <span class="hljs-attr">template:</span><br>        <span class="hljs-attr">spec:</span> &#123; <span class="hljs-attr">restartPolicy:</span> <span class="hljs-string">OnFailure</span> &#125;   <span class="hljs-comment"># 只能是 OnFailure / Never</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>concurrencyPolicy: Forbid</code></td>
+<td>上次没跑完就跳过本次（<strong>默认 <code>Allow</code>，会并发</strong>）</td>
+</tr>
+<tr>
+<td><code>startingDeadlineSeconds</code></td>
+<td>错过调度窗口超过这个时间就记为 Missed</td>
+</tr>
+<tr>
+<td><code>backoffLimit</code></td>
+<td>失败重试次数</td>
+</tr>
+<tr>
+<td><code>activeDeadlineSeconds</code></td>
+<td>整个 Job 的最长运行时间，超时终止</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ CronJob 的 <code>concurrencyPolicy</code> 默认是 <strong><code>Allow</code><strong>。任务跑超过一个周期时会同时有<br>多个 Job 在跑，抢同一份资源。</strong>默认值几乎从来不是你想要的。</strong></p>
+</blockquote>
+<h2 id="十一、滚动更新期间-Service-断流的排查顺序"><a href="#十一、滚动更新期间-Service-断流的排查顺序" class="headerlink" title="十一、滚动更新期间 Service 断流的排查顺序"></a>十一、滚动更新期间 Service 断流的排查顺序</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs bash">kubectl get endpointslices -l kubernetes.io/service-name=web   <span class="hljs-comment"># 1. Endpoint 有没有</span><br>kubectl get pod -l app=web                                     <span class="hljs-comment"># 2. Running 还是 Ready</span><br>kubectl describe pod web-xxx | grep -A10 <span class="hljs-string">&#x27;Last State&#x27;</span>          <span class="hljs-comment"># 3. 是不是在反复重启</span><br>kubectl rollout status deploy/web --<span class="hljs-built_in">timeout</span>=60s                <span class="hljs-comment"># 4. 更新卡住了吗</span><br>kubectl describe deploy/web | <span class="hljs-built_in">tail</span> -20<br>kubectl <span class="hljs-built_in">exec</span> -it web-xxx -- curl -s localhost:8080/ready       <span class="hljs-comment"># 5. Pod 自身健康吗</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>现象</th>
+<th>最可能的原因</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Running</code> 但 <code>READY 0/1</code></td>
+<td>readiness 探针没过</td>
+</tr>
+<tr>
+<td>Endpoint 列表为空</td>
+<td>readiness 一直失败，或 Service selector 不匹配</td>
+</tr>
+<tr>
+<td><code>Exit 137</code> + <code>reason: OOMKilled</code></td>
+<td>内存 limit 太小</td>
+</tr>
+<tr>
+<td><code>Exit 137</code> + 非 OOM</td>
+<td>liveness 杀的重启</td>
+</tr>
+<tr>
+<td><code>ProgressDeadlineExceeded</code></td>
+<td>新 Pod 一直没 Ready，或镜像拉不下来</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>「Pod 是 Running 但 READY 0&#x2F;1」是断流的第一大原因</strong>。Running 只表示容器进程起来了，<br>Ready 才是「可以接流量」。只看 <code>STATUS</code> 列会漏掉这个区别。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> <code>maxSurge</code> 与 <code>maxUnavailable</code> 同时为 0，Deployment 创建失败</li>
+<li><input disabled="" type="checkbox"> <code>minReadySeconds</code> 保持默认 0，把「刚 Ready 就崩」的版本推完</li>
+<li><input disabled="" type="checkbox"> <code>revisionHistoryLimit: 0</code>，<code>rollout undo</code> 无法使用</li>
+<li><input disabled="" type="checkbox"> 启动慢的服务只配 liveness，不配 <code>startupProbe</code>，陷入无限重启</li>
+<li><input disabled="" type="checkbox"> liveness 探针里检查数据库连通性，依赖抖动引发全体重启雪崩</li>
+<li><input disabled="" type="checkbox"> <code>timeoutSeconds</code> 用默认 1 秒，GC 停顿即被误判为死</li>
+<li><input disabled="" type="checkbox"> liveness&#x2F;startup 探针设 <code>successThreshold &gt; 1</code>，被 API server 拒绝</li>
+<li><input disabled="" type="checkbox"> 只设 <code>limits</code> 不设 <code>requests</code>，调度器按 limit 挑节点</li>
+<li><input disabled="" type="checkbox"> 认为 CPU 超 limit 会被杀（实际是限流，内存才会被杀）</li>
+<li><input disabled="" type="checkbox"> 把 <code>Exit Code 137</code> 一律当成 OOMKilled</li>
+<li><input disabled="" type="checkbox"> 没装 metrics-server，却排查 HPA 为什么不扩缩容</li>
+<li><input disabled="" type="checkbox"> Pod 没设 <code>requests.cpu</code>，HPA 算不出利用率</li>
+<li><input disabled="" type="checkbox"> <code>PDB.minAvailable</code> 等于 <code>replicas</code>，节点 drain 永久卡住</li>
+<li><input disabled="" type="checkbox"> <code>preStop</code> 里不 sleep，停机瞬间请求全部连接失败</li>
+<li><input disabled="" type="checkbox"> <code>terminationGracePeriodSeconds</code> 小于 <code>preStop + 应用排空时间</code></li>
+<li><input disabled="" type="checkbox"> entrypoint 用 <code>sh -c</code> 导致 SIGTERM 传不到应用，每次都被 SIGKILL</li>
+<li><input disabled="" type="checkbox"> 删 StatefulSet 后没删 PVC，重装时复用脏数据卷</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://kubernetes.io/docs/concepts/workloads/pods/probes/">Kubernetes · Liveness, Readiness, and Startup Probes</a> · <a target="_blank" rel="noopener" href="https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/">Kubernetes · 配置存活、就绪和启动探针</a> · <a target="_blank" rel="noopener" href="https://kubernetes.io/docs/concepts/workloads/controllers/deployment/">Kubernetes · Deployments</a> · <a target="_blank" rel="noopener" href="https://kubernetes.io/docs/concepts/workloads/pods/pod-qos/">Kubernetes · Pod QoS 类</a> · <a target="_blank" rel="noopener" href="https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/">Kubernetes · 为 Pod 和容器管理资源</a> · <a target="_blank" rel="noopener" href="https://kubernetes.io/docs/tasks/run-application/configure-pdb/">Kubernetes · PodDisruptionBudget</a> · <a target="_blank" rel="noopener" href="https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/">Kubernetes · StatefulSet</a> · <a target="_blank" rel="noopener" href="https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/">Kubernetes · CronJob</a> · <a target="_blank" rel="noopener" href="https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/">Kubernetes · HorizontalPodAutoscaler</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/kubernetes/" class="category-chain-item">kubernetes</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/kubernetes/" class="print-no-link">#kubernetes</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 059 · Kubernetes（三）：部署、滚动更新与探针</div>
+      <div>https://ethan-iopasd.github.io/2026/10/08/每日技术博客059-Kubernetes部署与探针/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月8日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2033-Kubernetes%E6%9C%8D%E5%8A%A1%E4%B8%8E%E9%85%8D%E7%BD%AE/" title="每日技术博客 033 · Kubernetes（二）：Service、Ingress 与配置管理">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 033 · Kubernetes（二）：Service、Ingress 与配置管理</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

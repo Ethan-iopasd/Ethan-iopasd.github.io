@@ -1,0 +1,1052 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 060 篇 Nginx 系列第三篇。TLS 加固、proxy_pass 的 URI 替换、proxy_cache 与浏览器缓存、location 优先级、root&#x2F;alias、限流。  📚 Nginx 系列目录   章节 主题 状态    一 反向代理与负载均衡 已发布   二 性能调优与故障排查 已发布   三 HTTPS、缓存与动静">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 060 · Nginx（三）：HTTPS、缓存与动静分离">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2060-NginxHTTPS%E4%B8%8E%E7%BC%93%E5%AD%98/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 060 篇 Nginx 系列第三篇。TLS 加固、proxy_pass 的 URI 替换、proxy_cache 与浏览器缓存、location 优先级、root&#x2F;alias、限流。  📚 Nginx 系列目录   章节 主题 状态    一 反向代理与负载均衡 已发布   二 性能调优与故障排查 已发布   三 HTTPS、缓存与动静">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-08T03:35:00.000Z">
+<meta property="article:modified_time" content="2026-10-08T02:49:05.603Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="nginx">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 060 · Nginx（三）：HTTPS、缓存与动静分离 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 060 · Nginx（三）：HTTPS、缓存与动静分离"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-08 11:35" pubdate>
+          2026年10月8日 中午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.6k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          22 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 060 · Nginx（三）：HTTPS、缓存与动静分离</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-08 · 第 060 篇</p>
+<p>Nginx 系列第三篇。TLS 加固、<code>proxy_pass</code> 的 URI 替换、<code>proxy_cache</code> 与浏览器缓存、<code>location</code> 优先级、<code>root</code>&#x2F;<code>alias</code>、限流。</p>
+</blockquote>
+<h2 id="📚-Nginx-系列目录"><a href="#📚-Nginx-系列目录" class="headerlink" title="📚 Nginx 系列目录"></a>📚 Nginx 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>反向代理与负载均衡</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>性能调优与故障排查</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>HTTPS、缓存与动静分离</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p>Nginx 线上事故集中在四处：<code>proxy_pass</code> 尾斜杠改写了 URI、<code>location</code> 优先级猜错、<code>root</code>&#x2F;<code>alias</code> 用混、证书链没下发全。其余都是细节。</p>
+<h2 id="一、HTTPS-与-TLS-加固"><a href="#一、HTTPS-与-TLS-加固" class="headerlink" title="一、HTTPS 与 TLS 加固"></a>一、HTTPS 与 TLS 加固</h2><figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><code class="hljs nginx"><span class="hljs-section">server</span> &#123;<br>    <span class="hljs-attribute">listen</span> <span class="hljs-number">443</span> ssl;<br>    <span class="hljs-attribute">http2</span> <span class="hljs-literal">on</span>;                       <span class="hljs-comment"># 1.25.1+；旧版写 listen 443 ssl http2;</span><br>    <span class="hljs-attribute">server_name</span> example.com;<br><br>    <span class="hljs-attribute">ssl_certificate</span>     /etc/nginx/ssl/fullchain.pem;   <span class="hljs-comment"># 叶子 + 中间证书，叶子在前</span><br>    <span class="hljs-attribute">ssl_certificate_key</span> /etc/nginx/ssl/privkey.pem;<br><br>    <span class="hljs-attribute">ssl_protocols</span> TLSv1.<span class="hljs-number">2</span> TLSv1.<span class="hljs-number">3</span>;<br>    <span class="hljs-attribute">ssl_ciphers</span> ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305;<br>    <span class="hljs-attribute">ssl_prefer_server_ciphers</span> <span class="hljs-literal">off</span>;   <span class="hljs-comment"># 1.2 建议 off；1.3 下该指令无效</span><br>    <span class="hljs-attribute">ssl_ecdh_curve</span> X25519:secp256r1;<br><br>    <span class="hljs-attribute">ssl_session_cache</span>   shared:SSL:<span class="hljs-number">10m</span>;   <span class="hljs-comment"># 1MB ≈ 4000 个会话</span><br>    <span class="hljs-attribute">ssl_session_timeout</span> <span class="hljs-number">1d</span>;<br>    <span class="hljs-attribute">ssl_session_tickets</span> <span class="hljs-literal">off</span>;              <span class="hljs-comment"># 要严格前向保密时关掉</span><br><br>    <span class="hljs-attribute">ssl_stapling</span> <span class="hljs-literal">on</span>;<br>    <span class="hljs-attribute">ssl_stapling_verify</span> <span class="hljs-literal">on</span>;<br>    <span class="hljs-attribute">ssl_trusted_certificate</span> /etc/nginx/ssl/chain.pem;<br>    <span class="hljs-attribute">resolver</span> <span class="hljs-number">8.8.8.8</span> <span class="hljs-number">1.1.1.1</span> valid=<span class="hljs-number">300s</span>;<br>    <span class="hljs-attribute">resolver_timeout</span> <span class="hljs-number">5s</span>;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>建议</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>ssl_protocols</code></td>
+<td><code>TLSv1.2 TLSv1.3</code></td>
+<td>1.0 &#x2F; 1.1 已被主流合规判死</td>
+</tr>
+<tr>
+<td><code>ssl_ciphers</code></td>
+<td>只留 ECDHE + AEAD</td>
+<td>前向保密 + 抗降级</td>
+</tr>
+<tr>
+<td><code>ssl_prefer_server_ciphers</code></td>
+<td><code>off</code></td>
+<td>让现代客户端优先选 ChaCha20</td>
+</tr>
+<tr>
+<td><code>ssl_session_cache</code></td>
+<td><code>shared:SSL:10m</code></td>
+<td>复用会话，省一次完整握手</td>
+</tr>
+<tr>
+<td><code>ssl_stapling</code></td>
+<td><code>on</code></td>
+<td>客户端不必自己去查 OCSP</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>ssl_certificate</code> 必须放<strong>证书链</strong>（叶子 + 中间）。只放叶子证书时，浏览器常因缓存了中间证书而看不出问题，但 <code>curl</code> &#x2F; Java &#x2F; Android &#x2F; 小程序会报 <code>unable to get local issuer certificate</code>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>ssl_stapling</code> 需要能解析 OCSP 地址，<strong>没配 <code>resolver</code> 时 OCSP stapling 静默失效</strong>，日志里只有一行 warn，握手照常成功。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>ssl_session_tickets off</code> 会关掉 ticket 复用。TLS 1.3 下会话恢复主要靠 PSK ticket，关掉后恢复率骤降。<strong>要前向保密就关，要性能就开</strong>，别两头都要。</p>
+</blockquote>
+<h3 id="证书链与-SNI"><a href="#证书链与-SNI" class="headerlink" title="证书链与 SNI"></a>证书链与 SNI</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">openssl s_client -connect example.com:443 -servername example.com -showcerts &lt;/dev/null<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs nginx"><span class="hljs-comment"># 单 IP 多证书：靠 SNI 选 server 块</span><br><span class="hljs-section">server</span> &#123; <span class="hljs-attribute">listen</span> <span class="hljs-number">443</span> ssl; <span class="hljs-attribute">server_name</span> a.com; <span class="hljs-attribute">ssl_certificate</span> .../a.pem; &#125;<br><span class="hljs-section">server</span> &#123; <span class="hljs-attribute">listen</span> <span class="hljs-number">443</span> ssl; <span class="hljs-attribute">server_name</span> b.com; <span class="hljs-attribute">ssl_certificate</span> .../b.pem; &#125;<br><span class="hljs-comment"># 兜底：SNI 未命中的请求落到 default_server</span><br><span class="hljs-section">server</span> &#123; <span class="hljs-attribute">listen</span> <span class="hljs-number">443</span> ssl default_server; <span class="hljs-attribute">server_name</span> _; <span class="hljs-attribute">ssl_certificate</span> .../fallback.pem; &#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 现代证书用 <strong>SAN</strong> 列域名，<code>CN</code> 已被浏览器忽略。只填 <code>CN</code> 不填 <code>SAN</code> 的证书在现代浏览器上直接不匹配。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 用 IP 直接访问 HTTPS（不带 SNI）会命中 <code>default_server</code>。兜底证书域名和 IP 不匹配时报证书错误 —— 这也是「扫 IP 能扒出你站上第一个域名」的原因。</p>
+</blockquote>
+<h2 id="二、HTTP-→-HTTPS-跳转与-HSTS"><a href="#二、HTTP-→-HTTPS-跳转与-HSTS" class="headerlink" title="二、HTTP → HTTPS 跳转与 HSTS"></a>二、HTTP → HTTPS 跳转与 HSTS</h2><figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs nginx"><span class="hljs-section">server</span> &#123;<br>    <span class="hljs-attribute">listen</span> <span class="hljs-number">80</span>;<br>    <span class="hljs-attribute">server_name</span> example.com;<br>    <span class="hljs-attribute">return</span> <span class="hljs-number">301</span> https://<span class="hljs-variable">$host</span><span class="hljs-variable">$request_uri</span>;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs nginx"><span class="hljs-attribute">add_header</span> Strict-Transport-Security <span class="hljs-string">&quot;max-age=31536000; includeSubDomains&quot;</span> always;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>max-age</code></td>
+<td>浏览器强制走 HTTPS 的秒数，<strong>必填</strong></td>
+</tr>
+<tr>
+<td><code>includeSubDomains</code></td>
+<td>所有子域一并强制</td>
+</tr>
+<tr>
+<td><code>preload</code></td>
+<td>申请进浏览器内置 HSTS 列表（基本不可撤回）</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>HSTS 一旦下发就无法回退</strong>：<code>max-age=31536000</code> 意味着用户在接下来一年里，浏览器<strong>拒绝</strong>对该域名发起任何 HTTP 连接，也拒绝跳过证书错误页。证书过期或换域名期间，你会彻底失去这批用户。上线前先用小 <code>max-age</code>（如 300）验证。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>add_header</code> <strong>默认只在 2xx &#x2F; 3xx 等特定状态码上生效</strong>，出错页（500）不会带 HSTS。要所有响应都带，必须加 <code>always</code>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>add_header</code> 有<strong>继承陷阱</strong>：子级 <code>location</code> 只要定义了自己的 <code>add_header</code>，父级（<code>server</code> 块）的所有 <code>add_header</code> <strong>全部失效</strong>，不是叠加。</p>
+</blockquote>
+<h2 id="三、proxy-pass-的-URI-替换与-proxy-set-header"><a href="#三、proxy-pass-的-URI-替换与-proxy-set-header" class="headerlink" title="三、proxy_pass 的 URI 替换与 proxy_set_header"></a>三、proxy_pass 的 URI 替换与 proxy_set_header</h2><p>规则一句话：**<code>proxy_pass</code> 里有没有 URI（<code>host</code> 后面哪怕只有 <code>/</code>），决定要不要改写路径。**</p>
+<table>
+<thead>
+<tr>
+<th>location</th>
+<th>proxy_pass</th>
+<th>请求 <code>/api/user/1</code> 转发到</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>/api/</code></td>
+<td><code>http://backend</code></td>
+<td><code>http://backend/api/user/1</code></td>
+</tr>
+<tr>
+<td><code>/api/</code></td>
+<td><code>http://backend/</code></td>
+<td><code>http://backend/user/1</code></td>
+</tr>
+<tr>
+<td><code>/api</code></td>
+<td><code>http://backend</code></td>
+<td><code>http://backend/api/user/1</code></td>
+</tr>
+<tr>
+<td><code>/api</code></td>
+<td><code>http://backend/</code></td>
+<td><code>http://backend/user/1</code>（<code>/apiuser</code> 会变 <code>/user</code>）</td>
+</tr>
+<tr>
+<td><code>/api/</code></td>
+<td><code>http://backend/v1/</code></td>
+<td><code>http://backend/v1/user/1</code></td>
+</tr>
+</tbody></table>
+<figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs nginx"><span class="hljs-section">location</span> /api/ &#123;<br>    <span class="hljs-attribute">proxy_pass</span> http://backend;        <span class="hljs-comment"># 不带 URI：原样转发 /api/user</span><br>    <span class="hljs-attribute">proxy_set_header</span> Host              <span class="hljs-variable">$host</span>;<br>    <span class="hljs-attribute">proxy_set_header</span> X-Real-IP         <span class="hljs-variable">$remote_addr</span>;<br>    <span class="hljs-attribute">proxy_set_header</span> X-Forwarded-For   <span class="hljs-variable">$proxy_add_x_forwarded_for</span>;<br>    <span class="hljs-attribute">proxy_set_header</span> X-Forwarded-Proto <span class="hljs-variable">$scheme</span>;<br>    <span class="hljs-attribute">proxy_set_header</span> Connection        <span class="hljs-string">&quot;&quot;</span>;   <span class="hljs-comment"># 交给 upstream keepalive 管理</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>头</th>
+<th>不传的后果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Host</code></td>
+<td>后端拿到 upstream 名或内网 IP，虚拟主机、重定向、签名校验全错</td>
+</tr>
+<tr>
+<td><code>X-Real-IP</code></td>
+<td>后端日志里全是 nginx 的 IP</td>
+</tr>
+<tr>
+<td><code>X-Forwarded-For</code></td>
+<td>拿不到真实客户端，限流 &#x2F; 风控失效</td>
+</tr>
+<tr>
+<td><code>X-Forwarded-Proto</code></td>
+<td>后端以为请求是 HTTP，生成 <code>http://</code> 链接 → 混合内容、重定向循环</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>location /api</code>（<strong>无尾斜杠</strong>）配 <code>proxy_pass http://backend/</code> 时，<code>/apiuser</code> 会被替换成 <code>/user</code>（剥离的是 <code>/api</code> 而非 <code>/apiuser</code> 的前缀）。<strong>location 和 proxy_pass 的尾斜杠要么都带，要么都不带。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>proxy_pass</code> 里<strong>用了变量</strong>（如 <code>proxy_pass http://$backend;</code>）时，nginx <strong>不做 URI 替换</strong>，无论有没有尾斜杠都原样转发完整 URI。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>$proxy_add_x_forwarded_for</code> 会把<strong>客户端自带的</strong> <code>X-Forwarded-For</code> 原样保留再追加 <code>$remote_addr</code>。取真实 IP 必须<strong>从右往左数，取第一个不可信代理之后的那一段</strong>，不能直接取最左边的值。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>Host $host</code> 会<strong>丢掉端口号</strong>，<code>Host $http_host</code> 保留。后端按带端口的 Host 做签名 &#x2F; 回调校验时，用 <code>$host</code> 会失败。</p>
+</blockquote>
+<h2 id="四、proxy-cache-反向代理缓存"><a href="#四、proxy-cache-反向代理缓存" class="headerlink" title="四、proxy_cache 反向代理缓存"></a>四、proxy_cache 反向代理缓存</h2><figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><code class="hljs nginx"><span class="hljs-comment"># http 块</span><br><span class="hljs-attribute">proxy_cache_path</span> /var/cache/nginx levels=<span class="hljs-number">1</span>:<span class="hljs-number">2</span> keys_zone=my_cache:<span class="hljs-number">10m</span><br>                 max_size=<span class="hljs-number">10g</span> inactive=<span class="hljs-number">60m</span> use_temp_path=<span class="hljs-literal">off</span>;<br><br><span class="hljs-comment"># location 块</span><br><span class="hljs-section">location</span> / &#123;<br>    <span class="hljs-attribute">proxy_cache</span> my_cache;<br>    <span class="hljs-attribute">proxy_cache_key</span> <span class="hljs-string">&quot;<span class="hljs-variable">$scheme</span><span class="hljs-variable">$request_method</span><span class="hljs-variable">$host</span><span class="hljs-variable">$request_uri</span>&quot;</span>;<br>    <span class="hljs-attribute">proxy_cache_valid</span> <span class="hljs-number">200</span> <span class="hljs-number">302</span> <span class="hljs-number">10m</span>;<br>    <span class="hljs-attribute">proxy_cache_valid</span> <span class="hljs-number">404</span> <span class="hljs-number">1m</span>;<br>    <span class="hljs-attribute">proxy_cache_use_stale</span> <span class="hljs-literal">error</span> timeout updating http_500 http_502 http_503 http_504;<br>    <span class="hljs-attribute">proxy_cache_background_update</span> <span class="hljs-literal">on</span>;<br>    <span class="hljs-attribute">proxy_cache_lock</span> <span class="hljs-literal">on</span>;                  <span class="hljs-comment"># 同一 key 只放一个请求回源</span><br>    <span class="hljs-attribute">add_header</span> X-Cache-Status <span class="hljs-variable">$upstream_cache_status</span>;<br>    <span class="hljs-attribute">proxy_pass</span> http://backend;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th><code>$upstream_cache_status</code></th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>HIT</code> &#x2F; <code>MISS</code></td>
+<td>命中 &#x2F; 未命中并回源</td>
+</tr>
+<tr>
+<td><code>EXPIRED</code></td>
+<td>缓存过期，回源</td>
+</tr>
+<tr>
+<td><code>BYPASS</code></td>
+<td>被 <code>proxy_cache_bypass</code> 跳过</td>
+</tr>
+<tr>
+<td><code>STALE</code></td>
+<td>用了过期副本（<code>use_stale</code>）</td>
+</tr>
+<tr>
+<td><code>UPDATING</code></td>
+<td>正在后台更新，先返回旧值</td>
+</tr>
+<tr>
+<td><code>REVALIDATED</code></td>
+<td>协商缓存确认未变</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>proxy_cache_key</code> 默认含 <code>$scheme</code> 但**不含 <code>$host</code>**。多站点共用一个 <code>keys_zone</code> 且 key 没带 <code>$host</code> 时，A 站的响应会喂给 B 站 —— <strong>串站</strong>。key 里务必带 <code>$host</code>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 只按 <code>$request_uri</code> 做 key 时，<code>?utm_source=...</code> 这类垃圾参数会让命中率趋近 0。key 里应剔除无关 query。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 缓存<strong>默认不缓存带 <code>Set-Cookie</code> 的响应</strong>，也不会自动按 Cookie 区分。带登录态的接口被缓存 &#x3D; 串号。这类 <code>location</code> 要么 <code>proxy_cache_bypass $cookie_session</code>，要么直接不缓存。</p>
+</blockquote>
+<h2 id="五、浏览器缓存与-gzip"><a href="#五、浏览器缓存与-gzip" class="headerlink" title="五、浏览器缓存与 gzip"></a>五、浏览器缓存与 gzip</h2><figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs nginx"><span class="hljs-section">location</span> <span class="hljs-regexp">~* \.(js|css|png|jpg|woff2)$</span> &#123;<br>    <span class="hljs-attribute">expires</span> <span class="hljs-number">1y</span>;<br>    <span class="hljs-attribute">add_header</span> Cache-Control <span class="hljs-string">&quot;public, immutable&quot;</span>;<br>    <span class="hljs-attribute">access_log</span> <span class="hljs-literal">off</span>;<br>&#125;<br><span class="hljs-section">location</span> = /index.html &#123; <span class="hljs-attribute">add_header</span> Cache-Control <span class="hljs-string">&quot;no-cache&quot;</span>; &#125;<br><br><span class="hljs-attribute">gzip</span> <span class="hljs-literal">on</span>;<br><span class="hljs-attribute">gzip_comp_level</span> <span class="hljs-number">5</span>;                 <span class="hljs-comment"># 5 左右性价比最高，9 只多耗 CPU</span><br><span class="hljs-attribute">gzip_min_length</span> <span class="hljs-number">1024</span>;<br><span class="hljs-attribute">gzip_types</span> text/plain text/css application/json application/javascript image/svg+xml;<br><span class="hljs-attribute">gzip_vary</span> <span class="hljs-literal">on</span>;                      <span class="hljs-comment"># 加 Vary: Accept-Encoding，防代理串味</span><br><span class="hljs-attribute">gzip_static</span> <span class="hljs-literal">on</span>;                    <span class="hljs-comment"># 直接发同目录下的 .gz 预压缩文件（需对应模块）</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>写法</th>
+<th>生成的响应头</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>expires 1y;</code></td>
+<td><code>Expires: &lt;绝对时间&gt;</code> + <code>Cache-Control: max-age=31536000</code></td>
+</tr>
+<tr>
+<td><code>expires -1;</code> &#x2F; <code>expires epoch;</code></td>
+<td><code>Cache-Control: no-cache</code></td>
+</tr>
+<tr>
+<td><code>expires max;</code></td>
+<td><code>Cache-Control: max-age=315360000</code></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>expires</code> <strong>本身就会生成 <code>Cache-Control</code><strong>，再 <code>add_header Cache-Control &quot;public, immutable&quot;</code> 会出现</strong>两个 <code>Cache-Control</code> 头</strong>。要么只用 <code>expires</code>，要么只用 <code>add_header</code>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ HTML 入口文件被强缓存时，前端发新版本用户永远看不到 —— 入口都不刷新，带指纹的文件名更无从谈起。<strong>HTML 用 <code>no-cache</code>，带 hash 的静态资源才用长缓存。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>no-cache</code> 不是「不缓存」，是「每次必须向服务器确认」。真正禁用缓存是 <code>no-store</code>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>gzip_types</code> **默认只含 <code>text/html</code>**，<code>application/json</code>、<code>application/javascript</code> 都要手动加，否则 API 响应一点没压。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 没开 <code>gzip_vary</code> 时，中间缓存可能把压缩版发给不支持 gzip 的客户端（或反之），产生乱码。</p>
+</blockquote>
+<h2 id="六、动静分离：location-优先级、try-files-与-root-alias"><a href="#六、动静分离：location-优先级、try-files-与-root-alias" class="headerlink" title="六、动静分离：location 优先级、try_files 与 root&#x2F;alias"></a>六、动静分离：location 优先级、try_files 与 root&#x2F;alias</h2><figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs nginx"><span class="hljs-section">server</span> &#123;<br>    <span class="hljs-attribute">root</span> /var/www/app;<br>    <span class="hljs-section">location</span> / &#123; <span class="hljs-attribute">try_files</span> <span class="hljs-variable">$uri</span> <span class="hljs-variable">$uri</span>/ /index.html; &#125;          <span class="hljs-comment"># SPA 兜底</span><br>    <span class="hljs-section">location</span><span class="hljs-regexp"> ^~</span> /static/ &#123; <span class="hljs-attribute">expires</span> <span class="hljs-number">1y</span>; &#125;                       <span class="hljs-comment"># 静态资源，跳过正则</span><br>    <span class="hljs-section">location</span> <span class="hljs-regexp">~* \.(?:js|css|png|woff2)$</span> &#123; <span class="hljs-attribute">expires</span> <span class="hljs-number">1y</span>; &#125;        <span class="hljs-comment"># 正则兜底</span><br>    <span class="hljs-section">location</span> /api/ &#123; <span class="hljs-attribute">proxy_pass</span> http://backend; &#125;              <span class="hljs-comment"># 接口反代</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>顺序</th>
+<th>匹配方式</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><code>location = /path</code></td>
+<td>精确匹配，命中即停</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>location ^~ /path</code></td>
+<td>最长前缀命中后<strong>跳过所有正则</strong></td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>location ~ /re</code>、<code>~* /re</code></td>
+<td>正则，<strong>按配置文件出现顺序</strong>，第一个命中即停</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>location /path</code></td>
+<td>普通前缀，取最长者兜底</td>
+</tr>
+</tbody></table>
+<figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs nginx"><span class="hljs-section">location</span> /img/ &#123; <span class="hljs-attribute">root</span>  /data/www; &#125;      <span class="hljs-comment"># /img/a.png → /data/www/img/a.png</span><br><span class="hljs-section">location</span> /img/ &#123; <span class="hljs-attribute">alias</span> /data/images/; &#125;  <span class="hljs-comment"># /img/a.png → /data/images/a.png</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>正则按书写顺序匹配，前缀按最长匹配</strong>。两条 <code>location ~</code> 谁在前面谁赢，和长度无关 —— 顺序写反是「配置明明对了却不生效」的头号原因。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>^~</code> 一旦命中最长前缀，<strong>后面的正则一律不评估</strong>。给 <code>/static/</code> 加了 <code>^~</code> 后，<code>~* \.js$</code> 那条 <code>expires</code> 对 <code>/static/*.js</code> 就再也不生效了。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>try_files $uri /index.html;</code> 对<strong>所有</strong>未命中路径返回 <code>index.html</code>（HTTP 200），包括本该 404 的路径。静态资源也走这条会掩盖 404，让前端错误变成「页面白屏」。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>alias</code> 的 location <strong>必须以 <code>/</code> 结尾，且 alias 路径也以 <code>/</code> 结尾</strong>，否则 <code>/img/a.png</code> 会被拼成 <code>/data/images//a.png</code>（多一个斜杠）。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>root</code> 写在 <code>server</code> 块会被所有 location 继承，但**任何一个 location 里写了自己的 <code>root</code>**，那个 location 就只用它自己的，不会合并。</p>
+</blockquote>
+<h2 id="七、限流与-return-rewrite"><a href="#七、限流与-return-rewrite" class="headerlink" title="七、限流与 return&#x2F;rewrite"></a>七、限流与 return&#x2F;rewrite</h2><figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><code class="hljs nginx"><span class="hljs-comment"># http 块</span><br><span class="hljs-attribute">limit_req_zone</span>  <span class="hljs-variable">$binary_remote_addr</span> zone=perip:<span class="hljs-number">10m</span> rate=10r/s;<br><span class="hljs-attribute">limit_conn_zone</span> <span class="hljs-variable">$binary_remote_addr</span> zone=perconn:<span class="hljs-number">10m</span>;<br><br><span class="hljs-comment"># location 块</span><br><span class="hljs-section">location</span> /api/ &#123;<br>    <span class="hljs-attribute">limit_req</span>  zone=perip burst=<span class="hljs-number">20</span> nodelay;<br>    <span class="hljs-attribute">limit_conn</span> perconn <span class="hljs-number">20</span>;<br>    <span class="hljs-attribute">limit_req_status</span> <span class="hljs-number">429</span>;<br>    <span class="hljs-attribute">proxy_pass</span> http://backend;<br>&#125;<br><br><span class="hljs-section">location</span> /old/ &#123; <span class="hljs-attribute">return</span> <span class="hljs-number">301</span> https://example.com/new/; &#125;              <span class="hljs-comment"># 跳转</span><br><span class="hljs-section">location</span> /app/ &#123; <span class="hljs-attribute">rewrite</span><span class="hljs-regexp"> ^/app/(.*)$</span> /<span class="hljs-variable">$1</span> <span class="hljs-literal">break</span>; <span class="hljs-attribute">proxy_pass</span> http://backend; &#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>指令</th>
+<th>是否重新匹配 location</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>return</code></td>
+<td>否</td>
+<td>跳转、直接响应</td>
+</tr>
+<tr>
+<td><code>rewrite ... break</code></td>
+<td>否</td>
+<td>当前 location 内改写 URI</td>
+</tr>
+<tr>
+<td><code>rewrite ... last</code></td>
+<td>是</td>
+<td>需要换 location 处理</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 不加 <code>nodelay</code> 时，<code>burst</code> 里的请求会被<strong>延迟排队</strong>（按 rate 逐个放行），表现为接口偶发变慢而不是被拒 —— 排查时容易误判成后端慢。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 用 <code>$remote_addr</code> 限流，在 nginx 前面还有一层 LB &#x2F; CDN 时，<strong>所有请求都来自同一个 IP</strong>，等于给整站上了一把锁。需先用 <code>real_ip</code> 模块还原 <code>$remote_addr</code>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>rewrite ... last</code> 在 <code>server</code> 块里会重新走一遍 location 匹配，规则互相指向时直接<strong>死循环</strong>（报 <code>rewrite or internal redirection cycle</code>）。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>return 301 https://$host$request_uri;</code> 里的 <code>$request_uri</code> 带原始 query，**不要用 <code>$uri</code>**（<code>$uri</code> 是解码后的规范化路径，query 丢失）。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 只配了叶子证书，没拼中间证书，导致部分客户端验证失败</li>
+<li><input disabled="" type="checkbox"> 开了 <code>ssl_stapling</code> 但没配 <code>resolver</code>，OCSP stapling 静默失效</li>
+<li><input disabled="" type="checkbox"> HSTS 一上来就 <code>max-age=31536000</code>，出事后一年内无法回退</li>
+<li><input disabled="" type="checkbox"> <code>add_header</code> 忘加 <code>always</code>，或子 location 顶掉了 server 块的公共头</li>
+<li><input disabled="" type="checkbox"> <code>proxy_pass</code> 尾斜杠写错，路径整体错位</li>
+<li><input disabled="" type="checkbox"> <code>proxy_pass</code> 里用了变量，以为会做 URI 替换，实际原样转发</li>
+<li><input disabled="" type="checkbox"> 漏传 <code>Host</code> &#x2F; <code>X-Forwarded-Proto</code>，后端虚拟主机与跳转全错</li>
+<li><input disabled="" type="checkbox"> 直接取 <code>X-Forwarded-For</code> 最左边的 IP 当真实 IP（可伪造）</li>
+<li><input disabled="" type="checkbox"> <code>proxy_cache_key</code> 没带 <code>$host</code>，多站点缓存串站</li>
+<li><input disabled="" type="checkbox"> 缓存了带 <code>Set-Cookie</code> 的登录态接口，用户之间串号</li>
+<li><input disabled="" type="checkbox"> HTML 入口文件被长缓存，发版后用户永远看不到新版本</li>
+<li><input disabled="" type="checkbox"> 把 <code>no-cache</code> 当成「不缓存」</li>
+<li><input disabled="" type="checkbox"> <code>gzip_types</code> 没加 <code>application/json</code>，API 响应没压缩</li>
+<li><input disabled="" type="checkbox"> 两条 <code>location ~</code> 顺序写反，正则规则不生效</li>
+<li><input disabled="" type="checkbox"> 给静态前缀加了 <code>^~</code>，把后面正则的 <code>expires</code> 全屏蔽</li>
+<li><input disabled="" type="checkbox"> <code>alias</code> 两端漏写尾斜杠，路径拼出双斜杠</li>
+<li><input disabled="" type="checkbox"> <code>limit_req</code> 不加 <code>nodelay</code>，突发请求被排队延迟而不是被拒</li>
+<li><input disabled="" type="checkbox"> 前置有 LB 还用 <code>$remote_addr</code> 限流，等于给全站上锁</li>
+<li><input disabled="" type="checkbox"> <code>rewrite ... last</code> 规则互相指向，触发重定向死循环</li>
+<li><input disabled="" type="checkbox"> 用 <code>$uri</code> 代替 <code>$request_uri</code> 做跳转，query 丢失</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://nginx.org/en/docs/http/ngx_http_ssl_module.html">Nginx · ngx_http_ssl_module</a> · <a target="_blank" rel="noopener" href="https://nginx.org/en/docs/http/ngx_http_proxy_module.html">Nginx · ngx_http_proxy_module</a> · <a target="_blank" rel="noopener" href="https://nginx.org/en/docs/http/ngx_http_rewrite_module.html">Nginx · ngx_http_rewrite_module</a> · <a target="_blank" rel="noopener" href="https://nginx.org/en/docs/http/ngx_http_limit_req_module.html">Nginx · ngx_http_limit_req_module</a> · <a target="_blank" rel="noopener" href="https://docs.nginx.com/nginx/admin-guide/web-server/web-server/">Nginx · Web Server 配置指南（location 优先级）</a> · <a target="_blank" rel="noopener" href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Reference/Headers/Strict-Transport-Security">MDN · Strict-Transport-Security</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/nginx/" class="category-chain-item">nginx</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/nginx/" class="print-no-link">#nginx</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 060 · Nginx（三）：HTTPS、缓存与动静分离</div>
+      <div>https://ethan-iopasd.github.io/2026/10/08/每日技术博客060-NginxHTTPS与缓存/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月8日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2035-Nginx%E6%80%A7%E8%83%BD%E4%B8%8E%E6%8E%92%E6%9F%A5/" title="每日技术博客 035 · Nginx（二）：性能调优与故障排查">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 035 · Nginx（二）：性能调优与故障排查</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

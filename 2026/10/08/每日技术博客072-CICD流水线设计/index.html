@@ -1,0 +1,1148 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 072 篇 CI&#x2F;CD 系列第一篇。流水线阶段划分、缓存与制品管理、GitHub Actions 实战、分支与环境分层、密钥管理、数据库迁移、发布与回滚策略、以及流水线自身的性能优化。  📚 CI&#x2F;CD 系列目录   章节 主题 状态    一 流水线设计与制品管理 本篇    开场：一句话结论CI 是「每次提交都验证」，持续">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 072 · CI&#x2F;CD（一）：流水线设计与制品管理">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2072-CICD%E6%B5%81%E6%B0%B4%E7%BA%BF%E8%AE%BE%E8%AE%A1/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 072 篇 CI&#x2F;CD 系列第一篇。流水线阶段划分、缓存与制品管理、GitHub Actions 实战、分支与环境分层、密钥管理、数据库迁移、发布与回滚策略、以及流水线自身的性能优化。  📚 CI&#x2F;CD 系列目录   章节 主题 状态    一 流水线设计与制品管理 本篇    开场：一句话结论CI 是「每次提交都验证」，持续">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-08T04:35:00.000Z">
+<meta property="article:modified_time" content="2026-10-08T02:53:18.898Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="ci-cd">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 072 · CI/CD（一）：流水线设计与制品管理 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 072 · CI/CD（一）：流水线设计与制品管理"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-08 12:35" pubdate>
+          2026年10月8日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          3.7k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          31 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 072 · CI/CD（一）：流水线设计与制品管理</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-08 · 第 072 篇</p>
+<p>CI&#x2F;CD 系列第一篇。流水线阶段划分、缓存与制品管理、GitHub Actions 实战、分支与环境分层、密钥管理、数据库迁移、发布与回滚策略、以及流水线自身的性能优化。</p>
+</blockquote>
+<h2 id="📚-CI-CD-系列目录"><a href="#📚-CI-CD-系列目录" class="headerlink" title="📚 CI&#x2F;CD 系列目录"></a>📚 CI&#x2F;CD 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>流水线设计与制品管理</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>CI 是「每次提交都验证」，持续交付是「随时可发但由人点」，持续部署是「自动发到生产」</strong> —— 三者差的是<strong>最后一步是否自动</strong>。</p>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>做什么</th>
+<th>最后一步</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>CI</strong>（持续集成）</td>
+<td>每次 push&#x2F;PR 自动 lint + build + test</td>
+<td>——</td>
+</tr>
+<tr>
+<td><strong>持续交付</strong>（Continuous Delivery）</td>
+<td>CI + 自动部署到 staging + 制品就绪</td>
+<td><strong>人工审批后上生产</strong></td>
+</tr>
+<tr>
+<td><strong>持续部署</strong>（Continuous Deployment）</td>
+<td>持续交付 + 自动上生产</td>
+<td><strong>全自动</strong></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>「持续交付」和「持续部署」英文缩写都是 CD，必须区分。</strong> 团队说「我们做 CD」时，先问一句：生产是自动发还是点按钮发 —— 这决定了回滚、审批、灰度整套设计。</p>
+</blockquote>
+<h2 id="一、流水线阶段划分"><a href="#一、流水线阶段划分" class="headerlink" title="一、流水线阶段划分"></a>一、流水线阶段划分</h2><table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>内容</th>
+<th>失败即停</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>lint &#x2F; 静态检查</strong></td>
+<td>ESLint、gofmt、ruff、格式与类型检查</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>build</strong></td>
+<td>编译、打包、构建镜像</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>test</strong></td>
+<td>单测 → 集成测试 → E2E</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>package</strong></td>
+<td>产出制品（镜像 &#x2F; 包 &#x2F; 二进制）</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>deploy</strong></td>
+<td>部署到 dev → staging → prod</td>
+<td>✅</td>
+</tr>
+</tbody></table>
+<figure class="highlight scss"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs scss">快速失败原则：把「最便宜、最可能失败」的检查放最前面<br>  lint (秒级) → unit test (分钟级) → build → integration → e2e (十几分钟)<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>优化手段</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>阶段并行</strong></td>
+<td>无依赖的 job 同时跑（lint &#x2F; unit &#x2F; 类型检查）</td>
+</tr>
+<tr>
+<td><strong>快速失败</strong></td>
+<td><code>fail-fast: true</code>，一个挂了取消其余</td>
+</tr>
+<tr>
+<td><strong>DAG 依赖</strong></td>
+<td>用 <code>needs</code> 显式声明前后关系，而不是串成一条线</td>
+</tr>
+<tr>
+<td><strong>拆分 E2E</strong></td>
+<td>E2E 只在 merge 到 main 或 nightly 跑，PR 上跑子集</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>不要把 lint 放在最后。</strong> 一个拼写错误要等 20 分钟 E2E 跑完才报出来，是最浪费人时间的反模式 —— <strong>按「成本从低到高」排</strong>。同时 <strong>PR 上的流水线要快（&lt; 10 分钟）</strong>，否则开发者会绕过它；重型测试（全量 E2E、性能压测、跨平台构建）放到 main 或 nightly。</p>
+</blockquote>
+<h2 id="二、缓存策略"><a href="#二、缓存策略" class="headerlink" title="二、缓存策略"></a>二、缓存策略</h2><table>
+<thead>
+<tr>
+<th>缓存类型</th>
+<th>缓存什么</th>
+<th>典型 key</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>依赖缓存</strong></td>
+<td><code>node_modules</code> &#x2F; <code>~/.m2</code> &#x2F; pip wheel &#x2F; go mod</td>
+<td><code>hash(lockfile)</code></td>
+</tr>
+<tr>
+<td><strong>构建缓存</strong></td>
+<td>编译产物、Bazel&#x2F;Turborepo 远程缓存</td>
+<td><code>hash(源码 + 工具链版本)</code></td>
+</tr>
+<tr>
+<td><strong>Docker 层缓存</strong></td>
+<td>镜像层</td>
+<td><code>buildx</code> + registry cache</td>
+</tr>
+</tbody></table>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-comment"># 依赖缓存：key 里必须含 lockfile 哈希</span><br><span class="hljs-bullet">-</span> <span class="hljs-attr">uses:</span> <span class="hljs-string">actions/cache@v4</span><br>  <span class="hljs-attr">with:</span><br>    <span class="hljs-attr">path:</span> <span class="hljs-string">~/.npm</span><br>    <span class="hljs-attr">key:</span> <span class="hljs-string">npm-$&#123;&#123;</span> <span class="hljs-string">runner.os</span> <span class="hljs-string">&#125;&#125;-$&#123;&#123;</span> <span class="hljs-string">hashFiles(&#x27;**/package-lock.json&#x27;)</span> <span class="hljs-string">&#125;&#125;</span><br>    <span class="hljs-attr">restore-keys:</span> <span class="hljs-string">npm-$&#123;&#123;</span> <span class="hljs-string">runner.os</span> <span class="hljs-string">&#125;&#125;-</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>缓存 key 必须包含「会影响结果的输入」。</strong> 只按分支名做 key，会让 A 分支的依赖被 B 分支复用，产生<strong>缓存污染</strong> —— 表现为「本地能跑、CI 报奇怪的错」。同时 <strong><code>restore-keys</code> 是前缀回退</strong>，用错会把旧环境的缓存捞回来；跨 OS &#x2F; 跨架构（<code>amd64</code> vs <code>arm64</code>）的缓存<strong>不能共用</strong>，key 里必须带 <code>runner.os</code> 和架构。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>缓存默认不可写回（只读）</strong>，只有命中缓存的那个 job 结束后才保存；<strong>多 job 并发写同一个 key 会互相覆盖</strong>。构建缓存要区分「读缓存」和「写缓存」角色。</p>
+</blockquote>
+<h2 id="三、制品管理：不可变-按-commit-sha"><a href="#三、制品管理：不可变-按-commit-sha" class="headerlink" title="三、制品管理：不可变 + 按 commit sha"></a>三、制品管理：不可变 + 按 commit sha</h2><table>
+<thead>
+<tr>
+<th>反模式</th>
+<th>问题</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>用 <code>latest</code> 标签部署</td>
+<td><strong>不知道线上跑的是哪个 commit</strong>，无法回滚</td>
+</tr>
+<tr>
+<td>每个环境重新构建</td>
+<td>环境间产物不同，<strong>测过的不等于发的</strong></td>
+</tr>
+</tbody></table>
+<figure class="highlight crmsh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs crmsh">正确流程：<br>  构建一次 → 产出不可变制品 → 打上 git commit sha 标签<br>  → 同一个制品依次部署到 dev / staging / prod<br>  → 回滚 = 把镜像 <span class="hljs-keyword">tag</span> <span class="hljs-title">换回上一个 sha</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs bash">docker build -t registry.example.com/app:<span class="hljs-variable">$&#123;GIT_SHA&#125;</span> .<br>docker push registry.example.com/app:<span class="hljs-variable">$&#123;GIT_SHA&#125;</span><br><span class="hljs-comment"># 部署时引用 sha，而不是 latest</span><br>kubectl <span class="hljs-built_in">set</span> image deploy/app app=registry.example.com/app:<span class="hljs-variable">$&#123;GIT_SHA&#125;</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>标签策略</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>app:&lt;git-sha&gt;</code></td>
+<td><strong>主标识</strong>，唯一且不可变</td>
+</tr>
+<tr>
+<td><code>app:main</code> &#x2F; <code>app:latest</code></td>
+<td>只作「最新」提示，<strong>绝不用来部署</strong></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>「构建一次，处处部署」（build once, deploy many）。</strong> 每个环境重新构建会让「staging 测过的制品」和「prod 部署的制品」不是同一个二进制，测试结果失去意义。另外 <strong><code>latest</code> 是可变标签</strong>，push 新版本会覆盖旧版本 —— 用它部署等于「部署时才知道跑的是什么」。<strong>制品仓库要开不可变策略</strong>（ECR immutable tags、Harbor 不可变 tag），允许覆盖 tag 的话，「同一个版本」在不同时间可能是不同内容。</p>
+</blockquote>
+<h2 id="四、GitHub-Actions-核心概念"><a href="#四、GitHub-Actions-核心概念" class="headerlink" title="四、GitHub Actions 核心概念"></a>四、GitHub Actions 核心概念</h2><table>
+<thead>
+<tr>
+<th>概念</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>workflow</strong></td>
+<td>一个 <code>.github/workflows/*.yml</code> 文件</td>
+</tr>
+<tr>
+<td><strong>event &#x2F; trigger</strong></td>
+<td><code>on:</code> 触发条件（<code>push</code> &#x2F; <code>pull_request</code> &#x2F; <code>schedule</code> &#x2F; <code>workflow_dispatch</code>）</td>
+</tr>
+<tr>
+<td><strong>job</strong></td>
+<td>一组 step，<strong>默认并行</strong>，跑在独立 runner 上</td>
+</tr>
+<tr>
+<td><strong>step</strong></td>
+<td>一个 <code>run</code> 命令或一个 <code>uses</code> action</td>
+</tr>
+<tr>
+<td><strong>runner</strong></td>
+<td>执行机（<code>ubuntu-latest</code> &#x2F; 自托管）</td>
+</tr>
+<tr>
+<td><strong>needs</strong></td>
+<td>声明 job 依赖，形成 DAG</td>
+</tr>
+<tr>
+<td><strong>matrix</strong></td>
+<td>参数化组合（多 OS × 多语言版本）</td>
+</tr>
+<tr>
+<td><strong>secret</strong></td>
+<td>加密变量，日志自动打码</td>
+</tr>
+<tr>
+<td><strong>cache &#x2F; artifact</strong></td>
+<td>跨 job 传缓存 &#x2F; 传文件</td>
+</tr>
+</tbody></table>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-attr">name:</span> <span class="hljs-string">ci</span><br><span class="hljs-attr">on:</span><br>  <span class="hljs-attr">pull_request:</span>                 <span class="hljs-comment"># PR 触发 CI</span><br>  <span class="hljs-attr">push:</span><br>    <span class="hljs-attr">branches:</span> [<span class="hljs-string">main</span>]            <span class="hljs-comment"># main 触发部署</span><br><br><span class="hljs-attr">concurrency:</span>                    <span class="hljs-comment"># 同一分支只跑最新一次</span><br>  <span class="hljs-attr">group:</span> <span class="hljs-string">ci-$&#123;&#123;</span> <span class="hljs-string">github.ref</span> <span class="hljs-string">&#125;&#125;</span><br>  <span class="hljs-attr">cancel-in-progress:</span> <span class="hljs-literal">true</span><br><br><span class="hljs-attr">jobs:</span><br>  <span class="hljs-attr">lint:</span><br>    <span class="hljs-attr">runs-on:</span> <span class="hljs-string">ubuntu-latest</span><br>    <span class="hljs-attr">steps:</span><br>      <span class="hljs-bullet">-</span> <span class="hljs-attr">uses:</span> <span class="hljs-string">actions/checkout@v4</span><br>      <span class="hljs-bullet">-</span> <span class="hljs-attr">uses:</span> <span class="hljs-string">actions/setup-node@v4</span><br>        <span class="hljs-attr">with:</span> &#123; <span class="hljs-attr">node-version:</span> <span class="hljs-number">22</span>, <span class="hljs-attr">cache:</span> <span class="hljs-string">npm</span> &#125;<br>      <span class="hljs-bullet">-</span> <span class="hljs-attr">run:</span> <span class="hljs-string">npm</span> <span class="hljs-string">ci</span> <span class="hljs-string">&amp;&amp;</span> <span class="hljs-string">npm</span> <span class="hljs-string">run</span> <span class="hljs-string">lint</span><br>  <span class="hljs-attr">test:</span><br>    <span class="hljs-attr">runs-on:</span> <span class="hljs-string">$&#123;&#123;</span> <span class="hljs-string">matrix.os</span> <span class="hljs-string">&#125;&#125;</span><br>    <span class="hljs-attr">strategy:</span><br>      <span class="hljs-attr">fail-fast:</span> <span class="hljs-literal">true</span><br>      <span class="hljs-attr">matrix:</span><br>        <span class="hljs-attr">os:</span> [<span class="hljs-string">ubuntu-latest</span>, <span class="hljs-string">windows-latest</span>]<br>        <span class="hljs-attr">node:</span> [<span class="hljs-number">20</span>, <span class="hljs-number">22</span>]<br>    <span class="hljs-attr">steps:</span><br>      <span class="hljs-bullet">-</span> <span class="hljs-attr">uses:</span> <span class="hljs-string">actions/checkout@v4</span><br>      <span class="hljs-bullet">-</span> <span class="hljs-attr">uses:</span> <span class="hljs-string">actions/setup-node@v4</span><br>        <span class="hljs-attr">with:</span> &#123; <span class="hljs-attr">node-version:</span> <span class="hljs-string">$<span class="hljs-template-variable">&#123;&#123; matrix.node &#125;&#125;</span></span>, <span class="hljs-attr">cache:</span> <span class="hljs-string">npm</span> &#125;<br>      <span class="hljs-bullet">-</span> <span class="hljs-attr">run:</span> <span class="hljs-string">npm</span> <span class="hljs-string">ci</span> <span class="hljs-string">&amp;&amp;</span> <span class="hljs-string">npm</span> <span class="hljs-string">test</span><br>  <span class="hljs-attr">build:</span><br>    <span class="hljs-attr">needs:</span> [<span class="hljs-string">lint</span>, <span class="hljs-string">test</span>]         <span class="hljs-comment"># DAG 依赖</span><br>    <span class="hljs-attr">runs-on:</span> <span class="hljs-string">ubuntu-latest</span><br>    <span class="hljs-attr">outputs:</span> &#123; <span class="hljs-attr">digest:</span> <span class="hljs-string">&quot;$<span class="hljs-template-variable">&#123;&#123; steps.push.outputs.digest &#125;&#125;</span>&quot;</span> &#125;<br>    <span class="hljs-attr">steps:</span><br>      <span class="hljs-bullet">-</span> <span class="hljs-attr">uses:</span> <span class="hljs-string">actions/checkout@v4</span><br>      <span class="hljs-bullet">-</span> <span class="hljs-attr">id:</span> <span class="hljs-string">push</span><br>        <span class="hljs-attr">run:</span> <span class="hljs-string">echo</span> <span class="hljs-string">&quot;digest=$(./build-and-push.sh)&quot;</span> <span class="hljs-string">&gt;&gt;</span> <span class="hljs-string">&quot;$GITHUB_OUTPUT&quot;</span><br>      <span class="hljs-bullet">-</span> <span class="hljs-attr">uses:</span> <span class="hljs-string">actions/upload-artifact@v4</span><br>        <span class="hljs-attr">with:</span> &#123; <span class="hljs-attr">name:</span> <span class="hljs-string">dist</span>, <span class="hljs-attr">path:</span> <span class="hljs-string">dist/</span> &#125;<br>  <span class="hljs-attr">deploy:</span><br>    <span class="hljs-attr">needs:</span> <span class="hljs-string">build</span><br>    <span class="hljs-attr">if:</span> <span class="hljs-string">github.ref</span> <span class="hljs-string">==</span> <span class="hljs-string">&#x27;refs/heads/main&#x27;</span><br>    <span class="hljs-attr">environment:</span> <span class="hljs-string">production</span>     <span class="hljs-comment"># 绑定审批与环境保护规则</span><br>    <span class="hljs-attr">runs-on:</span> <span class="hljs-string">ubuntu-latest</span><br>    <span class="hljs-attr">steps:</span><br>      <span class="hljs-bullet">-</span> <span class="hljs-attr">uses:</span> <span class="hljs-string">actions/download-artifact@v4</span><br>        <span class="hljs-attr">with:</span> &#123; <span class="hljs-attr">name:</span> <span class="hljs-string">dist</span>, <span class="hljs-attr">path:</span> <span class="hljs-string">dist/</span> &#125;<br>      <span class="hljs-bullet">-</span> <span class="hljs-attr">run:</span> <span class="hljs-string">./deploy.sh</span><br>        <span class="hljs-attr">env:</span> &#123; <span class="hljs-attr">IMAGE_DIGEST:</span> <span class="hljs-string">&quot;$<span class="hljs-template-variable">&#123;&#123; needs.build.outputs.digest &#125;&#125;</span>&quot;</span> &#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>artifact</code> 和 <code>cache</code> 用途不同</strong>：artifact 传「构建产物」给下游 job（有保留期、按 run 隔离），cache 是「加速依赖下载」。<strong>别用 cache 传构建产物</strong> —— cache 会被 evict、key 匹配有回退语义，产物会莫名其妙变旧。另外 <strong><code>upload-artifact@v4</code> 与 v3 不兼容</strong>：v4 起同一个 workflow 内 artifact 名字必须唯一，且不再支持 GHES，跨 workflow 共享要用 <code>download-artifact@v4</code> 或外部制品库。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>secrets</code> 在 <code>pull_request</code> 事件里对 fork 不可用</strong>（这是安全设计），别在 PR 里跑需要密钥的部署；用 <code>pull_request_target</code> 要极其小心，它会在<strong>目标仓库上下文</strong>运行，若又 checkout 了 PR 代码就是 RCE 入口。**<code>concurrency</code> 也必须配**：不配的话同一分支连推 5 次就起 5 条流水线，既浪费资源又可能让部署乱序。</p>
+</blockquote>
+<h2 id="五、分支策略、环境分层与审批"><a href="#五、分支策略、环境分层与审批" class="headerlink" title="五、分支策略、环境分层与审批"></a>五、分支策略、环境分层与审批</h2><table>
+<thead>
+<tr>
+<th>触发</th>
+<th>跑什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>pull_request</code></td>
+<td>lint + unit + build（<strong>不部署</strong>）</td>
+</tr>
+<tr>
+<td>merge 到 <code>main</code></td>
+<td>全量测试 + 构建镜像 + 部署 dev</td>
+</tr>
+<tr>
+<td>tag &#x2F; release</td>
+<td>部署 staging → <strong>人工审批</strong> → prod</td>
+</tr>
+<tr>
+<td><code>schedule</code>（nightly）</td>
+<td>全量 E2E、依赖扫描、性能基线</td>
+</tr>
+</tbody></table>
+<table>
+<thead>
+<tr>
+<th>环境</th>
+<th>用途</th>
+<th>数据</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>dev &#x2F; staging &#x2F; prod</td>
+<td>开发自测 &#x2F; 预发 &#x2F; 生产</td>
+<td>造数据 → 脱敏近似生产 → 真实数据</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>staging 和 prod 的差异越大，staging 通过就越没意义</strong>（配置、依赖版本、中间件、数据规模都要对齐，否则「staging 全绿」只是幻觉）。<strong>生产部署必须有人工审批门或至少可暂停</strong>（GitHub Actions 用 <code>environment</code> + required reviewers），这不是形式主义，是给「回滚窗口」留决策时间。另外<strong>别用「长期存在的 <code>develop</code> 分支」做集成分支</strong>（GitFlow 那套）—— 分支存活越久，合并冲突越大、集成越晚，<strong>主干开发（trunk-based）+ 短命特性分支 + 特性开关</strong>才是主流。</p>
+</blockquote>
+<h2 id="六、密钥管理：不要明文，尽量免密钥"><a href="#六、密钥管理：不要明文，尽量免密钥" class="headerlink" title="六、密钥管理：不要明文，尽量免密钥"></a>六、密钥管理：不要明文，尽量免密钥</h2><table>
+<thead>
+<tr>
+<th>反模式</th>
+<th>风险</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>密钥写进 workflow YAML</td>
+<td>提交进仓库，永久留在历史里</td>
+</tr>
+<tr>
+<td>长期 AK&#x2F;SK 存 CI secret</td>
+<td>泄露即长期沦陷，且难轮换</td>
+</tr>
+</tbody></table>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>CI secret &#x2F; 环境变量</strong></td>
+<td>基础做法，日志自动打码</td>
+</tr>
+<tr>
+<td><strong>OIDC 联邦身份</strong></td>
+<td>CI 从云厂商换<strong>短期凭据</strong>，无需长期密钥</td>
+</tr>
+<tr>
+<td>Vault &#x2F; Secrets Manager</td>
+<td>集中管理 + 动态凭据 + 审计</td>
+</tr>
+<tr>
+<td>短期 token（<code>GITHUB_TOKEN</code>）</td>
+<td>每次 run 自动签发、自动过期</td>
+</tr>
+</tbody></table>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-comment"># GitHub Actions → AWS 免长期密钥（OIDC）</span><br><span class="hljs-attr">permissions:</span><br>  <span class="hljs-attr">id-token:</span> <span class="hljs-string">write</span>               <span class="hljs-comment"># 必须显式开启，才能拿 OIDC token</span><br>  <span class="hljs-attr">contents:</span> <span class="hljs-string">read</span><br><span class="hljs-attr">steps:</span><br>  <span class="hljs-bullet">-</span> <span class="hljs-attr">uses:</span> <span class="hljs-string">aws-actions/configure-aws-credentials@v4</span><br>    <span class="hljs-attr">with:</span><br>      <span class="hljs-attr">role-to-assume:</span> <span class="hljs-string">arn:aws:iam::123456789012:role/ci-deploy</span><br>      <span class="hljs-attr">aws-region:</span> <span class="hljs-string">ap-northeast-1</span>   <span class="hljs-comment"># 不需要 aws-access-key-id / secret</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>permissions</code> 默认可能是「读写全部」</strong>（老仓库），必须<strong>显式最小化</strong>，尤其 <code>id-token: write</code> 只给需要的 job —— 拿到 OIDC token 就能换云上凭据。<strong>OIDC 的信任策略要限定 <code>sub</code><strong>（仓库 + 分支 + 环境），例如只允许 <code>repo:org/app:ref:refs/heads/main</code>，写成 <code>repo:org/app:*</code> 等于任何分支都能换到生产凭据。另外</strong>一旦密钥进了 git 历史，改文件没用，必须轮换</strong>（历史提交、fork、CI 缓存里都还在），同时开 <strong>Secret Scanning &#x2F; gitleaks</strong> 在提交时拦截。</p>
+</blockquote>
+<h2 id="七、数据库迁移在流水线里的位置"><a href="#七、数据库迁移在流水线里的位置" class="headerlink" title="七、数据库迁移在流水线里的位置"></a>七、数据库迁移在流水线里的位置</h2><p><strong>顺序问题</strong>：代码先上还是迁移先上？</p>
+<table>
+<thead>
+<tr>
+<th>顺序</th>
+<th>风险</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>先迁移后发代码</td>
+<td>新代码没上，老代码遇到新 schema —— 只要<strong>向后兼容</strong>就安全</td>
+</tr>
+<tr>
+<td>先发代码后迁移</td>
+<td>新代码依赖新列，但列还不存在 → 直接报错</td>
+</tr>
+</tbody></table>
+<figure class="highlight markdown"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs markdown">向后兼容的迁移模式（expand / contract）：<br><span class="hljs-bullet">  1.</span> Expand ：加新列 / 新表（可空、有默认值），老代码不受影响<br><span class="hljs-bullet">  2.</span> Migrate：双写 + 回填历史数据<br><span class="hljs-bullet">  3.</span> Switch ：代码切到读新列<br><span class="hljs-bullet">  4.</span> Contract：确认无回滚需求后，删旧列<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>迁移必须向后兼容，且要能被旧代码容忍。</strong>「删列」「改列类型」「加非空无默认值的列」都是<strong>破坏性变更</strong> —— 部署到一半时新老代码同时在线，任何一边挂都会导致事故。同时<strong>迁移和代码发布要解耦成独立阶段</strong>，迁移本身必须幂等、可重入（在 CI 里跑 <code>migrate</code> 前先确认「重复执行不会炸」）。<strong>大表迁移会锁表</strong>（MySQL 加索引、改列在旧版本会阻塞写入），生产上要用 <code>pt-online-schema-change</code> &#x2F; <code>gh-ost</code> 或原生在线 DDL，并<strong>从流水线里分离出去单独执行</strong>。</p>
+</blockquote>
+<h2 id="八、发布与回滚策略"><a href="#八、发布与回滚策略" class="headerlink" title="八、发布与回滚策略"></a>八、发布与回滚策略</h2><table>
+<thead>
+<tr>
+<th>策略</th>
+<th>做法</th>
+<th>回滚成本</th>
+<th>资源成本</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>滚动更新</strong></td>
+<td>逐批替换实例</td>
+<td>中（再滚回去）</td>
+<td>低</td>
+</tr>
+<tr>
+<td><strong>蓝绿</strong></td>
+<td>新环境全量起来 → 切流量</td>
+<td><strong>极低</strong>（切回旧环境）</td>
+<td>高（双倍）</td>
+</tr>
+<tr>
+<td><strong>金丝雀</strong></td>
+<td>先给 1% 流量 → 观察 → 逐步放量</td>
+<td>低（切断金丝雀）</td>
+<td>低</td>
+</tr>
+<tr>
+<td><strong>特性开关</strong></td>
+<td>代码上线但功能关闭，按开关放量</td>
+<td><strong>最低</strong>（关开关）</td>
+<td>低</td>
+</tr>
+</tbody></table>
+<figure class="highlight erlang-repl"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs erlang-repl">金丝雀放量：<span class="hljs-number">1</span><span class="hljs-comment">% → 5% → 25% → 50% → 100%</span><br>每步观察：错误率、P99 延迟、业务指标（下单量、支付成功率）<br>任一指标劣化 → 自动/手动回滚<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>回滚方式</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>镜像版本回退</strong></td>
+<td>把部署引用换回上一个 sha —— 最快、最可靠</td>
+</tr>
+<tr>
+<td><strong>特性开关关闭</strong></td>
+<td>不重新部署，秒级生效</td>
+</tr>
+<tr>
+<td><strong>数据库回滚</strong></td>
+<td>⚠️ 最难，所以<strong>迁移必须向前兼容</strong>，尽量不回滚 schema</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>「能部署」不等于「能回滚」。</strong> 回滚路径要和发布路径一样被测试 —— 很多团队半年不回滚一次，真出事时发现回滚脚本早就坏了。而且<strong>数据库没法「回滚」，只能「向前修复」</strong>，所以发布策略的前提是 schema 变更永远向后兼容，回滚代码时老代码仍能跑在新 schema 上。<strong>金丝雀要选对观察指标并提前定义回滚阈值</strong>，「看着不对再回滚」在事故现场等于没有策略。</p>
+</blockquote>
+<h2 id="九、流水线性能优化与质量门禁"><a href="#九、流水线性能优化与质量门禁" class="headerlink" title="九、流水线性能优化与质量门禁"></a>九、流水线性能优化与质量门禁</h2><table>
+<thead>
+<tr>
+<th>优化</th>
+<th>手段</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>只跑受影响的服务</strong></td>
+<td>monorepo 用路径过滤 &#x2F; Turborepo &#x2F; Bazel 依赖图</td>
+</tr>
+<tr>
+<td><strong>并发</strong></td>
+<td>matrix 并行、job 并行、分片测试（shard）</td>
+</tr>
+<tr>
+<td><strong>缓存</strong></td>
+<td>依赖缓存 + 构建缓存 + Docker 层缓存</td>
+</tr>
+<tr>
+<td><strong>跳过冗余</strong></td>
+<td>文档变更不跑全量测试（<code>paths-ignore</code>）</td>
+</tr>
+</tbody></table>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-attr">on:</span><br>  <span class="hljs-attr">pull_request:</span><br>    <span class="hljs-attr">paths:</span> [<span class="hljs-string">&#x27;services/payment/**&#x27;</span>, <span class="hljs-string">&#x27;.github/workflows/ci.yml&#x27;</span>]   <span class="hljs-comment"># 只在相关路径变更时触发</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>质量门禁</th>
+<th>工具示例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>测试覆盖率阈值</td>
+<td>codecov、覆盖率低于阈值直接失败</td>
+</tr>
+<tr>
+<td><strong>SAST</strong></td>
+<td>CodeQL、Semgrep、SonarQube</td>
+</tr>
+<tr>
+<td><strong>依赖漏洞扫描</strong></td>
+<td>Dependabot、Trivy、<code>npm audit</code>、Snyk</td>
+</tr>
+<tr>
+<td>镜像扫描 &#x2F; 许可证合规</td>
+<td>Trivy、Grype &#x2F; <code>license-checker</code>、FOSSA</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>覆盖率是「必要不充分」的门禁</strong> —— 100% 不代表没 bug，但<strong>大幅下降必须拦下来</strong>；阈值用「不低于基线」而不是拍脑袋的固定数字。<strong>扫描结果要能「阻断」而不只是「报告」</strong>：只在 PR 里贴评论、不影响合并的扫描等于没做，设 <code>severity &gt;= high</code> 直接 fail。<strong>门禁也不能只加不减</strong> —— 越多流水线越慢，开发者越会找绕过方式，定期 review 每条门禁的命中率和误报率，把没用的删掉。</p>
+</blockquote>
+<h2 id="十、可观测性接入"><a href="#十、可观测性接入" class="headerlink" title="十、可观测性接入"></a>十、可观测性接入</h2><p>构建时把 commit sha &#x2F; 版本号注入镜像标签与 <code>VERSION</code> 文件；部署时打 deploy 事件到监控；运行时日志 &#x2F; 指标 &#x2F; Trace 带 version 标签；发布后自动跑冒烟测试，指标劣化自动回滚。</p>
+<blockquote>
+<p>⚠️ <strong>制品里必须带版本信息</strong>（<code>--build-arg GIT_SHA</code>）。线上出问题时，第一步是确认「跑的是哪个版本」—— 没这个信息，排查从第一步就卡住。<strong>部署事件也要打进监控</strong>，把「发布时刻」画在指标图上，否则看到错误率尖刺时，要花十几分钟才能想起来「刚才发了版」。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 混淆持续交付与持续部署，生产自动发却没审批和回滚预案</li>
+<li><input disabled="" type="checkbox"> lint 放在流水线最后；PR 流水线超过 10 分钟</li>
+<li><input disabled="" type="checkbox"> 缓存 key 不含 lockfile 哈希，产生缓存污染</li>
+<li><input disabled="" type="checkbox"> 跨 OS &#x2F; 跨架构共用同一份缓存；用 cache 传构建产物</li>
+<li><input disabled="" type="checkbox"> 用 <code>latest</code> 标签部署，无法追溯与回滚</li>
+<li><input disabled="" type="checkbox"> 每个环境重新构建，测过的不等于发的；制品仓库允许覆盖 tag</li>
+<li><input disabled="" type="checkbox"> 没配 <code>concurrency</code>，同分支并发跑多条流水线</li>
+<li><input disabled="" type="checkbox"> 在 PR 里跑需要 secrets 的部署（fork 拿不到 secret）</li>
+<li><input disabled="" type="checkbox"> 用 <code>pull_request_target</code> 却 checkout 并执行 PR 代码</li>
+<li><input disabled="" type="checkbox"> 没显式最小化 <code>permissions</code>，尤其 <code>id-token: write</code></li>
+<li><input disabled="" type="checkbox"> 密钥明文进 workflow YAML 或 echo 到日志</li>
+<li><input disabled="" type="checkbox"> 密钥进了 git 历史只删文件不轮换</li>
+<li><input disabled="" type="checkbox"> OIDC 信任策略用通配 <code>sub</code>，任何分支都能换生产凭据</li>
+<li><input disabled="" type="checkbox"> 破坏性数据库迁移（删列 &#x2F; 改类型 &#x2F; 非空无默认值）</li>
+<li><input disabled="" type="checkbox"> 迁移与代码发布耦合在同一阶段，不可重入</li>
+<li><input disabled="" type="checkbox"> 大表迁移直接在流水线里跑，锁表影响生产</li>
+<li><input disabled="" type="checkbox"> staging 与 prod 差异过大，预发通过无意义</li>
+<li><input disabled="" type="checkbox"> 长期存在的 <code>develop</code> 分支做集成，合并地狱</li>
+<li><input disabled="" type="checkbox"> 只测发布路径，不测回滚路径</li>
+<li><input disabled="" type="checkbox"> 金丝雀没提前定义回滚阈值和观察指标</li>
+<li><input disabled="" type="checkbox"> 制品里不带版本信息；部署事件不打进监控</li>
+<li><input disabled="" type="checkbox"> 质量门禁只报告不阻断；或门禁只加不减</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax">GitHub Actions · 工作流语法</a> · <a target="_blank" rel="noopener" href="https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/cache-dependencies">GitHub Actions · 缓存依赖</a> · <a target="_blank" rel="noopener" href="https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/store-and-share-data">GitHub Actions · 存储与共享数据（artifact）</a> · <a target="_blank" rel="noopener" href="https://github.com/actions/upload-artifact">actions&#x2F;upload-artifact</a> · <a target="_blank" rel="noopener" href="https://github.com/actions/cache">actions&#x2F;cache</a> · <a target="_blank" rel="noopener" href="https://docs.github.com/en/actions/concepts/security/openid-connect">GitHub Actions · OIDC 免长期密钥</a> · <a target="_blank" rel="noopener" href="https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments">GitHub Actions · 部署环境与审批</a> · <a target="_blank" rel="noopener" href="https://docs.gitlab.com/ee/ci/">GitLab CI&#x2F;CD 文档</a> · <a target="_blank" rel="noopener" href="https://docs.gitlab.com/ee/ci/caching/">GitLab · 缓存与制品</a> · <a target="_blank" rel="noopener" href="https://owasp.org/www-project-top-10-ci-cd-security-risks/">OWASP · CI&#x2F;CD 安全 Top 10</a> · <a target="_blank" rel="noopener" href="https://docs.docker.com/build/cache/">Docker · 构建缓存</a> · <a target="_blank" rel="noopener" href="https://martinfowler.com/articles/continuousIntegration.html">Martin Fowler · 持续集成</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/ci-cd/" class="category-chain-item">ci-cd</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/ci-cd/" class="print-no-link">#ci-cd</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 072 · CI/CD（一）：流水线设计与制品管理</div>
+      <div>https://ethan-iopasd.github.io/2026/10/08/每日技术博客072-CICD流水线设计/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月8日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

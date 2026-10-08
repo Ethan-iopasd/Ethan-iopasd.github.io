@@ -1,0 +1,1051 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 064 篇 网络系列第三篇。混合加密的原理、TLS 1.2 与 1.3 的握手差异、证书链与 SAN、SNI &#x2F; ALPN、OCSP stapling、openssl 排查与常见报错。  📚 网络 系列目录   章节 主题 状态    一 TCP&#x2F;IP 与三次握手 已发布   二 DNS、CDN 与抓包排查 已发布   三 H">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 064 · 网络（三）：HTTPS 与 TLS 握手">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2064-%E7%BD%91%E7%BB%9CHTTPS%E4%B8%8ETLS%E6%8F%A1%E6%89%8B/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 064 篇 网络系列第三篇。混合加密的原理、TLS 1.2 与 1.3 的握手差异、证书链与 SAN、SNI &#x2F; ALPN、OCSP stapling、openssl 排查与常见报错。  📚 网络 系列目录   章节 主题 状态    一 TCP&#x2F;IP 与三次握手 已发布   二 DNS、CDN 与抓包排查 已发布   三 H">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-08T03:55:00.000Z">
+<meta property="article:modified_time" content="2026-10-08T02:49:52.334Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="network">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 064 · 网络（三）：HTTPS 与 TLS 握手 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 064 · 网络（三）：HTTPS 与 TLS 握手"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-08 11:55" pubdate>
+          2026年10月8日 中午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.7k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          23 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 064 · 网络（三）：HTTPS 与 TLS 握手</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-08 · 第 064 篇</p>
+<p>网络系列第三篇。混合加密的原理、TLS 1.2 与 1.3 的握手差异、证书链与 SAN、SNI &#x2F; ALPN、OCSP stapling、<code>openssl</code> 排查与常见报错。</p>
+</blockquote>
+<h2 id="📚-网络-系列目录"><a href="#📚-网络-系列目录" class="headerlink" title="📚 网络 系列目录"></a>📚 网络 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>TCP&#x2F;IP 与三次握手</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>DNS、CDN 与抓包排查</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>HTTPS 与 TLS 握手</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p>HTTPS &#x3D; 用<strong>非对称加密</strong>安全地交换出一个<strong>对称密钥</strong>，之后用对称加密传数据；TLS 1.3 把握手压到 1-RTT，并删掉了所有不提供前向保密的密钥交换。几乎所有「证书报错」都出在证书链和 SAN。</p>
+<h2 id="一、为什么混合加密"><a href="#一、为什么混合加密" class="headerlink" title="一、为什么混合加密"></a>一、为什么混合加密</h2><table>
+<thead>
+<tr>
+<th>加密</th>
+<th>特点</th>
+<th>在 TLS 里的角色</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>对称（AES &#x2F; ChaCha20）</td>
+<td>快，但密钥分发难</td>
+<td><strong>传输数据</strong></td>
+</tr>
+<tr>
+<td>非对称（RSA &#x2F; ECDSA）</td>
+<td>慢，可公开公钥</td>
+<td><strong>签名 &#x2F; 身份验证</strong></td>
+</tr>
+<tr>
+<td>密钥交换（ECDHE &#x2F; DHE）</td>
+<td>双方各自算出同一密钥</td>
+<td><strong>协商会话密钥</strong></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 密钥交换<strong>不等于</strong>加密：ECDHE 本身不加密任何数据，它的作用是让双方在不安全信道上<strong>各自独立算出</strong>同一个密钥，且私钥不上网。理解这点才看得懂前向保密。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 对称加密的性能比非对称快<strong>几个数量级</strong>。所以 TLS 只用非对称做「握手那几下」，数据全走对称。</p>
+</blockquote>
+<h2 id="二、TLS-1-2-完整握手"><a href="#二、TLS-1-2-完整握手" class="headerlink" title="二、TLS 1.2 完整握手"></a>二、TLS 1.2 完整握手</h2><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs text">Client                                          Server<br>  |--- ClientHello (随机数R1, 支持的密码套件, SNI, ALPN) ---&gt;|<br>  |&lt;-- ServerHello (随机数R2, 选定套件, 会话ID) -------------|<br>  |&lt;-- Certificate (服务端证书链) --------------------------|<br>  |&lt;-- ServerKeyExchange (ECDHE 参数 + 签名) ----------------|<br>  |&lt;-- ServerHelloDone ------------------------------------|<br>  |--- ClientKeyExchange (客户端 ECDHE 公钥) --------------&gt;|<br>  |--- ChangeCipherSpec + Finished (加密) -----------------&gt;|<br>  |&lt;-- ChangeCipherSpec + Finished (加密) ------------------|<br>  |============ 应用数据（对称加密）========================|<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>消息</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>ClientHello</code></td>
+<td>客户端随机数、支持的版本 &#x2F; 套件 &#x2F; 扩展（SNI、ALPN）</td>
+</tr>
+<tr>
+<td><code>ServerHello</code></td>
+<td>选定版本与套件、服务端随机数</td>
+</tr>
+<tr>
+<td><code>Certificate</code></td>
+<td>服务端证书链</td>
+</tr>
+<tr>
+<td><code>ServerKeyExchange</code></td>
+<td>ECDHE 公钥 + 用证书私钥签名（防篡改）</td>
+</tr>
+<tr>
+<td><code>Finished</code></td>
+<td>校验握手完整性（基于所有握手消息的摘要）</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 会话密钥 &#x3D; <code>HKDF(R1, R2, 预主密钥)</code>。<strong>R1 &#x2F; R2 是明文传输的</strong>，安全性全靠 ECDHE 的预主密钥 —— 这就是为什么随机数不需要保密，但绝不能重复。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>ServerKeyExchange</code> 的签名<strong>必须</strong>存在，否则中间人可以替换 ECDHE 参数做降级。早期某些配置漏签是历史漏洞来源。</p>
+</blockquote>
+<h2 id="三、TLS-1-3-的改进（RFC-8446）"><a href="#三、TLS-1-3-的改进（RFC-8446）" class="headerlink" title="三、TLS 1.3 的改进（RFC 8446）"></a>三、TLS 1.3 的改进（RFC 8446）</h2><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>TLS 1.2</th>
+<th>TLS 1.3</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>握手往返</td>
+<td>2-RTT</td>
+<td><strong>1-RTT</strong></td>
+</tr>
+<tr>
+<td>会话恢复</td>
+<td>2-RTT（或 ticket 1-RTT）</td>
+<td><strong>0-RTT</strong>（有重放风险）</td>
+</tr>
+<tr>
+<td>密钥交换</td>
+<td>RSA &#x2F; DHE &#x2F; ECDHE 都行</td>
+<td><strong>只有 (EC)DHE &#x2F; PSK</strong></td>
+</tr>
+<tr>
+<td>前向保密</td>
+<td>可选</td>
+<td><strong>强制</strong></td>
+</tr>
+<tr>
+<td>密码套件</td>
+<td>加密 + 认证 + 密钥交换分开</td>
+<td><strong>合并</strong>，只保留 AEAD</td>
+</tr>
+<tr>
+<td>明文消息</td>
+<td>较多</td>
+<td>仅 ClientHello &#x2F; ServerHello</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ TLS 1.3 <strong>删掉了静态 RSA 密钥交换</strong>（客户端用服务器公钥加密预主密钥），因为它<strong>没有前向保密</strong> —— 私钥一旦泄露，历史流量全部可解。所以「配了 RSA 证书」和「用 RSA 密钥交换」是两回事：1.3 下证书可以是 RSA，但密钥交换一定是 ECDHE。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>0-RTT 有重放攻击风险</strong>：0-RTT 数据不参与完整握手、可被攻击者截获重放。只对<strong>幂等的 GET</strong> 开 0-RTT，<code>POST</code> &#x2F; 支付类接口绝不能开。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ TLS 1.3 下 <code>ssl_ciphers</code> 基本失效（套件由 1.3 自己协商），要限制 1.3 套件得用 <code>ssl_conf_command Ciphersuites</code>。这是升级 1.3 后「配置改了没效果」的原因。</p>
+</blockquote>
+<h2 id="四、证书链与证书字段"><a href="#四、证书链与证书字段" class="headerlink" title="四、证书链与证书字段"></a>四、证书链与证书字段</h2><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs text">根证书 (Root CA)         ← 预装在操作系统 / 浏览器信任库<br>   └─ 中间证书 (Intermediate CA)<br>         └─ 叶子证书 (Leaf / 服务器证书)<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs nginx"><span class="hljs-comment"># 服务端必须把「叶子 + 中间」拼成一个文件下发</span><br><span class="hljs-attribute">ssl_certificate</span> /etc/nginx/ssl/fullchain.pem;   <span class="hljs-comment"># leaf 在前，intermediate 在后</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash">openssl s_client -connect example.com:443 -servername example.com 2&gt;/dev/null \<br>  | openssl x509 -noout -subject -issuer -dates -ext subjectAltName<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Subject</code></td>
+<td>主体（<code>CN</code> 域名已基本被忽略）</td>
+</tr>
+<tr>
+<td><code>subjectAltName (SAN)</code></td>
+<td><strong>真正生效的域名列表</strong>，现代客户端只认它</td>
+</tr>
+<tr>
+<td><code>notBefore</code> &#x2F; <code>notAfter</code></td>
+<td>有效期</td>
+</tr>
+<tr>
+<td><code>keyUsage</code></td>
+<td>证书用途（<code>digitalSignature</code> &#x2F; <code>keyEncipherment</code>）</td>
+</tr>
+<tr>
+<td><code>extendedKeyUsage</code></td>
+<td>扩展用途（<code>serverAuth</code> &#x2F; <code>clientAuth</code>）</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 服务端<strong>必须下发中间证书</strong>。只下发叶子证书时，浏览器可能因缓存了中间证书而正常，但 <code>curl</code> &#x2F; Java &#x2F; Android &#x2F; 小程序会报 <code>unable to get local issuer certificate</code>。<strong>根证书不要下发</strong>（客户端本就有）。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 顺序错了也会失败：<code>fullchain.pem</code> 必须是<strong>叶子证书在前、中间证书在后</strong>。反过来拼，部分客户端会验证失败。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ **现代浏览器只认 SAN，不认 <code>CN</code>**。证书只填 <code>CN=example.com</code> 而 SAN 为空或缺少该域名，会直接报域名不匹配。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 证书有效期正在被强制缩短（主流 CA 已推行逐年缩短，最终目标 47 天）。<strong>证书过期是「最容易避免又最常发生」的线上事故</strong>，必须做到期监控。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 一张证书可以同时签多个域名（SAN 多值），但通配符证书 <code>*.example.com</code> <strong>只匹配一级子域</strong>：<code>a.example.com</code> ✅，<code>a.b.example.com</code> ❌。</p>
+</blockquote>
+<h2 id="五、SNI、ALPN-与-OCSP"><a href="#五、SNI、ALPN-与-OCSP" class="headerlink" title="五、SNI、ALPN 与 OCSP"></a>五、SNI、ALPN 与 OCSP</h2><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs text">ClientHello 里携带 server_name 扩展（SNI，明文）→ 服务器据此选择证书<br>ClientHello 的 ALPN 扩展里列出 [&quot;h2&quot;, &quot;http/1.1&quot;] → ServerHello 选定一个<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs nginx"><span class="hljs-attribute">ssl_stapling</span> <span class="hljs-literal">on</span>;<br><span class="hljs-attribute">ssl_stapling_verify</span> <span class="hljs-literal">on</span>;<br><span class="hljs-attribute">ssl_trusted_certificate</span> /etc/nginx/ssl/chain.pem;<br><span class="hljs-attribute">resolver</span> <span class="hljs-number">8.8.8.8</span> <span class="hljs-number">1.1.1.1</span> valid=<span class="hljs-number">300s</span>;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>机制</th>
+<th>谁去查吊销状态</th>
+<th>问题</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>CRL</td>
+<td>客户端下载吊销列表</td>
+<td>列表巨大、更新慢</td>
+</tr>
+<tr>
+<td>OCSP</td>
+<td><strong>客户端</strong>实时向 CA 查询</td>
+<td>泄露用户访问行为、CA 挂了会拖慢 &#x2F; 失败</td>
+</tr>
+<tr>
+<td>OCSP Stapling</td>
+<td><strong>服务器</strong>替客户端查好并附在握手里</td>
+<td>需配 <code>resolver</code></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ SNI 是<strong>明文</strong>的。直接用 IP 访问 HTTPS（不带 SNI）会命中 <code>default_server</code> 的证书，扫 IP 就能扒出站点域名。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 老客户端（XP、部分旧 Java）<strong>不支持 SNI</strong>，只能拿到默认证书。这类客户端如果访问的不是默认域名就会报错。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>HTTP&#x2F;2 必须经 ALPN 协商</strong>。如果客户端和服务端 ALPN 没谈拢，会静默退回 HTTP&#x2F;1.1 —— 你以为开了 HTTP&#x2F;2，实际没开。用 <code>curl -v --http2 https://...</code> 看协商结果。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ OCSP <strong>会泄露用户正在访问哪个站点</strong>（客户端直连 CA 查询）。Stapling 由服务端代查，既省延迟又保护隐私，<strong>现代部署应默认开启</strong>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 配了 <code>ssl_stapling on</code> 但没配 <code>resolver</code>，nginx 无法解析 OCSP 地址，<strong>stapling 静默失效</strong>，日志只有 warn，握手照常成功。</p>
+</blockquote>
+<h2 id="六、openssl-排查与常见错误"><a href="#六、openssl-排查与常见错误" class="headerlink" title="六、openssl 排查与常见错误"></a>六、openssl 排查与常见错误</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 完整握手 + 服务端证书链</span><br>openssl s_client -connect example.com:443 -servername example.com -showcerts &lt;/dev/null<br><span class="hljs-comment"># 指定 TLS 版本</span><br>openssl s_client -connect example.com:443 -tls1_2 &lt;/dev/null<br><span class="hljs-comment"># 解析证书全部字段 / 只看有效期</span><br>openssl s_client -connect example.com:443 -servername example.com 2&gt;/dev/null | openssl x509 -noout -text<br><span class="hljs-built_in">echo</span> | openssl s_client -connect example.com:443 -servername example.com 2&gt;/dev/null | openssl x509 -noout -dates<br><span class="hljs-comment"># 校验证书与私钥是否配对（两个 md5 必须一致）</span><br>openssl x509 -noout -modulus -<span class="hljs-keyword">in</span> cert.pem | openssl md5<br>openssl rsa  -noout -modulus -<span class="hljs-keyword">in</span> key.pem  | openssl md5<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>报错</th>
+<th>根因</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>certificate verify failed</code></td>
+<td>证书链不完整 &#x2F; 自签名 &#x2F; 过期</td>
+</tr>
+<tr>
+<td><code>unable to get local issuer certificate</code></td>
+<td>服务端没下发中间证书</td>
+</tr>
+<tr>
+<td><code>certificate has expired</code></td>
+<td><code>notAfter</code> 已过</td>
+</tr>
+<tr>
+<td><code>hostname mismatch</code> &#x2F; <code>IP address mismatch</code></td>
+<td>SAN 里没有该域名</td>
+</tr>
+<tr>
+<td><code>self signed certificate</code></td>
+<td>用了自签证书（内网 &#x2F; 开发环境）</td>
+</tr>
+<tr>
+<td><code>tlsv1 alert protocol version</code></td>
+<td>客户端与服务端无共同 TLS 版本</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>openssl s_client</code> 必须带 <code>-servername</code>，否则不带 SNI，可能拿到默认证书，看到的是<strong>另一个域名</strong>的证书 —— 排查时会被误导。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <code>Verify return code: 0 (ok)</code> 才代表链完整。<code>21 (unable to verify the first certificate)</code> 说明缺中间证书；<code>20 (unable to get local issuer certificate)</code> 说明本地信任库缺根证书或链不完整。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>域名不匹配（mismatch）和链不完整（issuer）是两类完全不同的错误</strong>：前者看 SAN，后者看中间证书。修错方向会白忙。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 证书「浏览器能开、代码报错」，几乎总是<strong>链不完整</strong>或<strong>信任库老旧</strong>（如老 JDK 不认新根证书 &#x2F; Let’s Encrypt 的交叉签名到期）。这类问题只在特定客户端暴露，最难复现。</p>
+</blockquote>
+<h2 id="七、HSTS、CT、mTLS-与握手延迟优化"><a href="#七、HSTS、CT、mTLS-与握手延迟优化" class="headerlink" title="七、HSTS、CT、mTLS 与握手延迟优化"></a>七、HSTS、CT、mTLS 与握手延迟优化</h2><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs text">Strict-Transport-Security: max-age=31536000; includeSubDomains<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs nginx"><span class="hljs-attribute">ssl_client_certificate</span> /etc/nginx/ssl/ca.pem;   <span class="hljs-comment"># mTLS：校验客户端证书的 CA 链</span><br><span class="hljs-attribute">ssl_verify_client</span> <span class="hljs-literal">on</span>;<br><span class="hljs-attribute">ssl_verify_depth</span> <span class="hljs-number">2</span>;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>机制</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>HSTS</td>
+<td>强制浏览器只走 HTTPS</td>
+</tr>
+<tr>
+<td>CT（Certificate Transparency）</td>
+<td>所有证书记入<strong>公开日志</strong>，可审计</td>
+</tr>
+<tr>
+<td>SCT</td>
+<td>证书里 &#x2F; 握手里携带的 CT 日志证明</td>
+</tr>
+<tr>
+<td>mTLS</td>
+<td>客户端与服务端<strong>互相</strong>验证证书</td>
+</tr>
+</tbody></table>
+<table>
+<thead>
+<tr>
+<th>优化</th>
+<th>省下的时间</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>会话复用（session ticket &#x2F; cache）</td>
+<td>省一次完整握手（1 RTT）</td>
+</tr>
+<tr>
+<td>TLS 1.3</td>
+<td>比 1.2 少 1 RTT</td>
+</tr>
+<tr>
+<td>0-RTT（仅幂等请求）</td>
+<td>再省 1 RTT（有重放风险）</td>
+</tr>
+<tr>
+<td>CDN 就近终止 TLS</td>
+<td>省掉到源站的长途 RTT</td>
+</tr>
+<tr>
+<td>OCSP Stapling</td>
+<td>省客户端查 OCSP 的往返</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ HSTS 一旦下发<strong>无法回退</strong>：<code>max-age</code> 内浏览器拒绝任何 HTTP 连接，也拒绝绕过证书错误页。证书出问题时连「点击继续」的机会都没有。且它有<strong>首次访问窗口（TOFU）</strong>，常配合 <code>preload</code> 列表使用。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>CT 让所有公开签发的证书都能被查到</strong>（crt.sh 之类）。这既是审计手段，也意味着你新签的域名 &#x2F; 子域会<strong>立刻公开可见</strong> —— 别拿 CT 日志当保密边界。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ mTLS 里服务端也要下发 <code>ssl_client_certificate</code>（<strong>校验客户端用的 CA 链</strong>），否则拿不到客户端证书做校验。这是和普通 HTTPS 配置最大的差别。客户端证书的吊销 &#x2F; 轮换也容易造成「合法客户端突然连不上」。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ TLS 握手要 1~2 个 RTT，而<strong>每个 RTT 都受物理距离限制</strong>（跨洋 ~150ms）。这就是 CDN 在边缘终止 TLS 价值巨大的原因 —— 不只是缓存，而是把握手 RTT 从「用户到源站」缩短到「用户到边缘」。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 会话复用依赖<strong>同一台服务器 &#x2F; 同一份 ticket key</strong>。多台后端各生成 ticket key 时，用户每次可能命中不同机器，复用率骤降。要共享 ticket key（<code>ssl_session_ticket_key</code>）。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ 长连接复用（HTTP keep-alive &#x2F; HTTP2 多路复用）能<strong>省掉重复握手</strong>。反过来，短连接 + 每次新建 TLS &#x3D; 每次都吃满握手 RTT，是移动端慢的常见原因。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 服务端只下发叶子证书，没带中间证书</li>
+<li><input disabled="" type="checkbox"> <code>fullchain.pem</code> 把顺序拼反（中间证书在前）</li>
+<li><input disabled="" type="checkbox"> 证书只填 <code>CN</code> 不填 <code>SAN</code>，现代浏览器不认</li>
+<li><input disabled="" type="checkbox"> 通配符证书以为能匹配二级子域</li>
+<li><input disabled="" type="checkbox"> 证书过期没有到期监控，直到用户报错</li>
+<li><input disabled="" type="checkbox"> 用 IP 访问 HTTPS 命中 <code>default_server</code>，拿到别的域名证书</li>
+<li><input disabled="" type="checkbox"> 配了 OCSP stapling 却没配 <code>resolver</code>，静默失效</li>
+<li><input disabled="" type="checkbox"> 以为开了 HTTP&#x2F;2 实际被 ALPN 退回 1.1</li>
+<li><input disabled="" type="checkbox"> 对非幂等接口开 TLS 1.3 0-RTT，遭重放</li>
+<li><input disabled="" type="checkbox"> 在 TLS 1.3 下用 <code>ssl_ciphers</code> 限制套件（无效）</li>
+<li><input disabled="" type="checkbox"> HSTS 一上来 <code>max-age=31536000</code>，出事无法回退</li>
+<li><input disabled="" type="checkbox"> 把「域名不匹配」和「链不完整」两类错误混为一谈</li>
+<li><input disabled="" type="checkbox"> <code>openssl s_client</code> 不带 <code>-servername</code>，看到别的域名的证书</li>
+<li><input disabled="" type="checkbox"> 多后端各生成 session ticket key，会话复用率极低</li>
+<li><input disabled="" type="checkbox"> 证书与私钥不配对，nginx reload 才报错</li>
+<li><input disabled="" type="checkbox"> mTLS 忘了下发 <code>ssl_client_certificate</code>，客户端证书校验不了</li>
+<li><input disabled="" type="checkbox"> 以为中间人抓包（Charles &#x2F; mitmproxy）是「破解」了 TLS</li>
+<li><input disabled="" type="checkbox"> 短连接不复用，每次都吃满握手 RTT</li>
+<li><input disabled="" type="checkbox"> 改完证书不 <code>nginx -t</code> 直接 reload，服务起不来</li>
+<li><input disabled="" type="checkbox"> 忽略 CT 日志公开性，把新域名当保密信息</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://www.rfc-editor.org/rfc/rfc8446.html">RFC 8446 · TLS 1.3</a> · <a target="_blank" rel="noopener" href="https://www.rfc-editor.org/rfc/rfc6066.html">RFC 6066 · TLS 扩展（SNI）</a> · <a target="_blank" rel="noopener" href="https://www.rfc-editor.org/rfc/rfc7301.html">RFC 7301 · ALPN</a> · <a target="_blank" rel="noopener" href="https://developer.mozilla.org/zh-CN/docs/Web/Security/Transport_Layer_Security">MDN · Transport Layer Security</a> · <a target="_blank" rel="noopener" href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Reference/Headers/Strict-Transport-Security">MDN · Strict-Transport-Security</a> · <a target="_blank" rel="noopener" href="https://nginx.org/en/docs/http/ngx_http_ssl_module.html">Nginx · ngx_http_ssl_module</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/network/" class="category-chain-item">network</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/network/" class="print-no-link">#network</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 064 · 网络（三）：HTTPS 与 TLS 握手</div>
+      <div>https://ethan-iopasd.github.io/2026/10/08/每日技术博客064-网络HTTPS与TLS握手/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月8日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2047-%E7%BD%91%E7%BB%9CDNS%E4%B8%8ECDN/" title="每日技术博客 047 · 网络（二）：DNS、CDN 与抓包排查">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 047 · 网络（二）：DNS、CDN 与抓包排查</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
