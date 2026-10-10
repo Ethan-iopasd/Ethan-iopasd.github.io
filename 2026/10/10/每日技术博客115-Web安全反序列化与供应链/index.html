@@ -1,0 +1,1139 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-10 · 第 115 篇 安全系列第四篇。反序列化为什么等价于「把 RCE 入口暴露出去」、依赖供应链的三条攻击路径、以及密钥泄露后为什么必须先轮换再清历史。  📚 Web 安全 系列目录   章节 主题 状态    一 XSS、CSRF 与注入 已发布   二 认证、授权与密钥管理 已发布   三 JWT 与 OAuth 2.0 &#x2F; OIDC 已发">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 115 · Web 安全（四）：反序列化、供应链与密钥泄露">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/10/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2115-Web%E5%AE%89%E5%85%A8%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E4%BE%9B%E5%BA%94%E9%93%BE/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-10 · 第 115 篇 安全系列第四篇。反序列化为什么等价于「把 RCE 入口暴露出去」、依赖供应链的三条攻击路径、以及密钥泄露后为什么必须先轮换再清历史。  📚 Web 安全 系列目录   章节 主题 状态    一 XSS、CSRF 与注入 已发布   二 认证、授权与密钥管理 已发布   三 JWT 与 OAuth 2.0 &#x2F; OIDC 已发">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-10T02:20:00.000Z">
+<meta property="article:modified_time" content="2026-10-10T02:18:00.472Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="security">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 115 · Web 安全（四）：反序列化、供应链与密钥泄露 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 115 · Web 安全（四）：反序列化、供应链与密钥泄露"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-10 10:20" pubdate>
+          2026年10月10日 上午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          3.4k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          29 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 115 · Web 安全（四）：反序列化、供应链与密钥泄露</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-10 · 第 115 篇</p>
+<p>安全系列第四篇。反序列化为什么等价于「把 RCE 入口暴露出去」、依赖供应链的三条攻击路径、以及密钥泄露后为什么必须<strong>先轮换再清历史</strong>。</p>
+</blockquote>
+<h2 id="📚-Web-安全-系列目录"><a href="#📚-Web-安全-系列目录" class="headerlink" title="📚 Web 安全 系列目录"></a>📚 Web 安全 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>XSS、CSRF 与注入</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>认证、授权与密钥管理</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>JWT 与 OAuth 2.0 &#x2F; OIDC</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td>反序列化、供应链与密钥泄露</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p>反序列化漏洞的成因只有一条：<strong>数据格式里带上了「类型名 + 构造钩子」</strong>，解析器照着指令去实例化对象，攻击者就能把现成的 gadget chain 拼成 RCE。供应链和密钥泄露则是同一个问题的两种表现 —— <strong>你信任了边界之外的东西</strong>，而且信任得毫无校验。</p>
+<table>
+<thead>
+<tr>
+<th>问题</th>
+<th>本质</th>
+<th>修法方向</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>反序列化</td>
+<td>数据能指定「构造什么对象」</td>
+<td>换成不带类型信息的格式，或强制白名单</td>
+</tr>
+<tr>
+<td>供应链</td>
+<td>依赖的内容可能在你看不见的地方被改</td>
+<td>锁版本 + 哈希 + 签名验证</td>
+</tr>
+<tr>
+<td>密钥泄露</td>
+<td>秘密进入了会被复制的介质</td>
+<td>不进介质；进去了就立刻轮换</td>
+</tr>
+</tbody></table>
+<h2 id="一、格式决定能力：有没有「类型」和「钩子」"><a href="#一、格式决定能力：有没有「类型」和「钩子」" class="headerlink" title="一、格式决定能力：有没有「类型」和「钩子」"></a>一、格式决定能力：有没有「类型」和「钩子」</h2><p>判断一个序列化格式能不能被利用，看两点：<strong>数据里能不能表达类型</strong>、<strong>反序列化时会不会自动调用目标代码</strong>。两者都具备的，就是 CWE-502。</p>
+<table>
+<thead>
+<tr>
+<th>格式</th>
+<th>携带类型信息</th>
+<th>反序列化时触发代码</th>
+<th>默认水位</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>JSON</td>
+<td>✗（只有 object&#x2F;array&#x2F;string&#x2F;number&#x2F;bool&#x2F;null）</td>
+<td>✗（除非显式开多态）</td>
+<td>安全</td>
+</tr>
+<tr>
+<td>Protocol Buffers &#x2F; MessagePack</td>
+<td>部分（schema 固定）</td>
+<td>✗</td>
+<td>安全</td>
+</tr>
+<tr>
+<td>XML</td>
+<td>✓（DTD &#x2F; 外部实体 &#x2F; XSLT）</td>
+<td>✓（XXE、XSLT 扩展函数）</td>
+<td>必须禁 DTD 与外部实体</td>
+</tr>
+<tr>
+<td>YAML</td>
+<td>✓（<code>!!python/object</code> 等 tag）</td>
+<td>✓</td>
+<td>只用 <code>safe_load</code></td>
+</tr>
+<tr>
+<td>Java 原生序列化</td>
+<td>✓（类名 + 字段）</td>
+<td>✓（<code>readObject</code> &#x2F; <code>readResolve</code>）</td>
+<td>不可信数据禁用</td>
+</tr>
+<tr>
+<td>Python <code>pickle</code></td>
+<td>✓（<code>__reduce__</code> 可返回任意 callable）</td>
+<td>✓</td>
+<td>不可信数据禁用</td>
+</tr>
+<tr>
+<td>PHP <code>serialize</code></td>
+<td>✓（类名）</td>
+<td>✓（<code>__wakeup</code> &#x2F; <code>__destruct</code> &#x2F; <code>__toString</code>）</td>
+<td>用 <code>allowed_classes</code> 白名单</td>
+</tr>
+<tr>
+<td>Ruby <code>Marshal</code></td>
+<td>✓</td>
+<td>✓（<code>_load</code> &#x2F; <code>init_with</code>）</td>
+<td>不可信数据禁用</td>
+</tr>
+<tr>
+<td>.NET <code>BinaryFormatter</code></td>
+<td>✓</td>
+<td>✓（<code>ISerializable</code>）</td>
+<td>已从 .NET 9 移除</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 「内网调用」「消息队列里只有自己人发消息」都不是安全边界。MQ 的 topic 权限配错、上游服务被拿下、或者有人把 payload 存进 Redis 又被另一个服务读出来，链条就通了。</p>
+</blockquote>
+<h2 id="二、Python：pickle-与-yaml-load"><a href="#二、Python：pickle-与-yaml-load" class="headerlink" title="二、Python：pickle 与 yaml.load"></a>二、Python：pickle 与 yaml.load</h2><p><code>pickle</code> 的协议本身允许「调用任意函数」，一个最小 RCE payload 长这样（opcode 版，无需任何类定义）：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">import</span> pickle<br><span class="hljs-comment"># c=GLOBAL(模块,名称)  (=MARK  S=STRING  t=TUPLE  R=REDUCE  .=STOP</span><br>payload = <span class="hljs-string">b&quot;cos\nsystem\n(S&#x27;id&#x27;\ntR.&quot;</span><br>pickle.loads(payload)      <span class="hljs-comment"># 等价于 os.system(&#x27;id&#x27;)</span><br></code></pre></td></tr></table></figure>
+
+<p>等价写法是重载 <code>__reduce__</code>：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">import</span> os, pickle<br><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">Evil</span>:<br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">__reduce__</span>(<span class="hljs-params">self</span>):<br>        <span class="hljs-keyword">return</span> (os.system, (<span class="hljs-string">&quot;id&quot;</span>,))     <span class="hljs-comment"># 反序列化时被调用</span><br><br>pickle.loads(pickle.dumps(Evil()))<br></code></pre></td></tr></table></figure>
+
+<p>⚠️ 官方文档（<code>docs.python.org/3/library/pickle.html</code>）写得很直接：<strong>「永远不要反序列化不可信数据」</strong>。<code>pickle</code> 没有「安全模式」可开，<code>pickletools.optimize</code>、<code>RestrictedUnpickler</code> 之类只是缓解，别当成边界。同理：<code>marshal</code>、<code>shelve</code>、<code>dill</code>、<code>joblib.load</code>（底层就是 pickle）。</p>
+<p><strong>YAML 是更容易踩的那个</strong>，因为配置文件天然是「不可信数据」：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">import</span> yaml<br><br>yaml.load(data)                              <span class="hljs-comment"># ✗ 6.0 起默认 FullLoader，仍非安全水位</span><br>yaml.load(data, Loader=yaml.Loader)          <span class="hljs-comment"># ✗✗ UnsafeLoader 的别名，全开</span><br>yaml.load(data, Loader=yaml.UnsafeLoader)    <span class="hljs-comment"># ✗✗ 同上</span><br>yaml.safe_load(data)                         <span class="hljs-comment"># ✓ 只认基础类型</span><br>yaml.load(data, Loader=yaml.SafeLoader)      <span class="hljs-comment"># ✓ 等价写法</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>用法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>读配置、读外部输入</td>
+<td><code>yaml.safe_load</code></td>
+</tr>
+<tr>
+<td>需要自定义对象</td>
+<td>用 <code>SafeLoader</code> + <code>add_constructor</code>，只注册自己认可的 tag</td>
+</tr>
+<tr>
+<td>只要数据结构</td>
+<td>直接用 <code>json.loads</code>，没有类型系统就没有反序列化面</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ PyYAML 5.1 起 <code>yaml.load()</code> 不带 <code>Loader</code> 会发 <code>YAMLLoadWarning</code>，但<strong>只是警告，代码照跑</strong>；6.0 把它默认成 <code>FullLoader</code> 并去掉警告 —— 于是很多项目「警告消失了，漏洞还在」。<code>FullLoader</code> 不是安全边界，它只是比 <code>UnsafeLoader</code> 少开了几个 tag。</p>
+</blockquote>
+<h2 id="三、Java：ObjectInputStream-与-gadget-chain"><a href="#三、Java：ObjectInputStream-与-gadget-chain" class="headerlink" title="三、Java：ObjectInputStream 与 gadget chain"></a>三、Java：ObjectInputStream 与 gadget chain</h2><p>Java 原生序列化的危险在于<strong>反序列化过程中会自动调用目标类的方法</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>时机</th>
+<th>被自动调用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>读对象</td>
+<td><code>readObject</code> &#x2F; <code>readResolve</code> &#x2F; <code>readExternal</code> &#x2F; <code>validateObject</code></td>
+</tr>
+<tr>
+<td>放进集合</td>
+<td><code>hashCode</code> &#x2F; <code>equals</code> &#x2F; <code>compareTo</code>（HashMap、TreeMap、PriorityQueue）</td>
+</tr>
+<tr>
+<td>类型转换</td>
+<td><code>toString</code> &#x2F; <code>finalize</code>（部分 gadget 链）</td>
+</tr>
+</tbody></table>
+<p>gadget chain 就是把这些串起来：<code>HashMap.readObject</code> → <code>TiedMapEntry.hashCode</code> → <code>LazyMap.get</code> → <code>ChainedTransformer.transform</code> → <code>InvokerTransformer</code> → <code>Runtime.exec</code>。Apache Commons Collections、Spring、Groovy、JDK 自身的类都被用来拼过链（ysoserial 里就是 <code>CommonsCollections1</code>~&#96;7&#96; 这些名字）。</p>
+<p><strong>修法只有白名单</strong>，靠黑名单拦不住：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-comment">// JEP 290，JDK 9+ / 8u121+ 可用</span><br><span class="hljs-type">ObjectInputFilter</span> <span class="hljs-variable">filter</span> <span class="hljs-operator">=</span> ObjectInputFilter.Config.createFilter(<br>        <span class="hljs-string">&quot;com.example.dto.*;java.lang.String;java.lang.Integer;!*&quot;</span>);<br>ObjectInputFilter.Config.setSerialFilter(filter);          <span class="hljs-comment">// 进程级</span><br>ois.setObjectInputFilter(filter);                          <span class="hljs-comment">// 流级（更推荐）</span><br></code></pre></td></tr></table></figure>
+
+<p><strong>Jackson 的多态是同一个漏洞换了个入口</strong>。开了 default typing 之后，JSON 里的类型字段决定实例化哪个类：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-type">ObjectMapper</span> <span class="hljs-variable">mapper</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">ObjectMapper</span>();<br>mapper.enableDefaultTyping();          <span class="hljs-comment">// ✗ 等价于把类名交给输入决定（CVE-2017-7525 系）</span><br>mapper.activateDefaultTyping(          <span class="hljs-comment">// 新版 API，同样危险</span><br>        BasicPolymorphicTypeValidator.builder().build(),<br>        ObjectMapper.DefaultTyping.NON_FINAL);<br></code></pre></td></tr></table></figure>
+
+<p>正确姿势是<strong>只允许自己声明的子类型</strong>：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-meta">@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = &quot;type&quot;)</span><br><span class="hljs-meta">@JsonSubTypes(&#123;</span><br><span class="hljs-meta">    @JsonSubTypes.Type(value = CardPayment.class, name = &quot;card&quot;),</span><br><span class="hljs-meta">    @JsonSubTypes.Type(value = WirePayment.class, name = &quot;wire&quot;)</span><br><span class="hljs-meta">&#125;)</span><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">abstract</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">Payment</span> &#123; &#125;<br></code></pre></td></tr></table></figure>
+
+<p>同理，Fastjson 的 <code>autoType</code> 系列问题、Jackson 的 <code>TypeNameHandling</code> 类比物（.NET 侧叫 <code>Json.NET TypeNameHandling.All</code>），本质都是「让输入选类」。</p>
+<p><strong>Log4Shell（CVE-2021-44228）</strong> 不属于反序列化，但同属「解释器边界被越界」：log4j-core 2.0-beta9 ~ 2.14.1 会解析日志字符串里的 <code>$&#123;jndi:ldap://...&#125;</code> 并主动发起 JNDI 查询，CVSS 10.0。修法：升到 <strong>2.17.1+<strong>（2.16 起 JNDI 默认关闭）；临时缓解是 <code>-Dlog4j2.formatMsgNoLookups=true</code> 或删掉 <code>JndiLookup</code> class。</strong>它是传递依赖</strong> —— 你项目里没直接写 log4j，但某个框架带了它，这才是它影响面那么大的原因。</p>
+<h2 id="四、PHP-Node-Ruby-NET-的同类问题"><a href="#四、PHP-Node-Ruby-NET-的同类问题" class="headerlink" title="四、PHP &#x2F; Node &#x2F; Ruby &#x2F; .NET 的同类问题"></a>四、PHP &#x2F; Node &#x2F; Ruby &#x2F; .NET 的同类问题</h2><table>
+<thead>
+<tr>
+<th>语言</th>
+<th>危险 API</th>
+<th>触发钩子</th>
+<th>现状</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>PHP</td>
+<td><code>unserialize($data)</code></td>
+<td><code>__wakeup</code> <code>__destruct</code> <code>__toString</code></td>
+<td>用 <code>unserialize($d, [&#39;allowed_classes&#39; =&gt; [&#39;A&#39;,&#39;B&#39;]])</code> 白名单</td>
+</tr>
+<tr>
+<td>PHP</td>
+<td>Phar 反序列化</td>
+<td>读取 <code>phar://</code> 时自动反序列化 metadata</td>
+<td>别让用户控制路径</td>
+</tr>
+<tr>
+<td>Node</td>
+<td><code>node-serialize</code> 的 <code>unserialize</code></td>
+<td><code>_$$ND_FUNC$$_</code> 直接 <code>eval</code> 函数体</td>
+<td>该库已废弃，别用</td>
+</tr>
+<tr>
+<td>Node</td>
+<td>对象深度合并（<code>_.merge</code> &#x2F; <code>Object.assign</code> 旧实现）</td>
+<td><code>__proto__</code> &#x2F; <code>constructor.prototype</code> 原型污染</td>
+<td>过滤键名、<code>Object.create(null)</code></td>
+</tr>
+<tr>
+<td>Ruby</td>
+<td><code>Marshal.load</code>、<code>YAML.unsafe_load</code></td>
+<td><code>_load</code> &#x2F; <code>init_with</code></td>
+<td>Psych 4（Ruby 3.1+）已把 <code>YAML.load</code> 默认改为安全加载</td>
+</tr>
+<tr>
+<td>.NET</td>
+<td><code>BinaryFormatter</code></td>
+<td><code>ISerializable</code> &#x2F; <code>OnDeserialized</code></td>
+<td>.NET 8 起 API 抛 <code>NotSupportedException</code>，**.NET 9 起运行时已不再包含实现**</td>
+</tr>
+<tr>
+<td>.NET</td>
+<td><code>Json.NET</code> 的 <code>TypeNameHandling.All</code></td>
+<td>类型名由输入决定</td>
+<td>只用 <code>TypeNameHandling.None</code> + 显式转换</td>
+</tr>
+</tbody></table>
+<p>Node 的原型污染最小复现：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-keyword">const</span> payload = <span class="hljs-title class_">JSON</span>.<span class="hljs-title function_">parse</span>(<span class="hljs-string">&#x27;&#123;&quot;__proto__&quot;:&#123;&quot;isAdmin&quot;:true&#125;&#125;&#x27;</span>);<br><span class="hljs-title class_">Object</span>.<span class="hljs-title function_">assign</span>(&#123;&#125;, payload);        <span class="hljs-comment">// 旧实现会把 isAdmin 挂到 Object.prototype 上</span><br>(&#123;&#125;).<span class="hljs-property">isAdmin</span>;                      <span class="hljs-comment">// true —— 全进程生效</span><br><br><span class="hljs-comment">// ✓ 只拷贝白名单字段</span><br><span class="hljs-keyword">const</span> &#123; name, age &#125; = payload;<br><span class="hljs-comment">// ✓ 或用 null 原型 + 键名过滤</span><br><span class="hljs-keyword">const</span> safe = <span class="hljs-title class_">Object</span>.<span class="hljs-title function_">create</span>(<span class="hljs-literal">null</span>);<br><span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> [k, v] <span class="hljs-keyword">of</span> <span class="hljs-title class_">Object</span>.<span class="hljs-title function_">entries</span>(payload)) &#123;<br>  <span class="hljs-keyword">if</span> (k === <span class="hljs-string">&#x27;__proto__&#x27;</span> || k === <span class="hljs-string">&#x27;constructor&#x27;</span> || k === <span class="hljs-string">&#x27;prototype&#x27;</span>) <span class="hljs-keyword">continue</span>;<br>  safe[k] = v;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 原型污染本身不一定 RCE，但它会<strong>悄悄改掉鉴权判断</strong> —— 某个库用 <code>if (user.isAdmin)</code>、<code>if (options.dev)</code> 的地方会全部变成 true。这类漏洞在 CTF 和真实业务里都很常见，且很难从代码上肉眼看出来。</p>
+</blockquote>
+<h2 id="五、依赖供应链：三条攻击路径"><a href="#五、依赖供应链：三条攻击路径" class="headerlink" title="五、依赖供应链：三条攻击路径"></a>五、依赖供应链：三条攻击路径</h2><table>
+<thead>
+<tr>
+<th>路径</th>
+<th>手法</th>
+<th>真实案例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>直接投毒</strong></td>
+<td>抢注内部包名，发一个版本号更高的同名公共包</td>
+<td>dependency confusion（Alex Birsan，2021）</td>
+</tr>
+<tr>
+<td><strong>名称混淆</strong></td>
+<td>typosquatting：<code>reqeusts</code>、<code>lodahs</code>、<code>cross-env</code> vs <code>crossenv</code></td>
+<td>npm &#x2F; PyPI 长期存在</td>
+</tr>
+<tr>
+<td><strong>上游失陷</strong></td>
+<td>攻破维护者账号、或直接改构建产物</td>
+<td>Log4Shell（CVE-2021-44228）、xz 后门（CVE-2024-3094）</td>
+</tr>
+</tbody></table>
+<p><strong>依赖混淆为什么成立</strong>：包管理器从多个源解析时，按<strong>版本号最高</strong>取胜，而不是按「来源可信度」。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># ✗ 经典入口：同时查内部源和 PyPI，谁版本高用谁</span><br>pip install --index-url https://pypi.org/simple \<br>            --extra-index-url https://internal.example.com/simple my-lib<br></code></pre></td></tr></table></figure>
+
+<p>如果内部包 <code>my-lib</code> 是 1.4.2，攻击者在 PyPI 上发一个 <code>my-lib 99.0.0</code>，下一次构建就会装到攻击者的包。npm 侧同理（私有 registry 与公共 registry 混用）。</p>
+<table>
+<thead>
+<tr>
+<th>防御手段</th>
+<th>具体做法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>内部源做代理</strong></td>
+<td>devpi &#x2F; Artifactory &#x2F; Nexus 缓存 PyPI，客户端只配 <code>--index-url</code> 指向代理（不要用 <code>--extra-index-url</code>）</td>
+</tr>
+<tr>
+<td><strong>锁文件</strong></td>
+<td><code>package-lock.json</code>、<code>poetry.lock</code>、<code>uv.lock</code>、<code>go.sum</code>、<code>Cargo.lock</code> 必须提交</td>
+</tr>
+<tr>
+<td><strong>哈希校验</strong></td>
+<td><code>pip install --require-hashes -r requirements.txt</code>（每行带 <code>--hash=sha256:...</code>）</td>
+</tr>
+<tr>
+<td><strong>按锁文件安装</strong></td>
+<td><code>npm ci</code>、<code>pnpm i --frozen-lockfile</code>、<code>pip install -r requirements.txt</code>（不加 <code>-U</code>）</td>
+</tr>
+<tr>
+<td><strong>作用域隔离</strong></td>
+<td>npm 用 <code>@company/*</code> + scoped registry；Python 用私有前缀（<code>company-</code>）并在 PyPI 占位注册</td>
+</tr>
+<tr>
+<td><strong>依赖数量治理</strong></td>
+<td>引入前先看维护者数量、最近提交、issue 响应；一个 50 行的需求不值得引入 200 个传递依赖</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>npm ci</code> 只保证「按 lockfile 装」，<strong>不保证 lockfile 没被改过</strong>。攻击者如果同时改了 <code>package.json</code> 和 <code>package-lock.json</code>（一次 PR 就能做到），<code>npm ci</code> 会照单全收。要做的是 registry 侧签名验证（<code>npm audit signatures</code>）或给 lockfile 加 CODEOWNERS 保护。</p>
+<p>⚠️ 同理，<code>pip install -r requirements.txt</code> 里的 <code>&gt;=</code> 是供应链的地雷 —— 每次构建装到的版本都可能不同。要可复现就固定 <code>==</code> 并带 hash。</p>
+</blockquote>
+<h2 id="六、SBOM-与-SLSA：把「用了什么、怎么构建的」变成可查的事实"><a href="#六、SBOM-与-SLSA：把「用了什么、怎么构建的」变成可查的事实" class="headerlink" title="六、SBOM 与 SLSA：把「用了什么、怎么构建的」变成可查的事实"></a>六、SBOM 与 SLSA：把「用了什么、怎么构建的」变成可查的事实</h2><table>
+<thead>
+<tr>
+<th>概念</th>
+<th>回答什么问题</th>
+<th>常见格式 &#x2F; 工具</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>SBOM</strong></td>
+<td>这个制品里有哪些组件、什么版本、什么许可证</td>
+<td>CycloneDX、SPDX；<code>syft</code>、<code>cdxgen</code> 生成</td>
+</tr>
+<tr>
+<td><strong>SCA</strong></td>
+<td>这些组件有没有已知漏洞</td>
+<td><code>pip-audit</code>、<code>npm audit</code>、<code>govulncheck</code>、<code>cargo audit</code>、OSV-Scanner、Trivy、Grype</td>
+</tr>
+<tr>
+<td><strong>provenance</strong></td>
+<td>这个制品是谁、在哪、用什么输入构建出来的</td>
+<td>in-toto、GitHub Actions artifact attestation</td>
+</tr>
+<tr>
+<td><strong>签名</strong></td>
+<td>制品和 provenance 有没有被改</td>
+<td>sigstore &#x2F; cosign、GPG</td>
+</tr>
+</tbody></table>
+<p><strong>SLSA 的 build track</strong>（注意版本差异）：</p>
+<table>
+<thead>
+<tr>
+<th>等级</th>
+<th>要求</th>
+<th>挡住什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>L0</td>
+<td>无</td>
+<td>——</td>
+</tr>
+<tr>
+<td>L1</td>
+<td>存在 provenance（可未签名）</td>
+<td>发布流程搞错（如从错误 commit 构建）</td>
+</tr>
+<tr>
+<td>L2</td>
+<td>provenance 由托管构建平台生成并签名</td>
+<td>构建<strong>之后</strong>被篡改</td>
+</tr>
+<tr>
+<td>L3</td>
+<td>构建平台强隔离，签名密钥对构建步骤不可见</td>
+<td>构建<strong>过程</strong>中被篡改（内部人、被拿下的凭据）</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>SLSA 的编号换过。</strong> v0.1 是单轨 <code>SLSA 1~4</code>；v1.0 砍掉了 Source 维度，只保留 Build track（L0~L3）；<strong>v1.2 又把 Source track 加回来</strong>。网上教程大量混用两套编号 —— 引用前先看 spec 版本号，别照抄「SLSA 4 级」这种说法。</p>
+</blockquote>
+<p><strong>CI 里最容易忽略的两件事</strong>：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-comment"># ✗ @v4 是移动 tag，上游被拿下后你下次构建就装到恶意代码</span><br><span class="hljs-bullet">-</span> <span class="hljs-attr">uses:</span> <span class="hljs-string">actions/checkout@v4</span><br><br><span class="hljs-comment"># ✓ 按完整 commit SHA 固定，改不动</span><br><span class="hljs-bullet">-</span> <span class="hljs-attr">uses:</span> <span class="hljs-string">actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683</span>  <span class="hljs-comment"># v4.2.2</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-comment"># ✗ 致命组合：pull_request_target 有 secrets，却 checkout 了 PR 的代码</span><br><span class="hljs-attr">on:</span> <span class="hljs-string">pull_request_target</span><br><span class="hljs-attr">jobs:</span><br>  <span class="hljs-attr">build:</span><br>    <span class="hljs-attr">steps:</span><br>      <span class="hljs-bullet">-</span> <span class="hljs-attr">uses:</span> <span class="hljs-string">actions/checkout@v4</span><br>        <span class="hljs-attr">with:</span> &#123; <span class="hljs-attr">ref:</span> <span class="hljs-string">$<span class="hljs-template-variable">&#123;&#123; github.event.pull_request.head.sha &#125;&#125;</span></span> &#125;   <span class="hljs-comment"># 执行外部代码</span><br>      <span class="hljs-bullet">-</span> <span class="hljs-attr">run:</span> <span class="hljs-string">npm</span> <span class="hljs-string">install</span> <span class="hljs-string">&amp;&amp;</span> <span class="hljs-string">npm</span> <span class="hljs-string">run</span> <span class="hljs-string">build</span>                          <span class="hljs-comment"># 在 secrets 上下文里</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>pull_request_target</code> + checkout PR head 是 GitHub Actions 最经典的提权路径。要跑 PR 代码就用 <code>pull_request</code>（无 secrets），要拿 secrets 就别跑 PR 代码。</p>
+</blockquote>
+<h2 id="七、密钥泄露：检测、处置、预防"><a href="#七、密钥泄露：检测、处置、预防" class="headerlink" title="七、密钥泄露：检测、处置、预防"></a>七、密钥泄露：检测、处置、预防</h2><p>密钥泄露有三条常见链路，覆盖范围依次扩大：</p>
+<table>
+<thead>
+<tr>
+<th>链路</th>
+<th>后果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>提交进 git 历史</td>
+<td>仓库 clone 过的每个人、每个 CI 缓存都有</td>
+</tr>
+<tr>
+<td>打进构建产物 &#x2F; 前端 bundle</td>
+<td>任何访问页面的人都能从 JS 里读出来</td>
+</tr>
+<tr>
+<td>出现在日志、错误上报、CI 输出</td>
+<td>落进第三方平台，你无法确认是否被清理</td>
+</tr>
+</tbody></table>
+<p><strong>前端打包是重灾区</strong>：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-comment">// Vite：只有 VITE_ 前缀的变量会被注入前端</span><br><span class="hljs-keyword">const</span> key = <span class="hljs-keyword">import</span>.<span class="hljs-property">meta</span>.<span class="hljs-property">env</span>.<span class="hljs-property">VITE_API_KEY</span>;   <span class="hljs-comment">// ✗ 明文出现在 bundle 里</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-comment">// Next.js：NEXT_PUBLIC_ 前缀同理</span><br>process.<span class="hljs-property">env</span>.<span class="hljs-property">NEXT_PUBLIC_SECRET</span>                        <span class="hljs-comment">// ✗</span><br><span class="hljs-comment">// 服务端专用变量不能带这个前缀，且只能在 Server Component / Route Handler 里读</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>VITE_*</code>、<code>NEXT_PUBLIC_*</code>、<code>REACT_APP_*</code>、<code>PUBLIC_*</code>（SvelteKit）全部等价于<strong>公开</strong>。前端能拿到的只能是「短时效 + 最小权限」的令牌（比如后端签发的临时上传凭证），不能是长期密钥。</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>工具</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>提交前拦截</td>
+<td><code>gitleaks protect --staged</code>、<code>detect-secrets</code>、pre-commit hook</td>
+</tr>
+<tr>
+<td>扫历史</td>
+<td><code>gitleaks detect</code>、<code>trufflehog git file://.</code></td>
+</tr>
+<tr>
+<td>平台侧</td>
+<td>GitHub secret scanning + push protection</td>
+</tr>
+<tr>
+<td>容器 &#x2F; 文件系统</td>
+<td><code>trivy fs --scanners secret .</code></td>
+</tr>
+</tbody></table>
+<p><strong>处置顺序不能反</strong>：</p>
+<ol>
+<li><strong>先轮换</strong>（revoke 旧密钥 + 签发新的）。泄露发生的那一刻，这个密钥就已经失效了 —— 改 git 历史<strong>不能</strong>「撤销」已经发生的泄露。</li>
+<li>再清理历史：<code>git filter-repo --invert-paths --path .env</code>（BFG 已停止维护，官方推荐 <code>git filter-repo</code>），然后 force push 并让所有人重新 clone。</li>
+<li>最后评估影响：这个密钥能访问什么？审计日志里有没有异常调用？有没有创建过你不知道的资源？</li>
+</ol>
+<blockquote>
+<p>⚠️ 最常见的错误顺序是「先 force push 清历史，再慢慢想轮换」。攻击者可能早就 clone 了 —— <strong>轮换必须第一步</strong>，清历史只是防止后来者再拿到。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 用 <code>pickle</code> &#x2F; <code>marshal</code> &#x2F; <code>joblib.load</code> &#x2F; <code>shelve</code> 处理网络、文件上传、消息队列里的数据</li>
+<li><input disabled="" type="checkbox"> <code>yaml.load()</code> 不带 <code>Loader</code>，或显式用了 <code>yaml.Loader</code> &#x2F; <code>yaml.UnsafeLoader</code></li>
+<li><input disabled="" type="checkbox"> 以为 <code>FullLoader</code> 是安全的 —— 它不是，只是比 <code>UnsafeLoader</code> 少开几个 tag</li>
+<li><input disabled="" type="checkbox"> Java 用 <code>ObjectInputStream</code> 读不可信数据，且没有设 <code>ObjectInputFilter</code> 白名单</li>
+<li><input disabled="" type="checkbox"> Jackson 开了 <code>enableDefaultTyping()</code> &#x2F; <code>activateDefaultTyping()</code> 却没配 <code>PolymorphicTypeValidator</code> 白名单</li>
+<li><input disabled="" type="checkbox"> 用了 Fastjson <code>autoType</code>，或 .NET <code>Json.NET</code> 的 <code>TypeNameHandling.All</code></li>
+<li><input disabled="" type="checkbox"> PHP <code>unserialize()</code> 未限制 <code>allowed_classes</code>；或让用户控制 <code>phar://</code> 路径</li>
+<li><input disabled="" type="checkbox"> 对象深度合并（<code>merge</code> &#x2F; <code>extend</code> &#x2F; <code>Object.assign</code>）未过滤 <code>__proto__</code> &#x2F; <code>constructor</code> &#x2F; <code>prototype</code> 键</li>
+<li><input disabled="" type="checkbox"> <code>pip install --extra-index-url</code> 混用内部源与公共源（依赖混淆入口）</li>
+<li><input disabled="" type="checkbox"> 没有提交 lockfile，或 CI 里用 <code>npm install</code> &#x2F; <code>pip install -U</code> 而非 <code>npm ci</code> &#x2F; <code>--require-hashes</code></li>
+<li><input disabled="" type="checkbox"> 依赖版本用 <code>&gt;=</code> 或 <code>^</code> 且不带哈希校验，构建不可复现</li>
+<li><input disabled="" type="checkbox"> GitHub Actions 用移动 tag（<code>@v4</code>）而非 commit SHA 固定第三方 action</li>
+<li><input disabled="" type="checkbox"> <code>pull_request_target</code> 里 checkout 并执行 PR 代码（外部代码 + secrets 同上下文）</li>
+<li><input disabled="" type="checkbox"> 只在直接依赖上跑 SCA，忽略传递依赖（Log4Shell 就是传递依赖）</li>
+<li><input disabled="" type="checkbox"> 密钥写进 <code>.env</code> 却提交进仓库；或前端用 <code>VITE_*</code> &#x2F; <code>NEXT_PUBLIC_*</code> 放真实密钥</li>
+<li><input disabled="" type="checkbox"> 发现泄露后先清 git 历史、后轮换密钥（顺序反了）</li>
+<li><input disabled="" type="checkbox"> 只在代码库里扫密钥，忘了 CI 日志、错误上报平台、容器镜像层</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><p><a target="_blank" rel="noopener" href="https://owasp.org/Top10/A08_2021-Software_and_Data_Integrity_Failures/">OWASP Top 10 2021 · A08 Software and Data Integrity Failures</a> · <a target="_blank" rel="noopener" href="https://owasp.org/Top10/A06_2021-Vulnerable_and_Outdated_Components/">OWASP Top 10 2021 · A06 Vulnerable and Outdated Components</a> · <a target="_blank" rel="noopener" href="https://cheatsheetseries.owasp.org/cheatsheets/Deserialization_Cheat_Sheet.html">OWASP · Deserialization Cheat Sheet</a> · <a target="_blank" rel="noopener" href="https://cheatsheetseries.owasp.org/cheatsheets/Software_Supply_Chain_Security_Cheat_Sheet.html">OWASP · Software Supply Chain Security Cheat Sheet</a> · <a target="_blank" rel="noopener" href="https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html">OWASP · Secrets Management Cheat Sheet</a> · <a target="_blank" rel="noopener" href="https://cwe.mitre.org/data/definitions/502.html">CWE-502 · Deserialization of Untrusted Data</a> · <a target="_blank" rel="noopener" href="https://docs.python.org/3/library/pickle.html">Python 官方文档 · pickle</a> · <a target="_blank" rel="noopener" href="https://pyyaml.org/wiki/PyYAMLDocumentation">PyYAML Documentation</a> · <a target="_blank" rel="noopener" href="https://openjdk.org/jeps/290">JEP 290 · Filter Incoming Serialization Data</a> · <a target="_blank" rel="noopener" href="https://logging.apache.org/log4j/2.x/security.html">Apache Log4j Security Vulnerabilities</a> · <a target="_blank" rel="noopener" href="https://nvd.nist.gov/vuln/detail/CVE-2021-44228">NVD · CVE-2021-44228</a> · <a target="_blank" rel="noopener" href="https://nvd.nist.gov/vuln/detail/CVE-2024-3094">NVD · CVE-2024-3094（xz 后门）</a> · <a target="_blank" rel="noopener" href="https://devblogs.microsoft.com/dotnet/binaryformatter-removed-from-dotnet-9/">BinaryFormatter removed from .NET 9</a> · <a target="_blank" rel="noopener" href="https://slsa.dev/spec/v1.2/build-track-basics">SLSA · Build track basics（v1.2）</a> · <a target="_blank" rel="noopener" href="https://cyclonedx.org/">CycloneDX</a> · <a target="_blank" rel="noopener" href="https://spdx.dev/">SPDX</a> · <a target="_blank" rel="noopener" href="https://www.sigstore.dev/">sigstore</a> · <a target="_blank" rel="noopener" href="https://osv.dev/">OSV · Open Source Vulnerabilities</a> · <a target="_blank" rel="noopener" href="https://docs.github.com/en/code-security/secret-scanning">GitHub Docs · Secret scanning</a> · <a target="_blank" rel="noopener" href="https://github.com/gitleaks/gitleaks">gitleaks</a> · <a target="_blank" rel="noopener" href="https://docs.github.com/en/actions/security-for-github-actions/security-guides/security-hardening-for-github-actions">GitHub Docs · Security hardening for GitHub Actions</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/security/" class="category-chain-item">security</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/security/" class="print-no-link">#security</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 115 · Web 安全（四）：反序列化、供应链与密钥泄露</div>
+      <div>https://ethan-iopasd.github.io/2026/10/10/每日技术博客115-Web安全反序列化与供应链/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月10日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2063-Web%E5%AE%89%E5%85%A8JWT%E4%B8%8EOAuth2/" title="每日技术博客 063 · Web 安全（三）：JWT 与 OAuth 2.0 / OIDC">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 063 · Web 安全（三）：JWT 与 OAuth 2.0 / OIDC</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
