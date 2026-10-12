@@ -1,0 +1,1443 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-12 · 第 116 篇 Python 系列第九篇。把「请求从 nginx 进来到视图返回」这条链路拆开：WSGI 与 ASGI 两代协议的真实签名、Gunicorn worker class 的取舍、Uvicorn 生产参数的默认值，以及异步视图里那些会静默拖垮并发上限的写法。  📚 Python 系列目录   章节 主题 状态    一 依赖管理与虚拟环境">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 116 · Python（九）：WSGI、ASGI 与 Web 服务请求生命周期">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/12/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2116-PythonWSGI%E4%B8%8EASGI/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-12 · 第 116 篇 Python 系列第九篇。把「请求从 nginx 进来到视图返回」这条链路拆开：WSGI 与 ASGI 两代协议的真实签名、Gunicorn worker class 的取舍、Uvicorn 生产参数的默认值，以及异步视图里那些会静默拖垮并发上限的写法。  📚 Python 系列目录   章节 主题 状态    一 依赖管理与虚拟环境">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-12T05:30:00.000Z">
+<meta property="article:modified_time" content="2026-10-12T05:22:29.698Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="python">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 116 · Python（九）：WSGI、ASGI 与 Web 服务请求生命周期 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 116 · Python（九）：WSGI、ASGI 与 Web 服务请求生命周期"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-12 13:30" pubdate>
+          2026年10月12日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          4.4k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          37 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 116 · Python（九）：WSGI、ASGI 与 Web 服务请求生命周期</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-12 · 第 116 篇</p>
+<p>Python 系列第九篇。把「请求从 nginx 进来到视图返回」这条链路拆开：WSGI 与 ASGI 两代协议的真实签名、Gunicorn worker class 的取舍、Uvicorn 生产参数的默认值，以及异步视图里那些会静默拖垮并发上限的写法。</p>
+</blockquote>
+<h2 id="📚-Python-系列目录"><a href="#📚-Python-系列目录" class="headerlink" title="📚 Python 系列目录"></a>📚 Python 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>依赖管理与虚拟环境</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>类型注解与静态检查</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>异步编程 asyncio</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td>GIL、线程与进程</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>五</td>
+<td>性能剖析与优化</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>六</td>
+<td>装饰器、元编程与描述符</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>七</td>
+<td>打包、发布与项目工程化</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>八</td>
+<td>文件、路径与数据处理</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>九</td>
+<td>WSGI、ASGI 与 Web 服务请求生命周期</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>WSGI 是同步协议，一个 worker 一次只能处理一个请求；ASGI 是异步协议，一个 worker 一个事件循环可以同时挂着成千上万个连接。</strong> 选错协议、或选错 Gunicorn 的 worker class，同一份代码的吞吐能差一个数量级 —— 而这一切都不报错，只是慢。</p>
+<p>真正决定上限的不是框架，是三样东西：<strong>协议（WSGI&#x2F;ASGI）× worker class（sync&#x2F;gthread&#x2F;gevent&#x2F;asgi）× 视图里有没有阻塞调用</strong>。</p>
+<h2 id="一、两代协议：签名不同，模型就不同"><a href="#一、两代协议：签名不同，模型就不同" class="headerlink" title="一、两代协议：签名不同，模型就不同"></a>一、两代协议：签名不同，模型就不同</h2><p>WSGI 的入口是一个<strong>同步函数</strong>，返回<strong>可迭代的 bytes</strong>：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># WSGI：PEP 3333</span><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">application</span>(<span class="hljs-params">environ, start_response</span>):<br>    status = <span class="hljs-string">&quot;200 OK&quot;</span><br>    headers = [(<span class="hljs-string">&quot;Content-Type&quot;</span>, <span class="hljs-string">&quot;text/plain; charset=utf-8&quot;</span>)]<br>    start_response(status, headers)<br>    <span class="hljs-keyword">return</span> [<span class="hljs-string">b&quot;hello&quot;</span>]           <span class="hljs-comment"># 必须返回 bytes 的可迭代对象，不能返回 str</span><br></code></pre></td></tr></table></figure>
+
+<p>ASGI 的入口是一个<strong>异步可调用对象</strong>，通过 <code>receive</code> &#x2F; <code>send</code> 流式收发事件：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># ASGI 3.0：单可调用形式</span><br><span class="hljs-keyword">async</span> <span class="hljs-keyword">def</span> <span class="hljs-title function_">application</span>(<span class="hljs-params">scope, receive, send</span>):<br>    <span class="hljs-keyword">assert</span> scope[<span class="hljs-string">&quot;type&quot;</span>] == <span class="hljs-string">&quot;http&quot;</span><br>    <span class="hljs-keyword">await</span> send(&#123;<br>        <span class="hljs-string">&quot;type&quot;</span>: <span class="hljs-string">&quot;http.response.start&quot;</span>,<br>        <span class="hljs-string">&quot;status&quot;</span>: <span class="hljs-number">200</span>,<br>        <span class="hljs-string">&quot;headers&quot;</span>: [(<span class="hljs-string">b&quot;content-type&quot;</span>, <span class="hljs-string">b&quot;text/plain; charset=utf-8&quot;</span>)],<br>    &#125;)<br>    <span class="hljs-keyword">await</span> send(&#123;<span class="hljs-string">&quot;type&quot;</span>: <span class="hljs-string">&quot;http.response.body&quot;</span>, <span class="hljs-string">&quot;body&quot;</span>: <span class="hljs-string">b&quot;hello&quot;</span>&#125;)<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>WSGI</th>
+<th>ASGI</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>规范</td>
+<td>PEP 3333（v1.0.1）</td>
+<td>ASGI 3.0（2019-03-04）</td>
+</tr>
+<tr>
+<td>入口形态</td>
+<td><code>app(environ, start_response)</code> 同步</td>
+<td><code>async app(scope, receive, send)</code> 单可调用</td>
+</tr>
+<tr>
+<td>输入</td>
+<td><code>environ</code> dict，一次性给全</td>
+<td><code>scope</code> dict + <code>receive()</code> 事件流</td>
+</tr>
+<tr>
+<td>输出</td>
+<td>返回 bytes 可迭代对象</td>
+<td><code>send()</code> 事件流，可分块</td>
+</tr>
+<tr>
+<td>请求体</td>
+<td>从 <code>environ[&quot;wsgi.input&quot;]</code> 读文件对象</td>
+<td><code>http.request</code> 事件，<code>more_body</code> 分块</td>
+</tr>
+<tr>
+<td>连接类型</td>
+<td>只有 HTTP（一次请求）</td>
+<td>HTTP &#x2F; WebSocket &#x2F; Lifespan 统一抽象</td>
+</tr>
+<tr>
+<td>并发模型</td>
+<td>线程 &#x2F; 进程 &#x2F; 协程补丁（gevent）</td>
+<td>原生 asyncio 事件循环</td>
+</tr>
+<tr>
+<td>长连接</td>
+<td>靠 worker 或补丁支持</td>
+<td>协议层原生（SSE、WebSocket、长轮询）</td>
+</tr>
+<tr>
+<td>HTTP&#x2F;2、HTTP&#x2F;3</td>
+<td>不支持（只能靠前置代理）</td>
+<td>支持，但取决于具体服务器实现</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>ASGI 2.0 和 3.0 的应用形态不一样</strong>：2.0 是「同步第一层调用返回一个可 await 的实例」，3.0 才是现在的单可调用。写中间件时如果按 2.0 写，会出现「明明实现了却报 500」的诡异现象。<code>asgiref.compatibility</code> 里有检测并转换旧风格的工具。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ WSGI 里 <code>start_response</code> 返回的 <code>write</code> 可调用对象<strong>几乎没人用，也别用</strong> —— 它会绕过中间件对响应头的处理，且与延迟发送冲突。老老实实 <code>return [body]</code>。</p>
+</blockquote>
+<h2 id="二、ASGI-的-scope-receive-send-长什么样"><a href="#二、ASGI-的-scope-receive-send-长什么样" class="headerlink" title="二、ASGI 的 scope &#x2F; receive &#x2F; send 长什么样"></a>二、ASGI 的 scope &#x2F; receive &#x2F; send 长什么样</h2><p>这三个东西不是黑盒，搞清楚字段之后，写中间件、做鉴权、做链路追踪都不用猜。</p>
+<p><strong>HTTP 连接的 <code>scope</code>：</strong></p>
+<table>
+<thead>
+<tr>
+<th>键</th>
+<th>必需</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>type</code></td>
+<td>✅</td>
+<td><code>&quot;http&quot;</code> &#x2F; <code>&quot;websocket&quot;</code> &#x2F; <code>&quot;lifespan&quot;</code></td>
+</tr>
+<tr>
+<td><code>asgi.version</code></td>
+<td>✅</td>
+<td>ASGI 版本，缺省视为 <code>&quot;2.0&quot;</code></td>
+</tr>
+<tr>
+<td><code>asgi.spec_version</code></td>
+<td>❌</td>
+<td>子规范版本，HTTP 子规范当前为 <code>2.5</code></td>
+</tr>
+<tr>
+<td><code>http_version</code></td>
+<td>✅</td>
+<td><code>&quot;1.0&quot;</code> &#x2F; <code>&quot;1.1&quot;</code> &#x2F; <code>&quot;2&quot;</code> &#x2F; <code>&quot;3&quot;</code></td>
+</tr>
+<tr>
+<td><code>method</code></td>
+<td>✅</td>
+<td>大写的 HTTP 方法</td>
+</tr>
+<tr>
+<td><code>path</code></td>
+<td>✅</td>
+<td>已 percent-decode 的路径，不含查询串</td>
+</tr>
+<tr>
+<td><code>query_string</code></td>
+<td>✅</td>
+<td><code>?</code> 之后的原始字节，未解码</td>
+</tr>
+<tr>
+<td><code>headers</code></td>
+<td>✅</td>
+<td><code>[(b&quot;name&quot;, b&quot;value&quot;), ...]</code>，<strong>全是 bytes</strong></td>
+</tr>
+<tr>
+<td><code>scheme</code></td>
+<td>❌</td>
+<td><code>&quot;http&quot;</code> &#x2F; <code>&quot;https&quot;</code>，缺省 <code>&quot;http&quot;</code></td>
+</tr>
+<tr>
+<td><code>raw_path</code></td>
+<td>❌</td>
+<td>未解码的原始路径字节</td>
+</tr>
+<tr>
+<td><code>root_path</code></td>
+<td>❌</td>
+<td>子路径挂载点，等价 WSGI 的 <code>SCRIPT_NAME</code></td>
+</tr>
+<tr>
+<td><code>client</code></td>
+<td>❌</td>
+<td><code>[host, port]</code></td>
+</tr>
+<tr>
+<td><code>server</code></td>
+<td>❌</td>
+<td><code>[host, port]</code>，unix socket 时是 <code>[path, None]</code></td>
+</tr>
+<tr>
+<td><code>state</code></td>
+<td>❌</td>
+<td>lifespan 命名空间的副本，用于跨中间件传值</td>
+</tr>
+</tbody></table>
+<p><strong>事件（<code>receive</code> 收 &#x2F; <code>send</code> 发）：</strong></p>
+<table>
+<thead>
+<tr>
+<th>事件</th>
+<th>方向</th>
+<th>关键字段</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>http.request</code></td>
+<td>收</td>
+<td><code>body</code>（bytes，缺省 <code>b&quot;&quot;</code>）、<code>more_body</code>（bool）</td>
+</tr>
+<tr>
+<td><code>http.disconnect</code></td>
+<td>收</td>
+<td>客户端断开后触发，用于长轮询清理</td>
+</tr>
+<tr>
+<td><code>http.response.start</code></td>
+<td>发</td>
+<td><code>status</code>（int）、<code>headers</code>（<strong>必须小写</strong>）</td>
+</tr>
+<tr>
+<td><code>http.response.body</code></td>
+<td>发</td>
+<td><code>body</code>、<code>more_body</code></td>
+</tr>
+<tr>
+<td><code>lifespan.startup</code> &#x2F; <code>shutdown</code></td>
+<td>收</td>
+<td>应用初始化 &#x2F; 清理</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># 分块发送：先 start，再多次 body，最后一次 more_body=False</span><br><span class="hljs-keyword">await</span> send(&#123;<span class="hljs-string">&quot;type&quot;</span>: <span class="hljs-string">&quot;http.response.start&quot;</span>, <span class="hljs-string">&quot;status&quot;</span>: <span class="hljs-number">200</span>, <span class="hljs-string">&quot;headers&quot;</span>: []&#125;)<br><span class="hljs-keyword">await</span> send(&#123;<span class="hljs-string">&quot;type&quot;</span>: <span class="hljs-string">&quot;http.response.body&quot;</span>, <span class="hljs-string">&quot;body&quot;</span>: <span class="hljs-string">b&quot;part1&quot;</span>, <span class="hljs-string">&quot;more_body&quot;</span>: <span class="hljs-literal">True</span>&#125;)<br><span class="hljs-keyword">await</span> send(&#123;<span class="hljs-string">&quot;type&quot;</span>: <span class="hljs-string">&quot;http.response.body&quot;</span>, <span class="hljs-string">&quot;body&quot;</span>: <span class="hljs-string">b&quot;part2&quot;</span>, <span class="hljs-string">&quot;more_body&quot;</span>: <span class="hljs-literal">False</span>&#125;)<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>scope</code> 里的 <code>headers</code> 是 bytes，不是 str。</strong> 用 <code>dict(scope[&quot;headers&quot;])</code> 拿到的 key 是 <code>b&quot;host&quot;</code> 这种。要么自己 decode，要么用框架提供的 <code>Headers</code> 包装类（Starlette 的 <code>Headers(scope=scope)</code>、Django 的 <code>HttpRequest.headers</code>）。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>http.response.start</code> 一旦发出，响应头和状态码就锁死了。</strong> 之后再想改状态码（比如视图中途发现权限不足）只能靠框架的异常处理在 start 之前拦截。这也是为什么中间件要在 <code>send</code> 外面包一层 hook。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>Lifespan 不是可选项而是必需项</strong>：数据库连接池、Redis 客户端、后台任务都该在 <code>lifespan</code> 里建和关。Uvicorn 的 <code>--lifespan auto</code>（默认）会探测应用是否支持；Django 3.0 那代的 ASGI 应用不支持 lifespan，启动时会看到 “ASGI lifespan unsupported” 之类的提示。</p>
+</blockquote>
+<h2 id="三、请求生命周期：从-nginx-到视图"><a href="#三、请求生命周期：从-nginx-到视图" class="headerlink" title="三、请求生命周期：从 nginx 到视图"></a>三、请求生命周期：从 nginx 到视图</h2><figure class="highlight nix"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><code class="hljs nix">client<br>  │  TLS <span class="hljs-symbol">/</span> HTTP<br>  ▼<br>nginx (反向代理, 处理静态、TLS、gzip、限流)<br>  │  HTTP<span class="hljs-symbol">/1.1</span> keep-alive 或 uwsgi 协议<br>  ▼<br>gunicorn arbiter（只做进程管理，不碰 client socket）<br>  ├── worker <span class="hljs-comment">#1 ──► ASGI app(scope, receive, send)</span><br>  ├── worker <span class="hljs-comment">#2 ──► ASGI app(scope, receive, send)</span><br>  └── worker <span class="hljs-comment">#N ──► ASGI app(scope, receive, send)</span><br>                        │<br>                        ├─ 中间件链（洋葱模型，由外到内）<br>                        ├─ 路由匹配<br>                        └─ 视图函数 <span class="hljs-symbol">/</span> 类方法<br></code></pre></td></tr></table></figure>
+
+<p>每一层都会<strong>改变并发上限</strong>，也都会<strong>吃掉一点信息</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>层</th>
+<th>会丢什么</th>
+<th>怎么补</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>nginx</td>
+<td><code>X-Forwarded-Proto</code> 之外的真实协议信息</td>
+<td>设 <code>proxy_set_header X-Forwarded-*</code></td>
+</tr>
+<tr>
+<td>ASGI server</td>
+<td>真实客户端 IP 被代理 IP 覆盖</td>
+<td><code>--proxy-headers</code> + <code>--forwarded-allow-ips</code></td>
+</tr>
+<tr>
+<td>框架</td>
+<td><code>scope</code> 里的 bytes headers 被包装成对象</td>
+<td>用框架的 <code>headers</code> 属性，别回头读 <code>scope</code></td>
+</tr>
+<tr>
+<td>中间件</td>
+<td>同步中间件会引入线程切换</td>
+<td>写成 <code>async def</code>，或接受开销</td>
+</tr>
+</tbody></table>
+<p><strong>Django 在 ASGI 下的中间件适配规则</strong>（官方文档原文语义）：</p>
+<table>
+<thead>
+<tr>
+<th>情况</th>
+<th>Django 的行为</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>异步视图 + 全异步中间件</td>
+<td>全链路同一个事件循环，无额外线程</td>
+</tr>
+<tr>
+<td>异步视图 + 夹了同步中间件</td>
+<td>该中间件<strong>被丢到独立线程</strong>里跑，跑完再切回异步</td>
+</tr>
+<tr>
+<td>同步视图 + ASGI server</td>
+<td>视图在适配出的线程里跑（<code>thread_sensitive</code> 语义）</td>
+</tr>
+<tr>
+<td>全是同步中间件和视图</td>
+<td>进入中间件栈前<strong>只切换一次</strong></td>
+</tr>
+<tr>
+<td>异步视图跑在 WSGI 下</td>
+<td>每个请求<strong>新建一个一次性事件循环</strong>，长请求吃不到任何异步好处</td>
+</tr>
+</tbody></table>
+<p>想确认哪些中间件被适配了，把 <code>django.request</code> logger 开到 debug，会看到：</p>
+<figure class="highlight pgsql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs pgsql">Asynchronous <span class="hljs-keyword">handler</span> adapted <span class="hljs-keyword">for</span> middleware &lt;<span class="hljs-keyword">class</span> <span class="hljs-string">&#x27;...&#x27;</span>&gt;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>异步视图跑在 WSGI 下是「能跑但白跑」</strong>：Django 会为每个请求建一个一次性事件循环，官方文档明确说这<strong>无法高效处理长时间运行的请求</strong>。要么全上 ASGI，要么干脆别写异步视图。</p>
+</blockquote>
+<h2 id="四、Gunicorn-worker-class-怎么选"><a href="#四、Gunicorn-worker-class-怎么选" class="headerlink" title="四、Gunicorn worker class 怎么选"></a>四、Gunicorn worker class 怎么选</h2><p>Gunicorn 是 <strong>pre-fork 模型</strong>：一个 arbiter 管一群 worker，arbiter 自己不碰客户端 socket。worker 类型决定并发模型。</p>
+<table>
+<thead>
+<tr>
+<th>worker class</th>
+<th><code>-k</code> 取值</th>
+<th>并发模型</th>
+<th>keep-alive</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>sync</td>
+<td><code>sync</code>（默认）</td>
+<td><strong>每 worker 同时 1 个请求</strong></td>
+<td>❌</td>
+<td>CPU 密集型，且前面有 nginx 缓冲</td>
+</tr>
+<tr>
+<td>gthread</td>
+<td><code>gthread</code></td>
+<td>每 worker 一个线程池</td>
+<td>✅</td>
+<td>混合负载、中等并发</td>
+</tr>
+<tr>
+<td>gevent</td>
+<td><code>gevent</code></td>
+<td>greenlet，<code>--worker-connections</code> 控并发</td>
+<td>✅</td>
+<td>I&#x2F;O 密集、WebSocket、流式</td>
+</tr>
+<tr>
+<td>ASGI</td>
+<td><code>asgi</code></td>
+<td>原生 asyncio 事件循环</td>
+<td>✅</td>
+<td>FastAPI &#x2F; Starlette &#x2F; Quart 等 ASGI 框架</td>
+</tr>
+<tr>
+<td>uvicorn worker</td>
+<td><code>uvicorn.workers.UvicornWorker</code></td>
+<td>原生 asyncio（第三方实现）</td>
+<td>✅</td>
+<td>同上，用 Uvicorn 当引擎</td>
+</tr>
+<tr>
+<td>tornado</td>
+<td><code>tornado</code></td>
+<td>Tornado IOLoop</td>
+<td>✅</td>
+<td>原生 Tornado 应用</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># sync（默认）：最简单，但每 worker 一次一个请求，必须靠 nginx 缓冲慢客户端</span><br>gunicorn myapp:app<br><br><span class="hljs-comment"># gthread：worker × threads 并发</span><br>gunicorn myapp:app -k gthread --workers 4 --threads 4<br><br><span class="hljs-comment"># gevent：高并发 I/O</span><br>gunicorn myapp:app -k gevent --workers 4 --worker-connections 1000<br><br><span class="hljs-comment"># ASGI 原生 worker（Gunicorn 内置）</span><br>gunicorn myapp:app --worker-class asgi --workers 4 --worker-connections 1000<br><br><span class="hljs-comment"># ASGI + Uvicorn 引擎</span><br>gunicorn myapp:app -k uvicorn.workers.UvicornWorker --workers 4<br></code></pre></td></tr></table></figure>
+
+<p><strong>worker 数量公式</strong>（Gunicorn 官方）：</p>
+<figure class="highlight apache"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs apache"><span class="hljs-attribute">workers</span> = (<span class="hljs-number">2</span> × CPU 核心数) + <span class="hljs-number">1</span><br></code></pre></td></tr></table></figure>
+
+<p>官方同时强调：<strong>不要过度扩 worker</strong> —— 通常 <strong>4~12 个 worker</strong> 就足够扛重流量，worker 开太多反而浪费资源、降低吞吐（进程切换 + 每个进程独立的连接池和内存）。运行中可以发信号动态调：</p>
+<table>
+<thead>
+<tr>
+<th>信号</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>TTIN</code></td>
+<td>worker +1</td>
+</tr>
+<tr>
+<td><code>TTOU</code></td>
+<td>worker −1</td>
+</tr>
+<tr>
+<td><code>HUP</code></td>
+<td>重新加载配置、优雅重启 worker</td>
+</tr>
+<tr>
+<td><code>CHLD</code></td>
+<td>子进程异常退出时由 arbiter 补位</td>
+</tr>
+<tr>
+<td><code>TERM</code> &#x2F; <code>QUIT</code></td>
+<td>优雅 &#x2F; 快速关闭</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-built_in">kill</span> -TTIN  $(<span class="hljs-built_in">cat</span> gunicorn.pid)   <span class="hljs-comment"># 临时加一个 worker，压测时很好用</span><br><span class="hljs-built_in">kill</span> -HUP   $(<span class="hljs-built_in">cat</span> gunicorn.pid)   <span class="hljs-comment"># 改完配置热加载</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>--threads</code> 对 ASGI worker 完全无效。</strong> Gunicorn 官方明确：ASGI worker 的并发由 <code>--worker-connections</code> 控制（默认 1000），<code>--threads</code> 不生效。给 ASGI worker 配 <code>--threads 4</code> 是最常见的无效调优。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>sync worker 不支持 keep-alive，且必须有缓冲代理。</strong> 官方原话：sync 是「一次一个请求」，连接在响应后关闭，生产环境需要 nginx &#x2F; HAProxy 这类缓冲代理挡在前面，否则慢客户端会把 worker 占满。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>gevent 需要给 C 扩展打补丁。</strong> 例如 PostgreSQL 的 psycopg 需要 <code>psycogreen</code>，否则驱动内部仍是阻塞的，greenlet 调度不起来。且<strong>任何依赖阻塞语义的代码在 gevent 下行为会变</strong>。</p>
+</blockquote>
+<p><strong>Gunicorn 的 ASGI worker 还带这些参数</strong>（Uvicorn worker 没有）：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs bash">--worker-class asgi<br>--asgi-loop auto|asyncio|uvloop     <span class="hljs-comment"># auto 时有 uvloop 就用 uvloop</span><br>--asgi-lifespan auto|on|off         <span class="hljs-comment"># auto 探测；on 时应用不支持就启动失败</span><br>--root-path /api                    <span class="hljs-comment"># 子路径挂载，等价 WSGI 的 SCRIPT_NAME</span><br>--worker-connections 1000           <span class="hljs-comment"># 每 worker 最大并发连接</span><br>--http-parser auto|fast|python      <span class="hljs-comment"># pip install gunicorn[fast] 装 C 解析器</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>能力</th>
+<th>Gunicorn ASGI</th>
+<th>Uvicorn</th>
+<th>Hypercorn</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>进程管理</td>
+<td>内置</td>
+<td>外部（自己起 <code>--workers</code> 或配 systemd）</td>
+<td>内置</td>
+</tr>
+<tr>
+<td>HTTP&#x2F;2</td>
+<td>✅（需 SSL + h2）</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>WebSocket</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Lifespan</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>uvloop</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+</tbody></table>
+<h2 id="五、Uvicorn-的生产参数（含默认值）"><a href="#五、Uvicorn-的生产参数（含默认值）" class="headerlink" title="五、Uvicorn 的生产参数（含默认值）"></a>五、Uvicorn 的生产参数（含默认值）</h2><p>Uvicorn 的默认值几乎全是「开发友好、生产不友好」，部署时必须显式覆盖。</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>默认值</th>
+<th>生产建议</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>--host</code></td>
+<td><code>127.0.0.1</code></td>
+<td>容器内 <code>0.0.0.0</code>，裸机保持回环 + nginx</td>
+</tr>
+<tr>
+<td><code>--port</code></td>
+<td><code>8000</code></td>
+<td>显式指定</td>
+</tr>
+<tr>
+<td><code>--workers</code></td>
+<td><code>$WEB_CONCURRENCY</code> 或 <code>1</code></td>
+<td>按 <code>(2×CPU)+1</code> 或容器 CPU limit 定</td>
+</tr>
+<tr>
+<td><code>--reload</code></td>
+<td><code>False</code></td>
+<td><strong>生产禁用</strong>，且与 <code>--workers</code> 互斥</td>
+</tr>
+<tr>
+<td><code>--limit-concurrency</code></td>
+<td>无限制</td>
+<td>设成能承受的上限，超了立刻 503</td>
+</tr>
+<tr>
+<td><code>--backlog</code></td>
+<td><code>2048</code></td>
+<td>高流量入口按需调大（OS accept 队列）</td>
+</tr>
+<tr>
+<td><code>--timeout-keep-alive</code></td>
+<td><code>5</code>（秒）</td>
+<td>反代后建议 ≥ 反代的 keepalive</td>
+</tr>
+<tr>
+<td><code>--timeout-graceful-shutdown</code></td>
+<td>—</td>
+<td>配合 K8s 的 <code>terminationGracePeriodSeconds</code></td>
+</tr>
+<tr>
+<td><code>--limit-max-requests</code></td>
+<td>无限制</td>
+<td>防内存泄漏，配合 <code>--limit-max-requests-jitter</code>（默认 0）</td>
+</tr>
+<tr>
+<td><code>--proxy-headers</code></td>
+<td>启用</td>
+<td>启用，但必须收紧 <code>--forwarded-allow-ips</code></td>
+</tr>
+<tr>
+<td><code>--forwarded-allow-ips</code></td>
+<td><code>127.0.0.1</code>、<code>::1</code></td>
+<td>写清反代 IP，<strong>绝不写 <code>*</code></strong></td>
+</tr>
+<tr>
+<td><code>--lifespan</code></td>
+<td><code>auto</code></td>
+<td>保持 auto</td>
+</tr>
+<tr>
+<td><code>--interface</code></td>
+<td><code>auto</code></td>
+<td>ASGI 应用保持 auto</td>
+</tr>
+<tr>
+<td><code>--loop</code></td>
+<td><code>auto</code></td>
+<td>auto（有 uvloop 就用）</td>
+</tr>
+<tr>
+<td><code>--http</code></td>
+<td><code>auto</code></td>
+<td>auto（有 httptools 就用）</td>
+</tr>
+<tr>
+<td><code>--http2</code></td>
+<td><code>False</code></td>
+<td>需配合 <code>--http zttp</code></td>
+</tr>
+<tr>
+<td><code>--root-path</code></td>
+<td><code>&quot;&quot;</code></td>
+<td>子路径部署时必填</td>
+</tr>
+</tbody></table>
+<p><strong><code>--limit-concurrency</code> 和 <code>--backlog</code> 不是一回事</strong>，别搞混：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th><code>--limit-concurrency</code></th>
+<th><code>--backlog</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>层级</td>
+<td>应用层</td>
+<td>OS 层（<code>listen()</code> 的 accept 队列）</td>
+</tr>
+<tr>
+<td>超限行为</td>
+<td><strong>立刻返回 503，不入队</strong></td>
+<td>连接排队等待 accept</td>
+</tr>
+<tr>
+<td>用途</td>
+<td>保证内存占用可预测</td>
+<td>扛瞬时流量尖峰</td>
+</tr>
+<tr>
+<td>典型误用</td>
+<td>设太小 → 正常流量被打 503</td>
+<td>设太大 → 排队连接全超时</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 一个相对稳妥的生产起法（容器内单进程，worker 数交给编排层）</span><br>uvicorn app.main:app \<br>  --host 0.0.0.0 --port 8000 \<br>  --limit-concurrency 200 \<br>  --timeout-keep-alive 30 \<br>  --timeout-graceful-shutdown 30 \<br>  --limit-max-requests 10000 --limit-max-requests-jitter 1000 \<br>  --forwarded-allow-ips <span class="hljs-string">&quot;10.0.0.0/8&quot;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>--reload</code> 与 <code>--workers</code> 互斥</strong>，同时用会直接报错。<code>--reload</code> 依赖文件监听，是开发特性，生产上还会因为 watchfiles 轮询额外吃 CPU。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>--proxy-headers</code> 默认是开着的</strong>，但只信任 <code>--forwarded-allow-ips</code> 里的来源（默认 <code>127.0.0.1</code> &#x2F; <code>::1</code>）。如果 Uvicorn 跑在容器里、nginx 在另一个容器，默认值会导致 <code>request.client.host</code> 拿到的是代理 IP。把它写成网段，不要写 <code>*</code> —— 写了 <code>*</code> 意味着任何人伪造 <code>X-Forwarded-For</code> 都能冒充任意 IP。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ Uvicorn 自带的 WSGI 适配模式<strong>已废弃</strong>，要跑 WSGI 应用请用 <code>a2wsgi</code>。别用 <code>--interface wsgi</code>。</p>
+</blockquote>
+<h2 id="六、异步视图里最容易踩的：同步调用"><a href="#六、异步视图里最容易踩的：同步调用" class="headerlink" title="六、异步视图里最容易踩的：同步调用"></a>六、异步视图里最容易踩的：同步调用</h2><p>事件循环里任何一次阻塞，都会让<strong>该 worker 上所有并发请求一起卡住</strong>。这不是「慢一点」，是「并发归零」。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># ✗ 阻塞事件循环：time.sleep 期间这个 worker 上所有请求都停摆</span><br><span class="hljs-keyword">async</span> <span class="hljs-keyword">def</span> <span class="hljs-title function_">bad_view</span>(<span class="hljs-params">request</span>):<br>    time.sleep(<span class="hljs-number">1</span>)<br>    <span class="hljs-keyword">return</span> JsonResponse(&#123;<span class="hljs-string">&quot;ok&quot;</span>: <span class="hljs-literal">True</span>&#125;)<br><br><span class="hljs-comment"># ✓ 丢到线程池</span><br><span class="hljs-keyword">async</span> <span class="hljs-keyword">def</span> <span class="hljs-title function_">good_view</span>(<span class="hljs-params">request</span>):<br>    <span class="hljs-keyword">await</span> asyncio.to_thread(time.sleep, <span class="hljs-number">1</span>)<br>    <span class="hljs-keyword">return</span> JsonResponse(&#123;<span class="hljs-string">&quot;ok&quot;</span>: <span class="hljs-literal">True</span>&#125;)<br></code></pre></td></tr></table></figure>
+
+<p>常见阻塞源，按出现频率排：</p>
+<table>
+<thead>
+<tr>
+<th>阻塞调用</th>
+<th>为什么阻塞</th>
+<th>替代</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>requests.get()</code></td>
+<td>纯同步 socket</td>
+<td><code>httpx.AsyncClient</code></td>
+</tr>
+<tr>
+<td><code>time.sleep()</code></td>
+<td>线程休眠</td>
+<td><code>asyncio.sleep()</code></td>
+</tr>
+<tr>
+<td>同步 DB 驱动 &#x2F; 同步 ORM</td>
+<td>阻塞 IO</td>
+<td>异步驱动，或 <code>sync_to_async</code></td>
+</tr>
+<tr>
+<td><code>open()</code> 读大文件</td>
+<td>阻塞 IO</td>
+<td><code>asyncio.to_thread</code></td>
+</tr>
+<tr>
+<td><code>subprocess.run()</code></td>
+<td>等子进程</td>
+<td><code>asyncio.create_subprocess_exec</code></td>
+</tr>
+<tr>
+<td>CPU 密集计算</td>
+<td>占着 GIL 不撒手</td>
+<td>进程池 <code>run_in_executor(ProcessPoolExecutor)</code></td>
+</tr>
+<tr>
+<td><code>threading.Lock.acquire()</code></td>
+<td>阻塞等待</td>
+<td><code>asyncio.Lock</code></td>
+</tr>
+</tbody></table>
+<p><strong>Django 的异步安全保护</strong>：同步 ORM API 被标记为 async-unsafe，在有活跃事件循环的线程里直接调用会抛 <code>SynchronousOnlyOperation</code>。正确写法是包一层：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">from</span> asgiref.sync <span class="hljs-keyword">import</span> sync_to_async<br><br><span class="hljs-keyword">async</span> <span class="hljs-keyword">def</span> <span class="hljs-title function_">my_view</span>(<span class="hljs-params">request</span>):<br>    <span class="hljs-comment"># thread_sensitive=True 是默认值</span><br>    users = <span class="hljs-keyword">await</span> sync_to_async(<span class="hljs-built_in">list</span>)(User.objects.<span class="hljs-built_in">filter</span>(is_active=<span class="hljs-literal">True</span>))<br>    <span class="hljs-keyword">return</span> JsonResponse(&#123;<span class="hljs-string">&quot;count&quot;</span>: <span class="hljs-built_in">len</span>(users)&#125;)<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th><code>sync_to_async</code> 参数</th>
+<th>行为</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>thread_sensitive=True</code>（默认）</td>
+<td>与同一上下文里其他 thread-sensitive 调用<strong>共用同一个线程</strong>，单请求内串行</td>
+</tr>
+<tr>
+<td><code>thread_sensitive=False</code></td>
+<td>每次调用<strong>新开线程</strong>，调用完销毁</td>
+</tr>
+</tbody></table>
+<p><strong>为什么默认是 <code>True</code><strong>：数据库适配器通常要求「在创建它的同一个线程里访问」，而大量既有 Django 代码假设「所有代码在同一个线程」。代价是</strong>单请求内的多个同步调用会串行化</strong> —— 但这只影响同一个请求，不同请求各有自己的 per-context worker 线程，互不阻塞。</p>
+<p>想提并发，**应该加大连接池，而不是关掉 <code>thread_sensitive</code>**。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># 反例：在紧循环里逐行包裹，上下文切换开销被放大</span><br><span class="hljs-keyword">for</span> row <span class="hljs-keyword">in</span> rows:<br>    <span class="hljs-keyword">await</span> sync_to_async(process)(row)     <span class="hljs-comment"># ✗ 每次一个线程切换</span><br><br><span class="hljs-comment"># 正例：整个循环放进一次跨越里</span><br><span class="hljs-keyword">await</span> sync_to_async(<span class="hljs-keyword">lambda</span>: [process(r) <span class="hljs-keyword">for</span> r <span class="hljs-keyword">in</span> rows])()   <span class="hljs-comment"># ✓</span><br></code></pre></td></tr></table></figure>
+
+<p><code>sync_to_async</code> 的开销量级（Django 官方）：<strong>请求内路径约几十微秒，冷启动路径约几百微秒</strong>。相对毫秒级请求不明显，但在 GIL 争用下会随活跃线程数放大。</p>
+<blockquote>
+<p>⚠️ <strong>异步模式下事务不可用。</strong> Django 官方文档明确：需要事务的代码应写成一个<strong>同步函数</strong>，再用 <code>sync_to_async()</code> 调用。别在 <code>async def</code> 视图里指望 <code>atomic()</code>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>异步模式下要关掉持久连接。</strong> <code>CONN_MAX_AGE</code> 那套在异步下不适用，改用数据库后端的<strong>内置连接池</strong>，池大小按「在途查询并发量」设 —— 也就是 <code>workers × (threads 或 worker-connections)</code> 量级。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>DJANGO_ALLOW_ASYNC_UNSAFE</code> 是逃生舱，不是解决方案。</strong> 官方警告：启用后若有并发访问 async-unsafe 部分，可能<strong>导致数据丢失或损坏</strong>，<strong>不要在生产使用</strong>。另外 Jupyter &#x2F; IPython 会自动提供活跃事件循环，所以在 notebook 里调 ORM 也可能触发同一个异常，用 <code>%autoawait off</code> 临时关掉。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>客户端断开会抛 <code>asyncio.CancelledError</code>。</strong> 长连接请求（SSE、长轮询）里必须在视图内捕获并清理，然后<strong>重新抛出</strong>，否则清理逻辑不会执行。</p>
+</blockquote>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">async</span> <span class="hljs-keyword">def</span> <span class="hljs-title function_">sse_view</span>(<span class="hljs-params">request</span>):<br>    <span class="hljs-keyword">try</span>:<br>        ...<br>    <span class="hljs-keyword">except</span> asyncio.CancelledError:<br>        <span class="hljs-comment"># 清理资源</span><br>        <span class="hljs-keyword">raise</span>          <span class="hljs-comment"># 必须重新抛，不要吞掉</span><br></code></pre></td></tr></table></figure>
+
+<h2 id="七、参数联动：三个数字要一起算"><a href="#七、参数联动：三个数字要一起算" class="headerlink" title="七、参数联动：三个数字要一起算"></a>七、参数联动：三个数字要一起算</h2><p>上线前必须让这三个数字自洽，否则会出现「压测过了但线上连接池爆了」。</p>
+<figure class="highlight excel"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs excel">并发上限 ≈ workers × (threads | worker_connections)<br><span class="hljs-built_in">DB</span> 连接池上限 ≥ 并发上限 × 单请求平均同时持有的连接数<br>OS 文件描述符 ≥ 并发上限 × 每连接 fd 数（含到 <span class="hljs-built_in">DB</span> / Redis 的连接）<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>workers</th>
+<th>并发模型</th>
+<th>并发上限</th>
+<th>连接池下限</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Django 同步视图 + gthread</td>
+<td>4</td>
+<td><code>--threads 4</code></td>
+<td>16</td>
+<td>≥ 16</td>
+</tr>
+<tr>
+<td>Django ASGI + 异步视图</td>
+<td>4</td>
+<td>事件循环</td>
+<td>看 <code>worker-connections</code>（如 1000）</td>
+<td>按实际在途查询量，不是 4000</td>
+</tr>
+<tr>
+<td>FastAPI + Uvicorn 单进程</td>
+<td>1（容器内）</td>
+<td>事件循环</td>
+<td>受 <code>--limit-concurrency</code> 限制</td>
+<td>按 QPS × 平均查询数</td>
+</tr>
+<tr>
+<td>K8s 里 8 个 Pod × 1 进程</td>
+<td>8（跨 Pod）</td>
+<td>事件循环</td>
+<td>8 × limit-concurrency</td>
+<td>池大小 × 8 ≤ DB <code>max_connections</code></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>ASGI 下别把「连接上限」直接当成「DB 连接池大小」。</strong> 一个 worker 能挂 1000 个连接，但绝大多数时间它们在 await 上游 I&#x2F;O，真正同时打 DB 的可能只有几十个。按 <code>worker-connections</code> 配池子会瞬间打爆数据库 <code>max_connections</code>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>K8s 里通常不用 <code>--workers</code>。</strong> 官方建议是「<strong>每个容器跑一个 Uvicorn 进程</strong>」，副本数交给 Deployment 管 —— 这样探针、优雅退出、资源 limit 都由编排层统一处理，不会出现「一个 Pod 里 4 个 worker 只有一个收到 SIGTERM」的混乱。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 异步视图里用了 <code>requests</code> &#x2F; <code>time.sleep</code> &#x2F; 同步 DB 驱动，把整个 worker 的事件循环堵死</li>
+<li><input disabled="" type="checkbox"> 给 ASGI worker 配 <code>--threads</code>（无效参数，并发由 <code>--worker-connections</code> 控制）</li>
+<li><input disabled="" type="checkbox"> 同时用 <code>--reload</code> 和 <code>--workers</code>（互斥，直接报错）</li>
+<li><input disabled="" type="checkbox"> 生产环境开着 <code>--reload</code></li>
+<li><input disabled="" type="checkbox"> <code>--forwarded-allow-ips &#39;*&#39;</code> —— 任何人伪造 <code>X-Forwarded-For</code> 都能冒充 IP</li>
+<li><input disabled="" type="checkbox"> 以为 <code>--limit-concurrency</code> 是队列（它是<strong>立刻 503，不入队</strong>）</li>
+<li><input disabled="" type="checkbox"> sync worker 前面没挂 nginx 缓冲代理，慢客户端占满 worker</li>
+<li><input disabled="" type="checkbox"> gevent worker 没给 psycopg 打 <code>psycogreen</code> 补丁，greenlet 根本调度不起来</li>
+<li><input disabled="" type="checkbox"> 异步视图跑在 WSGI 下 —— 每请求一个一次性事件循环，长请求白跑</li>
+<li><input disabled="" type="checkbox"> <code>async def</code> 视图里用 <code>atomic()</code> 想开事务（异步模式下事务不可用）</li>
+<li><input disabled="" type="checkbox"> 异步模式仍用 <code>CONN_MAX_AGE</code> 持久连接，没换连接池</li>
+<li><input disabled="" type="checkbox"> 在紧循环里逐行 <code>sync_to_async</code>，线程切换开销被放大几十倍</li>
+<li><input disabled="" type="checkbox"> 靠 <code>DJANGO_ALLOW_ASYNC_UNSAFE</code> 绕过 <code>SynchronousOnlyOperation</code></li>
+<li><input disabled="" type="checkbox"> 长连接视图没捕获 <code>asyncio.CancelledError</code>，客户端断开后资源不回收</li>
+<li><input disabled="" type="checkbox"> 以为 <code>http.response.start</code> 之后还能改状态码</li>
+<li><input disabled="" type="checkbox"> <code>scope[&quot;headers&quot;]</code> 当 <code>str</code> 用（它是 bytes）</li>
+<li><input disabled="" type="checkbox"> <code>lifespan</code> 里没建&#x2F;关连接池，靠模块级全局变量硬撑</li>
+<li><input disabled="" type="checkbox"> ASGI 部署按 <code>worker-connections</code> 配 DB 连接池，打爆数据库 <code>max_connections</code></li>
+<li><input disabled="" type="checkbox"> 子路径部署没设 <code>--root-path</code> &#x2F; <code>root_path</code>，路由全 404</li>
+<li><input disabled="" type="checkbox"> 容器里 <code>--host 127.0.0.1</code>，探针和外部都连不上</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><ul>
+<li><a target="_blank" rel="noopener" href="https://peps.python.org/pep-3333/">PEP 3333 — Python Web Server Gateway Interface v1.0.1</a></li>
+<li><a target="_blank" rel="noopener" href="https://asgi.readthedocs.io/en/latest/specs/main.html">ASGI 主规范（3.0）</a></li>
+<li><a target="_blank" rel="noopener" href="https://asgi.readthedocs.io/en/latest/specs/www.html">ASGI HTTP &amp; WebSocket 子规范（2.5）</a></li>
+<li><a target="_blank" rel="noopener" href="https://asgi.readthedocs.io/en/latest/specs/lifespan.html">ASGI Lifespan 子规范</a></li>
+<li><a target="_blank" rel="noopener" href="https://gunicorn.org/design/">Gunicorn — Design（worker 类型与扩容）</a></li>
+<li><a target="_blank" rel="noopener" href="https://gunicorn.org/asgi/">Gunicorn — ASGI Worker</a></li>
+<li><a target="_blank" rel="noopener" href="https://gunicorn.org/signals/">Gunicorn — Signals</a></li>
+<li><a target="_blank" rel="noopener" href="https://gunicorn.org/reference/settings/">Gunicorn — Settings Reference</a></li>
+<li><a target="_blank" rel="noopener" href="https://uvicorn.dev/settings/">Uvicorn — Settings（参数与默认值）</a></li>
+<li><a target="_blank" rel="noopener" href="https://uvicorn.dev/server-behavior/">Uvicorn — Server Behavior（并发与 backlog）</a></li>
+<li><a target="_blank" rel="noopener" href="https://docs.djangoproject.com/en/stable/topics/async/">Django — 异步支持</a></li>
+<li><a target="_blank" rel="noopener" href="https://asgiref.readthedocs.io/">asgiref 文档（sync_to_async &#x2F; async_to_sync）</a></li>
+<li><a target="_blank" rel="noopener" href="https://hypercorn.readthedocs.io/">Hypercorn 文档</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/abersheeran/a2wsgi">a2wsgi（在 ASGI 服务器上跑 WSGI 应用）</a></li>
+</ul>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/python/" class="category-chain-item">python</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/python/" class="print-no-link">#python</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 116 · Python（九）：WSGI、ASGI 与 Web 服务请求生命周期</div>
+      <div>https://ethan-iopasd.github.io/2026/10/12/每日技术博客116-PythonWSGI与ASGI/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月12日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2099-Python%E6%96%87%E4%BB%B6%E8%B7%AF%E5%BE%84%E4%B8%8E%E6%95%B0%E6%8D%AE%E5%A4%84%E7%90%86/" title="每日技术博客 099 · Python（八）：文件、路径与数据处理">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 099 · Python（八）：文件、路径与数据处理</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
