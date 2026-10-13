@@ -1,0 +1,1192 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-13 · 第 117 篇 JavaScript 系列第七篇。V8 的分代堆与三种 GC 停顿、强引用&#x2F;弱引用的边界，以及浏览器和 Node.js 两侧定位泄漏的完整工具链。  📚 JavaScript 系列目录   章节 主题 状态    一 事件循环与异步模型 已发布   二 原型链、this 与闭包 已发布   三 Promise 与 async">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 117 · JavaScript（七）：内存管理、GC 与内存泄漏排查">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/13/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2117-JavaScript%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86%E4%B8%8E%E6%B3%84%E6%BC%8F%E6%8E%92%E6%9F%A5/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-13 · 第 117 篇 JavaScript 系列第七篇。V8 的分代堆与三种 GC 停顿、强引用&#x2F;弱引用的边界，以及浏览器和 Node.js 两侧定位泄漏的完整工具链。  📚 JavaScript 系列目录   章节 主题 状态    一 事件循环与异步模型 已发布   二 原型链、this 与闭包 已发布   三 Promise 与 async">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-13T01:10:00.000Z">
+<meta property="article:modified_time" content="2026-10-13T01:14:37.435Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="javascript">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 117 · JavaScript（七）：内存管理、GC 与内存泄漏排查 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 117 · JavaScript（七）：内存管理、GC 与内存泄漏排查"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-13 09:10" pubdate>
+          2026年10月13日 上午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          3.8k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          32 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 117 · JavaScript（七）：内存管理、GC 与内存泄漏排查</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-13 · 第 117 篇</p>
+<p>JavaScript 系列第七篇。V8 的分代堆与三种 GC 停顿、强引用&#x2F;弱引用的边界，以及浏览器和 Node.js 两侧定位泄漏的完整工具链。</p>
+</blockquote>
+<h2 id="📚-JavaScript-系列目录"><a href="#📚-JavaScript-系列目录" class="headerlink" title="📚 JavaScript 系列目录"></a>📚 JavaScript 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>事件循环与异步模型</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>原型链、this 与闭包</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>Promise 与 async&#x2F;await</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td>模块化与打包原理</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>五</td>
+<td>现代新特性与常见陷阱</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>六</td>
+<td>浏览器渲染、DOM 与性能优化</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>七</td>
+<td>内存管理、GC 与内存泄漏排查</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p>内存泄漏不是「忘了 free」——JS 里根本没有 free。泄漏的唯一形态是：<strong>有一条从 GC Root 出发、你以为是断的、其实还连着的强引用链</strong>。所以排查泄漏从来不是找「谁占了内存」，而是找 <strong>retainer（保留者）</strong>：谁还指着它。</p>
+<hr>
+<h2 id="一、V8-的堆不是一个堆"><a href="#一、V8-的堆不是一个堆" class="headerlink" title="一、V8 的堆不是一个堆"></a>一、V8 的堆不是一个堆</h2><p>V8 按<strong>分代假说</strong>（大多数对象死得早）把堆切开，不同区域用不同回收器：</p>
+<table>
+<thead>
+<tr>
+<th>区域</th>
+<th>装什么</th>
+<th>回收器</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>New Space（新生代）</td>
+<td>新分配的小对象</td>
+<td>Scavenger（默认）&#x2F; Minor MS</td>
+</tr>
+<tr>
+<td>Old Space（老生代）</td>
+<td>熬过若干轮回收的对象</td>
+<td>Mark-Sweep-Compact</td>
+</tr>
+<tr>
+<td>Large Object Space</td>
+<td>超过阈值的大对象（大数组、大 Buffer）</td>
+<td>直接归老生代逻辑，不参与复制</td>
+</tr>
+<tr>
+<td>Code Space</td>
+<td>JIT 后的机器码</td>
+<td>单独回收</td>
+</tr>
+<tr>
+<td>Read-Only Space</td>
+<td>内建对象、字面量</td>
+<td><strong>从不回收</strong></td>
+</tr>
+</tbody></table>
+<h3 id="新生代：Scavenger-是复制式的"><a href="#新生代：Scavenger-是复制式的" class="headerlink" title="新生代：Scavenger 是复制式的"></a>新生代：Scavenger 是复制式的</h3><p>默认回收器 <strong>Scavenger</strong> 用<strong>半空间（semi-space）</strong>设计：</p>
+<ol>
+<li>新生代切成 <strong>To-Space</strong> 和 <strong>From-Space</strong> 两半，新对象只往 To-Space 里放</li>
+<li>To-Space 满了 → 互换角色，原来的 To 变成 From</li>
+<li>从 From-Space 追踪存活对象，<strong>复制</strong>到 To-Space；熬过上一轮的直接<strong>晋升（promote）</strong>到老生代</li>
+<li>复制是压缩式的，<strong>新生代内部没有碎片</strong></li>
+</ol>
+<blockquote>
+<p>⚠️ 代价是「总有一半空间是空的」。所以新生代很小 —— 默认几 MB 到几十 MB 级别。</p>
+</blockquote>
+<p>V8 还有一个<strong>非默认</strong>的替代方案：<code>--minor-ms</code> 开启的 <strong>Minor Mark-Sweep</strong>。它不复制对象（非移动式），改为标记 + 清扫，存活率高的<strong>整页</strong>直接晋升到老生代。<code>--minor-ms</code> 是<strong>实验性开关，不是默认值</strong> —— 别在生产里想当然地以为 V8 已经不用 Scavenger 了。</p>
+<h3 id="老生代：Mark-Sweep-Compact-三阶段"><a href="#老生代：Mark-Sweep-Compact-三阶段" class="headerlink" title="老生代：Mark-Sweep-Compact 三阶段"></a>老生代：Mark-Sweep-Compact 三阶段</h3><table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>做什么</th>
+<th>能否并发</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Marking</td>
+<td>从 root set 出发标记可达对象</td>
+<td>✅ 增量 + 并发标记</td>
+</tr>
+<tr>
+<td>Sweeping</td>
+<td>把死对象空间挂进 free-list</td>
+<td>✅ 并发清扫</td>
+</tr>
+<tr>
+<td>Compaction</td>
+<td>选<strong>高度碎片化</strong>的页做搬移压缩</td>
+<td>部分并行</td>
+</tr>
+</tbody></table>
+<p>关键点：<strong>Compaction 是启发式的</strong>，只压缩碎片严重的页。老生代里大量长寿命对象不会每次都被搬来搬去。</p>
+<h3 id="并行-增量-并发，三个词别混"><a href="#并行-增量-并发，三个词别混" class="headerlink" title="并行 &#x2F; 增量 &#x2F; 并发，三个词别混"></a>并行 &#x2F; 增量 &#x2F; 并发，三个词别混</h3><table>
+<thead>
+<tr>
+<th>术语</th>
+<th>主线程在干什么</th>
+<th>是否 STW</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Parallel</td>
+<td>和 worker <strong>一起</strong>做 GC</td>
+<td>✅ 是（只是摊薄了）</td>
+</tr>
+<tr>
+<td>Incremental</td>
+<td>间隙性地做一小段 GC</td>
+<td>✅ 是（切成很多小段）</td>
+</tr>
+<tr>
+<td>Concurrent</td>
+<td><strong>继续跑 JS</strong>，worker 后台回收</td>
+<td>❌ 基本不是</td>
+</tr>
+</tbody></table>
+<p>这三个是 V8 把停顿压下去的全部手段。剩下的停顿点只有两处：<strong>标记收尾（finalization）</strong> 和 <strong>并行压缩&#x2F;指针更新</strong>。你能感知到的卡顿，基本都出在这。</p>
+<h3 id="写屏障：分代回收能成立的前提"><a href="#写屏障：分代回收能成立的前提" class="headerlink" title="写屏障：分代回收能成立的前提"></a>写屏障：分代回收能成立的前提</h3><p>老生代对象指向新生代对象时，新生代回收必须知道这个引用存在 —— 否则会把活对象当垃圾。V8 用<strong>写屏障（write barrier）</strong>在赋值时把这类引用记进 <strong>Remembered Set（<code>OLD_TO_NEW</code>）</strong>：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-comment">// 这一句会被编译器插入 generational barrier</span><br>oldObj.<span class="hljs-property">ref</span> = newObj;<br></code></pre></td></tr></table></figure>
+
+<p>三种屏障，各管一件事：</p>
+<table>
+<thead>
+<tr>
+<th>屏障</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Generational（Old-to-New）</td>
+<td>记进 Remembered Set，供 Scavenger 找活的新生代对象。<strong>始终开启</strong></td>
+</tr>
+<tr>
+<td>Marking</td>
+<td>防止增量标记期间出现「黑对象指向白对象」漏标</td>
+</tr>
+<tr>
+<td>Evacuation（Old-to-Old）</td>
+<td>压缩时记录需要改写的指针</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ 所以<strong>往老对象上频繁挂新对象</strong>（比如长命 Map 里不停塞新 value）不是零成本的 —— 每次赋值都有屏障开销。</p>
+</blockquote>
+<hr>
+<h2 id="二、什么才叫「泄漏」"><a href="#二、什么才叫「泄漏」" class="headerlink" title="二、什么才叫「泄漏」"></a>二、什么才叫「泄漏」</h2><p>GC 只认<strong>可达性</strong>。一个对象只要从 GC Root 能走到，它就活着，哪怕你永远不会再用它。</p>
+<h3 id="GC-Root-有哪些"><a href="#GC-Root-有哪些" class="headerlink" title="GC Root 有哪些"></a>GC Root 有哪些</h3><table>
+<thead>
+<tr>
+<th>Root</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>执行栈上的局部变量</td>
+<td>函数返回后自动消失</td>
+</tr>
+<tr>
+<td>全局对象 &#x2F; 模块顶层作用域</td>
+<td><strong>模块作用域是常驻的</strong>，比 <code>window</code> 更隐蔽</td>
+</tr>
+<tr>
+<td>闭包捕获的变量</td>
+<td>只要闭包活着，捕获的整个环境都活着</td>
+</tr>
+<tr>
+<td>正在运行的定时器 &#x2F; 回调注册表</td>
+<td>回调引用的对象全部被保活</td>
+</tr>
+<tr>
+<td>已注册的事件监听器</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>DOM 树的文档引用</td>
+<td>节点在树上就活着</td>
+</tr>
+</tbody></table>
+<h3 id="强引用-vs-弱引用"><a href="#强引用-vs-弱引用" class="headerlink" title="强引用 vs 弱引用"></a>强引用 vs 弱引用</h3><table>
+<thead>
+<tr>
+<th>引用方式</th>
+<th>能否阻止回收</th>
+<th>可枚举</th>
+<th>典型用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>普通属性 &#x2F; <code>Map</code> key</td>
+<td>✅ 阻止</td>
+<td>✅</td>
+<td>需要确定性的缓存</td>
+</tr>
+<tr>
+<td><code>WeakMap</code> &#x2F; <code>WeakSet</code></td>
+<td>❌ 不阻止</td>
+<td>❌</td>
+<td>给对象挂元数据、DOM 节点缓存</td>
+</tr>
+<tr>
+<td><code>WeakRef</code></td>
+<td>❌ 不阻止</td>
+<td>—</td>
+<td>弱缓存、大对象池</td>
+</tr>
+<tr>
+<td><code>FinalizationRegistry</code></td>
+<td>—</td>
+<td>—</td>
+<td>回收后做清理（<strong>时机不确定</strong>）</td>
+</tr>
+</tbody></table>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-comment">// ❌ Map 的 key 是强引用，节点移除后缓存条目还在</span><br><span class="hljs-keyword">const</span> cache = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Map</span>();<br>cache.<span class="hljs-title function_">set</span>(domNode, &#123; <span class="hljs-attr">expensive</span>: data &#125;);<br><br><span class="hljs-comment">// ✅ WeakMap 的 key 是弱引用，节点被回收后条目自动消失</span><br><span class="hljs-keyword">const</span> cache = <span class="hljs-keyword">new</span> <span class="hljs-title class_">WeakMap</span>();<br>cache.<span class="hljs-title function_">set</span>(domNode, &#123; <span class="hljs-attr">expensive</span>: data &#125;);<br></code></pre></td></tr></table></figure>
+
+<p><code>WeakRef</code> &#x2F; <code>FinalizationRegistry</code> 是 <strong>ES2021</strong> 引入的。两个坑：</p>
+<blockquote>
+<p>⚠️ <code>WeakRef.deref()</code> 的结果<strong>可能在任何时候变成 undefined</strong>，甚至同一次 GC 前后两次调用结果不同。必须每次都判空，不能缓存 deref 结果。</p>
+<p>⚠️ <code>FinalizationRegistry</code> 的回调<strong>时机完全由引擎决定</strong>，可能在页面关闭前都不触发。<strong>不要拿它做业务逻辑的清理</strong>（比如关闭数据库连接），只能做「尽力而为」的兜底。</p>
+</blockquote>
+<hr>
+<h2 id="三、六类经典泄漏模式"><a href="#三、六类经典泄漏模式" class="headerlink" title="三、六类经典泄漏模式"></a>三、六类经典泄漏模式</h2><h3 id="1-模块级缓存无上限"><a href="#1-模块级缓存无上限" class="headerlink" title="1. 模块级缓存无上限"></a>1. 模块级缓存无上限</h3><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-comment">// ❌ 模块作用域常驻，这个数组只涨不跌</span><br><span class="hljs-keyword">const</span> cache = [];<br><span class="hljs-keyword">export</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">remember</span>(<span class="hljs-params">item</span>) &#123;<br>  cache.<span class="hljs-title function_">push</span>(item);<br>&#125;<br><br><span class="hljs-comment">// ✅ 有界 LRU，或直接用 WeakMap</span><br><span class="hljs-keyword">const</span> cache = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Map</span>();<br><span class="hljs-keyword">const</span> <span class="hljs-variable constant_">MAX</span> = <span class="hljs-number">500</span>;<br><span class="hljs-keyword">export</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">remember</span>(<span class="hljs-params">key, value</span>) &#123;<br>  <span class="hljs-keyword">if</span> (cache.<span class="hljs-property">size</span> &gt;= <span class="hljs-variable constant_">MAX</span>) cache.<span class="hljs-title function_">delete</span>(cache.<span class="hljs-title function_">keys</span>().<span class="hljs-title function_">next</span>().<span class="hljs-property">value</span>);<br>  cache.<span class="hljs-title function_">set</span>(key, value);<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<h3 id="2-定时器没清"><a href="#2-定时器没清" class="headerlink" title="2. 定时器没清"></a>2. 定时器没清</h3><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-comment">// ❌ 组件销毁了，interval 还在跑，回调闭包把整棵组件状态保活</span><br><span class="hljs-built_in">setInterval</span>(<span class="hljs-function">() =&gt;</span> <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">poll</span>(), <span class="hljs-number">1000</span>);<br><br><span class="hljs-comment">// ✅ 存句柄，销毁时清掉</span><br><span class="hljs-keyword">const</span> id = <span class="hljs-built_in">setInterval</span>(poll, <span class="hljs-number">1000</span>);<br><span class="hljs-built_in">clearInterval</span>(id);<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>setTimeout</code> 里的<strong>递归自调用</strong>是同一个问题 —— 只要链条不断，整条链上的闭包都活着。</p>
+</blockquote>
+<h3 id="3-事件监听器挂在高位节点上"><a href="#3-事件监听器挂在高位节点上" class="headerlink" title="3. 事件监听器挂在高位节点上"></a>3. 事件监听器挂在高位节点上</h3><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-comment">// ❌ window 比组件活得久，listener 一直持有 handler → 持有组件状态</span><br><span class="hljs-variable language_">window</span>.<span class="hljs-title function_">addEventListener</span>(<span class="hljs-string">&#x27;resize&#x27;</span>, <span class="hljs-variable language_">this</span>.<span class="hljs-property">onResize</span>);<br><br><span class="hljs-comment">// ✅ 用 AbortController 一次性解绑（现代浏览器推荐写法）</span><br><span class="hljs-keyword">const</span> ac = <span class="hljs-keyword">new</span> <span class="hljs-title class_">AbortController</span>();<br><span class="hljs-variable language_">window</span>.<span class="hljs-title function_">addEventListener</span>(<span class="hljs-string">&#x27;resize&#x27;</span>, onResize, &#123; <span class="hljs-attr">signal</span>: ac.<span class="hljs-property">signal</span> &#125;);<br><span class="hljs-comment">// 销毁时</span><br>ac.<span class="hljs-title function_">abort</span>();<br></code></pre></td></tr></table></figure>
+
+<p><code>AbortController</code> 的好处：<strong>一次 abort 解绑所有用同一 signal 注册的监听器</strong>，不用逐个 <code>removeEventListener</code> 对齐函数引用。</p>
+<h3 id="4-闭包意外捕获大对象"><a href="#4-闭包意外捕获大对象" class="headerlink" title="4. 闭包意外捕获大对象"></a>4. 闭包意外捕获大对象</h3><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-comment">// ❌ 为了用 config.name，整个 config（含几 MB 的 payload）被保活</span><br><span class="hljs-keyword">function</span> <span class="hljs-title function_">createHandler</span>(<span class="hljs-params">config</span>) &#123;<br>  <span class="hljs-keyword">return</span> <span class="hljs-function">() =&gt;</span> <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(config.<span class="hljs-property">name</span>);<br>&#125;<br><br><span class="hljs-comment">// ✅ 只把需要的字段搬进闭包</span><br><span class="hljs-keyword">function</span> <span class="hljs-title function_">createHandler</span>(<span class="hljs-params">config</span>) &#123;<br>  <span class="hljs-keyword">const</span> &#123; name &#125; = config;<br>  <span class="hljs-keyword">return</span> <span class="hljs-function">() =&gt;</span> <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(name);<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 这个坑在 V8 里<strong>不一定</strong>发生 —— 引擎会做逃逸分析，只保留实际用到的变量。但<strong>只要有一处动态访问（<code>eval</code>、<code>with</code>、或把整个对象传给不确定的函数），优化就失效</strong>。别赌引擎。</p>
+</blockquote>
+<h3 id="5-Detached-DOM：节点没了，引用还在"><a href="#5-Detached-DOM：节点没了，引用还在" class="headerlink" title="5. Detached DOM：节点没了，引用还在"></a>5. Detached DOM：节点没了，引用还在</h3><p>最常见的形态：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-comment">// ❌ 移除节点时，listeners 数组里还留着闭包 → 闭包持有节点 → 节点无法回收</span><br><span class="hljs-keyword">function</span> <span class="hljs-title function_">destroy</span>(<span class="hljs-params"></span>) &#123;<br>  el.<span class="hljs-title function_">remove</span>();<br>  <span class="hljs-comment">// 忘了 listeners = []</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>DevTools 里可以直接验证：Memory 面板的 Summary 视图搜 <code>Detached</code>，或者看底部状态栏的 <strong>DOM Nodes &#x2F; JS event listeners</strong> 计数 —— 反复打开关闭弹窗，这两个数<strong>只涨不跌</strong>就是泄漏。</p>
+<h3 id="6-Node-js-特有：监听器无上限"><a href="#6-Node-js-特有：监听器无上限" class="headerlink" title="6. Node.js 特有：监听器无上限"></a>6. Node.js 特有：监听器无上限</h3><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-comment">// ❌ 每个请求都往同一个 emitter 上挂监听，10 个后 Node 会警告，但泄漏早就发生了</span><br>app.<span class="hljs-title function_">on</span>(<span class="hljs-string">&#x27;request&#x27;</span>, handler);   <span class="hljs-comment">// 挂在全局 app 上</span><br><br><span class="hljs-comment">// ✅ 挂到单次请求的 req 上，或注册时只注册一次</span><br></code></pre></td></tr></table></figure>
+
+<p>Node.js 默认在同一个 emitter 上超过 <strong>10 个监听器</strong>时打印 <code>MaxListenersExceededWarning</code>。这个警告<strong>本身就是泄漏信号</strong>，不要用 <code>setMaxListeners(0)</code> 把它关掉。</p>
+<hr>
+<h2 id="四、浏览器侧：DevTools-三件套"><a href="#四、浏览器侧：DevTools-三件套" class="headerlink" title="四、浏览器侧：DevTools 三件套"></a>四、浏览器侧：DevTools 三件套</h2><p>Memory 面板的三种 profile 用途完全不同：</p>
+<table>
+<thead>
+<tr>
+<th>Profile</th>
+<th>抓什么</th>
+<th>适合回答</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Heap snapshot</td>
+<td>某一刻的完整对象图 + retainer 链</td>
+<td><strong>谁还引用着它</strong></td>
+</tr>
+<tr>
+<td>Allocation instrumentation on timeline</td>
+<td>每段时间内分配且<strong>未被回收</strong>的对象</td>
+<td>哪个操作在漏</td>
+</tr>
+<tr>
+<td>Allocation sampling</td>
+<td>采样版，开销低</td>
+<td>长时间跑、性能敏感</td>
+</tr>
+</tbody></table>
+<h3 id="三快照法（官方推荐的两快照法-一步基线）"><a href="#三快照法（官方推荐的两快照法-一步基线）" class="headerlink" title="三快照法（官方推荐的两快照法 + 一步基线）"></a>三快照法（官方推荐的两快照法 + 一步基线）</h3><p>Node.js 官方文档给的两快照流程，搬到浏览器一样成立：</p>
+<ol>
+<li>等页面加载完、bootstrap 结束（几秒内）</li>
+<li><strong>先操作一次</strong>你要怀疑的功能 —— 这一步的分配是预热，不算泄漏</li>
+<li>取快照 A</li>
+<li>再重复操作若干次，中间别做别的</li>
+<li>取快照 B</li>
+<li>Memory 面板先加载 A、再加载 B，选中 B，把顶部下拉从 <strong>Summary</strong> 切到 <strong>Comparison</strong></li>
+<li>找<strong>大的正 delta</strong>，点开底部 retainer 面板看引用链</li>
+</ol>
+<blockquote>
+<p>⚠️ 顺序不能反 —— <strong>必须先加载旧快照</strong>，DevTools 才会把新快照标为「较新」，Comparison 的 delta 方向才是对的。</p>
+<p>⚠️ 取快照会<strong>全停顿</strong>，堆大的话可能卡几秒到几十秒，且快照本身占内存。</p>
+</blockquote>
+<h3 id="控制台里的两个小工具"><a href="#控制台里的两个小工具" class="headerlink" title="控制台里的两个小工具"></a>控制台里的两个小工具</h3><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-comment">// 找出所有由某个构造函数创建、且当前仍存活的对象</span><br><span class="hljs-title function_">queryObjects</span>(<span class="hljs-title class_">SomeClass</span>);        <span class="hljs-comment">// 返回数组，长度就是存活实例数</span><br><br><span class="hljs-comment">// 手动触发一次 GC（需要在启动时加 --js-flags=&quot;--expose-gc&quot;）</span><br><span class="hljs-title function_">gc</span>();<br></code></pre></td></tr></table></figure>
+
+<p><code>queryObjects</code> 是<strong>判断「有没有泄漏」最快的办法</strong>：反复创建销毁组件，然后数实例。数字不回落就是漏了。</p>
+<h3 id="performance-memory：能用但别依赖"><a href="#performance-memory：能用但别依赖" class="headerlink" title="performance.memory：能用但别依赖"></a>performance.memory：能用但别依赖</h3><table>
+<thead>
+<tr>
+<th>属性</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>jsHeapSizeLimit</code></td>
+<td>该上下文可用堆上限（字节）</td>
+</tr>
+<tr>
+<td><code>totalJSHeapSize</code></td>
+<td>已分配堆总量</td>
+</tr>
+<tr>
+<td><code>usedJSHeapSize</code></td>
+<td>当前活跃段</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ MDN 明确标注：<strong>非标准 + legacy</strong>，仅 Chromium 系可用，且数值不可靠 —— 页面共享堆时会高估，用 worker &#x2F; 跨站 iframe 时会低估。为了隐私，Chrome 默认还对返回值做<strong>分桶&#x2F;量化</strong>（想要精确值要启动 <code>--enable-precise-memory-info</code>）。</p>
+<p>替代方向是 <code>performance.measureUserAgentSpecificMemory()</code>，需要跨源隔离（COOP&#x2F;COEP）才可用。<strong>别把 <code>performance.memory</code> 写进生产监控的告警阈值。</strong></p>
+</blockquote>
+<hr>
+<h2 id="五、Node-js-侧：先量，再抓"><a href="#五、Node-js-侧：先量，再抓" class="headerlink" title="五、Node.js 侧：先量，再抓"></a>五、Node.js 侧：先量，再抓</h2><h3 id="第一步：process-memoryUsage"><a href="#第一步：process-memoryUsage" class="headerlink" title="第一步：process.memoryUsage()"></a>第一步：<code>process.memoryUsage()</code></h3><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(process.<span class="hljs-title function_">memoryUsage</span>());<br><span class="hljs-comment">// &#123; rss, heapTotal, heapUsed, external, arrayBuffers &#125;</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>含义</th>
+<th>排查价值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>rss</code></td>
+<td>进程占用的物理内存（含堆外）</td>
+<td>涨得比 <code>heapUsed</code> 快 → <strong>问题不在 JS 堆</strong></td>
+</tr>
+<tr>
+<td><code>heapTotal</code></td>
+<td>V8 堆已申请总量</td>
+<td>只涨不跌说明堆在扩张</td>
+</tr>
+<tr>
+<td><code>heapUsed</code></td>
+<td>V8 堆实际使用</td>
+<td><strong>泄漏的核心指标</strong></td>
+</tr>
+<tr>
+<td><code>external</code></td>
+<td>绑到 C++ 对象的内存</td>
+<td>原生插件、<code>Buffer</code> 相关</td>
+</tr>
+<tr>
+<td><code>arrayBuffers</code></td>
+<td><code>Buffer</code> &#x2F; <code>ArrayBuffer</code> 占用</td>
+<td>二进制处理泄漏看这个</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <code>rss</code> 和 <code>heapUsed</code> 分属两个世界。**<code>Buffer</code> 分配在堆外**，<code>heapUsed</code> 完全看不见它 —— 只盯 <code>heapUsed</code> 会漏掉一整类泄漏。</p>
+</blockquote>
+<h3 id="第二步：看-GC-到底有没有在回收"><a href="#第二步：看-GC-到底有没有在回收" class="headerlink" title="第二步：看 GC 到底有没有在回收"></a>第二步：看 GC 到底有没有在回收</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash">node --trace-gc app.js<br>node --trace-gc-nvp app.js     <span class="hljs-comment"># 结构化键值输出，便于日志采集</span><br></code></pre></td></tr></table></figure>
+
+<p>判断标准：如果 GC 频率越来越高、每次回收后 <code>heapUsed</code> 的<strong>谷底</strong>还在抬升，那就是真泄漏，不是「GC 还没跑」。</p>
+<h3 id="第三步：抓堆快照"><a href="#第三步：抓堆快照" class="headerlink" title="第三步：抓堆快照"></a>第三步：抓堆快照</h3><table>
+<thead>
+<tr>
+<th>方式</th>
+<th>版本要求</th>
+<th>适用场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>--inspect</code> + DevTools Memory 面板</td>
+<td>所有维护中版本</td>
+<td>本地、可交互</td>
+</tr>
+<tr>
+<td><code>--heapsnapshot-signal=SIGUSR2</code></td>
+<td><strong>v12.0.0+</strong></td>
+<td>生产容器里按信号触发</td>
+</tr>
+<tr>
+<td><code>v8.writeHeapSnapshot()</code></td>
+<td><strong>v11.13.0+</strong></td>
+<td>代码里主动触发（HTTP handler &#x2F; 信号）</td>
+</tr>
+<tr>
+<td>Inspector Protocol</td>
+<td>—</td>
+<td>从进程外远程触发</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 方式一：起服务时挂上信号钩子，之后随时 kill 出快照</span><br>node --heapsnapshot-signal=SIGUSR2 app.js<br><span class="hljs-built_in">kill</span> -USR2 &lt;pid&gt;<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-comment">// 方式二：代码内触发。务必挂在一个不可被外部访问的入口上</span><br><span class="hljs-keyword">import</span> &#123; writeHeapSnapshot &#125; <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;node:v8&#x27;</span>;<br><span class="hljs-title function_">writeHeapSnapshot</span>();   <span class="hljs-comment">// 可用 --diagnostic-dir 控制落盘目录</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 官方明确警告：<strong>取快照时主线程全停</strong>，堆大时可能超过一分钟；而且快照在内存里构建，<strong>可能让堆占用翻倍</strong>，直接把进程撑爆。</p>
+<p><strong>在生产上取快照，前提是这个实例崩了不影响可用性</strong>（多副本、可摘流）。</p>
+<p>另外别把 <code>writeHeapSnapshot()</code> 挂在公开路由上 —— 那等于给外部一个 DoS 入口。</p>
+</blockquote>
+<h3 id="第四步：对比快照"><a href="#第四步：对比快照" class="headerlink" title="第四步：对比快照"></a>第四步：对比快照</h3><p>拿 Chrome DevTools 打开 <code>.heapsnapshot</code>，按上面「三快照法」的步骤切 Comparison 视图找正 delta，再顺着 retainer 链往上走到 GC Root。</p>
+<h3 id="第五步：调堆参数"><a href="#第五步：调堆参数" class="headerlink" title="第五步：调堆参数"></a>第五步：调堆参数</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash">node --max-old-space-size=4096 app.js    <span class="hljs-comment"># 老生代上限，单位 MB</span><br>node --max-semi-space-size=64 app.js     <span class="hljs-comment"># 新生代单个半空间上限，单位 MB</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-comment">// 查当前上限，注意单位是字节</span><br><span class="hljs-keyword">import</span> v8 <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;node:v8&#x27;</span>;<br><span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(v8.<span class="hljs-title function_">getHeapStatistics</span>().<span class="hljs-property">heap_size_limit</span> / <span class="hljs-number">1024</span> / <span class="hljs-number">1024</span>, <span class="hljs-string">&#x27;MB&#x27;</span>);<br><span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(v8.<span class="hljs-title function_">getHeapSpaceStatistics</span>());   <span class="hljs-comment">// 逐空间明细</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ 两个高频误解：</p>
+<ol>
+<li><strong><code>--max-old-space-size</code> 只是把上限抬高，不解决泄漏。</strong> 它把 OOM 时间往后推，代价是每次 Major GC 停顿更长。</li>
+<li><strong>它管不了容器 cgroup 限制。</strong> Docker &#x2F; K8s 里堆上限和容器内存 limit 是两套东西，<code>--max-old-space-size</code> 调大反而更容易被 cgroup OOMKilled。堆上限应该<strong>略低于</strong>容器 limit。</li>
+</ol>
+<p><code>--max-semi-space-size</code> 调大能减少 Minor GC 次数，但<strong>新生代越大，单次 Scavenge 停顿越长</strong>，是拿延迟换吞吐。</p>
+</blockquote>
+<hr>
+<h2 id="六、Vue-3-前端实战清单"><a href="#六、Vue-3-前端实战清单" class="headerlink" title="六、Vue 3 &#x2F; 前端实战清单"></a>六、Vue 3 &#x2F; 前端实战清单</h2><p>Ethan 的 Django + Vue3 栈里，泄漏基本出在这几个地方：</p>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>泄漏点</th>
+<th>修法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>onMounted</code> 里挂 window 监听</td>
+<td>卸载时没解绑</td>
+<td><code>onUnmounted</code> 里 <code>ac.abort()</code></td>
+</tr>
+<tr>
+<td><code>watch</code> 外部数据源</td>
+<td><code>watch</code> 返回的 stop 没调用</td>
+<td>组件内 <code>watch</code> 会自动停；<strong>在 <code>setup</code> 外建的 effect 必须手动 stop</strong></td>
+</tr>
+<tr>
+<td>自建响应式订阅</td>
+<td>副作用跑在组件外</td>
+<td>用 <code>effectScope()</code> 包起来，卸载时 <code>scope.stop()</code></td>
+</tr>
+<tr>
+<td><code>&lt;keep-alive&gt;</code> 缓存所有页面</td>
+<td>每个页面实例都常驻</td>
+<td>配 <code>:max=&quot;10&quot;</code>，或按需 <code>include</code></td>
+</tr>
+<tr>
+<td>超长列表全量渲染</td>
+<td>几万个 vnode + 组件实例</td>
+<td>虚拟滚动，只渲染视口内</td>
+</tr>
+<tr>
+<td>全局事件总线</td>
+<td>订阅没退订</td>
+<td>卸载时 <code>off</code>，或改用 props &#x2F; pinia</td>
+</tr>
+<tr>
+<td>大对象塞进 <code>reactive</code></td>
+<td>深层代理 + 常驻</td>
+<td>用 <code>shallowRef</code> &#x2F; <code>markRaw</code> 包大而不可变的数据</td>
+</tr>
+</tbody></table>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-comment">// effectScope：把一组副作用绑成一个可整体销毁的单元</span><br><span class="hljs-keyword">import</span> &#123; effectScope, onUnmounted &#125; <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;vue&#x27;</span>;<br><br><span class="hljs-keyword">export</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">usePolling</span>(<span class="hljs-params">fn</span>) &#123;<br>  <span class="hljs-keyword">const</span> scope = <span class="hljs-title function_">effectScope</span>();<br>  scope.<span class="hljs-title function_">run</span>(<span class="hljs-function">() =&gt;</span> &#123;<br>    <span class="hljs-keyword">const</span> id = <span class="hljs-built_in">setInterval</span>(fn, <span class="hljs-number">1000</span>);<br>    scope.<span class="hljs-title function_">onScopeDispose</span>(<span class="hljs-function">() =&gt;</span> <span class="hljs-built_in">clearInterval</span>(id));<br>  &#125;);<br>  <span class="hljs-title function_">onUnmounted</span>(<span class="hljs-function">() =&gt;</span> scope.<span class="hljs-title function_">stop</span>());<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <code>markRaw</code> &#x2F; <code>shallowRef</code> 能省掉深层代理开销，但<strong>代理没了，响应式也没了</strong>。只对「只读的大数据」用，比如图表数据、静态配置。</p>
+</blockquote>
+<hr>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 用 <code>Map</code> 给 DOM 节点 &#x2F; 短命对象做缓存，而不是 <code>WeakMap</code></li>
+<li><input disabled="" type="checkbox"> 模块级数组 &#x2F; 对象当缓存，没有容量上限和淘汰策略</li>
+<li><input disabled="" type="checkbox"> <code>setInterval</code> &#x2F; 递归 <code>setTimeout</code> 的句柄没保存、没清理</li>
+<li><input disabled="" type="checkbox"> <code>window</code> &#x2F; <code>document</code> &#x2F; 全局 emitter 上的监听器没解绑</li>
+<li><input disabled="" type="checkbox"> 闭包为了一个字段，把整个大对象保活</li>
+<li><input disabled="" type="checkbox"> 移除 DOM 节点时，忘了清掉持有它的数组 &#x2F; 回调列表</li>
+<li><input disabled="" type="checkbox"> Node.js 里往全局 emitter 上反复 <code>on</code>，无视 <code>MaxListenersExceededWarning</code></li>
+<li><input disabled="" type="checkbox"> 用 <code>setMaxListeners(0)</code> 把监听器警告关掉，而不是修泄漏</li>
+<li><input disabled="" type="checkbox"> 缓存 <code>WeakRef.deref()</code> 的返回值，不做判空</li>
+<li><input disabled="" type="checkbox"> 用 <code>FinalizationRegistry</code> 做业务清理（关闭连接、写盘）</li>
+<li><input disabled="" type="checkbox"> 只看 <code>heapUsed</code>，忽略 <code>rss</code> &#x2F; <code>external</code> &#x2F; <code>arrayBuffers</code>（<code>Buffer</code> 在堆外）</li>
+<li><input disabled="" type="checkbox"> 拿 <code>performance.memory</code> 当生产监控指标（非标准、Chromium only、数值被量化）</li>
+<li><input disabled="" type="checkbox"> 在生产环境随手取堆快照，没考虑全停顿 + 堆翻倍的风险</li>
+<li><input disabled="" type="checkbox"> 把 <code>writeHeapSnapshot()</code> 挂在公开路由上</li>
+<li><input disabled="" type="checkbox"> 以为 <code>--max-old-space-size</code> 能修泄漏（它只是推迟 OOM）</li>
+<li><input disabled="" type="checkbox"> Docker 里堆上限设得比容器 limit 还大，结果被 cgroup OOMKilled</li>
+<li><input disabled="" type="checkbox"> 对比快照时先加载了新快照，Comparison 的 delta 方向反了</li>
+<li><input disabled="" type="checkbox"> 用 <code>--minor-ms</code> 以外的理由，以为 V8 默认已经不是 Scavenger 了</li>
+</ul>
+<hr>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><ul>
+<li>V8 官方文档：<a target="_blank" rel="noopener" href="https://github.com/v8/v8/blob/main/docs/heap/garbage-collection.md">Garbage Collection in V8</a></li>
+<li>V8 博客：<a target="_blank" rel="noopener" href="https://v8.dev/blog/trash-talk">Trash talk: the Orinoco garbage collector</a></li>
+<li>V8 博客：<a target="_blank" rel="noopener" href="https://v8.dev/blog/orinoco-parallel-scavenger">Orinoco: young generation garbage collection</a></li>
+<li>Node.js Learn：<a target="_blank" rel="noopener" href="https://nodejs.org/learn/diagnostics/memory/understanding-and-tuning-memory">Understanding and Tuning Memory</a></li>
+<li>Node.js Learn：<a target="_blank" rel="noopener" href="https://nodejs.org/learn/diagnostics/memory/using-heap-snapshot/">Using Heap Snapshot</a></li>
+<li>Node.js API：<a target="_blank" rel="noopener" href="https://nodejs.org/api/v8.html#v8writeheapsnapshotfilenameoptions"><code>v8.writeHeapSnapshot()</code></a></li>
+<li>Node.js CLI：<a target="_blank" rel="noopener" href="https://nodejs.org/api/cli.html#--heapsnapshot-signalsignal"><code>--heapsnapshot-signal</code></a></li>
+<li>Node.js CLI：<a target="_blank" rel="noopener" href="https://nodejs.org/api/cli.html#--max-old-space-sizesize-in-megabytes"><code>--max-old-space-size</code></a></li>
+<li>MDN：<a target="_blank" rel="noopener" href="https://developer.mozilla.org/en-US/docs/Web/API/Performance/memory"><code>Performance.memory</code></a></li>
+<li>MDN：<a target="_blank" rel="noopener" href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakRef"><code>WeakRef</code></a></li>
+<li>MDN：<a target="_blank" rel="noopener" href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/FinalizationRegistry"><code>FinalizationRegistry</code></a></li>
+<li>Vue 3 文档：<a target="_blank" rel="noopener" href="https://vuejs.org/api/reactivity-advanced.html#effectscope"><code>effectScope</code></a></li>
+</ul>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/javascript/" class="category-chain-item">javascript</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/javascript/" class="print-no-link">#javascript</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 117 · JavaScript（七）：内存管理、GC 与内存泄漏排查</div>
+      <div>https://ethan-iopasd.github.io/2026/10/13/每日技术博客117-JavaScript内存管理与泄漏排查/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月13日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/09/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2114-JavaScript%E6%B5%8F%E8%A7%88%E5%99%A8%E6%B8%B2%E6%9F%93%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/" title="每日技术博客 114 · JavaScript（六）：浏览器渲染、DOM 与性能优化">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 114 · JavaScript（六）：浏览器渲染、DOM 与性能优化</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
