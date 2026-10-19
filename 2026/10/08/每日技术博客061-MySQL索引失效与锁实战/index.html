@@ -19,15 +19,15 @@
   <meta name="author" content="iopasd">
   <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
   
-    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 061 篇 MySQL 系列第三篇。索引为什么「失效」、EXPLAIN 怎么读、行锁 &#x2F; 间隙锁 &#x2F; 临键锁的加锁范围、死锁与 MDL 阻塞。  📚 MySQL 系列目录   章节 主题 状态    一 存储引擎与参数调优 已发布   二 主从复制与高可用 已发布   三 索引失效与锁实战 本篇    开场：一句话结论索引失效">
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 061 篇 MySQL 系列第三篇。索引为什么「失效」、EXPLAIN 怎么读、行锁 &#x2F; 间隙锁 &#x2F; 临键锁的加锁范围、死锁与 MDL 阻塞。  📚 MySQL 系列目录   章节 主题 状态    一 存储引擎与参数调优 已发布   二 主从复制与高可用 已发布   三 索引失效与锁实战 本篇   四 分区表、临时表与优化器">
 <meta property="og:type" content="article">
 <meta property="og:title" content="每日技术博客 061 · MySQL（三）：索引失效与锁实战">
 <meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2061-MySQL%E7%B4%A2%E5%BC%95%E5%A4%B1%E6%95%88%E4%B8%8E%E9%94%81%E5%AE%9E%E6%88%98/index.html">
 <meta property="og:site_name" content="Ethan-iopasd">
-<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 061 篇 MySQL 系列第三篇。索引为什么「失效」、EXPLAIN 怎么读、行锁 &#x2F; 间隙锁 &#x2F; 临键锁的加锁范围、死锁与 MDL 阻塞。  📚 MySQL 系列目录   章节 主题 状态    一 存储引擎与参数调优 已发布   二 主从复制与高可用 已发布   三 索引失效与锁实战 本篇    开场：一句话结论索引失效">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 061 篇 MySQL 系列第三篇。索引为什么「失效」、EXPLAIN 怎么读、行锁 &#x2F; 间隙锁 &#x2F; 临键锁的加锁范围、死锁与 MDL 阻塞。  📚 MySQL 系列目录   章节 主题 状态    一 存储引擎与参数调优 已发布   二 主从复制与高可用 已发布   三 索引失效与锁实战 本篇   四 分区表、临时表与优化器">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-10-08T03:40:00.000Z">
-<meta property="article:modified_time" content="2026-10-08T02:49:23.442Z">
+<meta property="article:modified_time" content="2026-10-19T10:00:16.121Z">
 <meta property="article:author" content="iopasd">
 <meta property="article:tag" content="mysql">
 <meta name="twitter:card" content="summary_large_image">
@@ -302,6 +302,16 @@
 <td>三</td>
 <td>索引失效与锁实战</td>
 <td><strong>本篇</strong></td>
+</tr>
+<tr>
+<td>四</td>
+<td>分区表、临时表与优化器 Hint</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>五</td>
+<td>容量评估与压测</td>
+<td>已发布</td>
 </tr>
 </tbody></table>
 <hr>

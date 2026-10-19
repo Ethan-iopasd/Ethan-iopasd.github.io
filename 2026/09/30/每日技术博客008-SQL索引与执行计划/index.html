@@ -19,15 +19,15 @@
   <meta name="author" content="iopasd">
   <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
   
-    <meta name="description" content="每日技术博客 · 2026-09-30 · 第 008 篇 SQL 系列第一篇。索引为什么快、什么时候会失效、以及怎么用执行计划自己判断 —— 慢查询排查的必修课。  📚 SQL 系列目录   章节 主题 状态    一 索引与执行计划 本篇   二 事务、隔离级别与锁 已发布    开场：索引就是「排好序的目录」没有索引时，查询只能全表扫描（逐行比对）。有索引时，数据库先在有序结构里定位，再">
+    <meta name="description" content="每日技术博客 · 2026-09-30 · 第 008 篇 SQL 系列第一篇。索引为什么快、什么时候会失效、以及怎么用执行计划自己判断 —— 慢查询排查的必修课。  📚 SQL 系列目录   章节 主题 状态    一 索引与执行计划 本篇   二 事务、隔离级别与锁 已发布   三 慢查询排查实战 已发布   四 分库分表与读写分离 已发布   五 窗口函数与 CTE 已发布   六 数据">
 <meta property="og:type" content="article">
 <meta property="og:title" content="每日技术博客 008 · SQL（一）：索引与执行计划">
 <meta property="og:url" content="https://ethan-iopasd.github.io/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2008-SQL%E7%B4%A2%E5%BC%95%E4%B8%8E%E6%89%A7%E8%A1%8C%E8%AE%A1%E5%88%92/index.html">
 <meta property="og:site_name" content="Ethan-iopasd">
-<meta property="og:description" content="每日技术博客 · 2026-09-30 · 第 008 篇 SQL 系列第一篇。索引为什么快、什么时候会失效、以及怎么用执行计划自己判断 —— 慢查询排查的必修课。  📚 SQL 系列目录   章节 主题 状态    一 索引与执行计划 本篇   二 事务、隔离级别与锁 已发布    开场：索引就是「排好序的目录」没有索引时，查询只能全表扫描（逐行比对）。有索引时，数据库先在有序结构里定位，再">
+<meta property="og:description" content="每日技术博客 · 2026-09-30 · 第 008 篇 SQL 系列第一篇。索引为什么快、什么时候会失效、以及怎么用执行计划自己判断 —— 慢查询排查的必修课。  📚 SQL 系列目录   章节 主题 状态    一 索引与执行计划 本篇   二 事务、隔离级别与锁 已发布   三 慢查询排查实战 已发布   四 分库分表与读写分离 已发布   五 窗口函数与 CTE 已发布   六 数据">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-09-30T06:20:00.000Z">
-<meta property="article:modified_time" content="2026-09-30T04:51:16.274Z">
+<meta property="article:modified_time" content="2026-10-19T10:00:16.110Z">
 <meta property="article:author" content="iopasd">
 <meta property="article:tag" content="sql">
 <meta name="twitter:card" content="summary_large_image">
@@ -223,7 +223,7 @@
       <span class="post-meta mr-2">
         <i class="iconfont icon-chart"></i>
         
-          1.6k 字
+          1.7k 字
         
       </span>
     
@@ -296,6 +296,31 @@
 <tr>
 <td>二</td>
 <td>事务、隔离级别与锁</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>慢查询排查实战</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td>分库分表与读写分离</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>五</td>
+<td>窗口函数与 CTE</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>六</td>
+<td>数据库设计与范式</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>七</td>
+<td>在线 DDL 与数据迁移</td>
 <td>已发布</td>
 </tr>
 </tbody></table>

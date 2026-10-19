@@ -1,0 +1,1036 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-19 · 第 125 篇 Rust 系列第五篇。async 不是线程，Future 不是「正在跑的任务」—— 它是一台可以被反复 poll 的状态机。理解了这一点，Send 报错和「为什么我的异步代码比同步还慢」就都有答案了。  📚 Rust 系列目录   章节 主题 状态    一 所有权、借用与生命周期 已发布   二 错误处理、并发与工程实践 已发布">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 125 · Rust（五）：异步运行时、Future 与 tokio 内部">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/19/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2125-Rust%E5%BC%82%E6%AD%A5%E8%BF%90%E8%A1%8C%E6%97%B6%E4%B8%8EFuture/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-19 · 第 125 篇 Rust 系列第五篇。async 不是线程，Future 不是「正在跑的任务」—— 它是一台可以被反复 poll 的状态机。理解了这一点，Send 报错和「为什么我的异步代码比同步还慢」就都有答案了。  📚 Rust 系列目录   章节 主题 状态    一 所有权、借用与生命周期 已发布   二 错误处理、并发与工程实践 已发布">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-19T11:40:00.000Z">
+<meta property="article:modified_time" content="2026-10-19T09:59:41.702Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="rust">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 125 · Rust（五）：异步运行时、Future 与 tokio 内部 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 125 · Rust（五）：异步运行时、Future 与 tokio 内部"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-19 19:40" pubdate>
+          2026年10月19日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.3k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          20 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 125 · Rust（五）：异步运行时、Future 与 tokio 内部</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-19 · 第 125 篇</p>
+<p>Rust 系列第五篇。<code>async</code> 不是线程，<code>Future</code> 不是「正在跑的任务」—— 它是一台可以被反复 <code>poll</code> 的状态机。理解了这一点，<code>Send</code> 报错和「为什么我的异步代码比同步还慢」就都有答案了。</p>
+</blockquote>
+<h2 id="📚-Rust-系列目录"><a href="#📚-Rust-系列目录" class="headerlink" title="📚 Rust 系列目录"></a>📚 Rust 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>所有权、借用与生命周期</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>错误处理、并发与工程实践</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>trait 系统、泛型与动态分发</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td>宏、构建脚本与 unsafe 边界</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>五</td>
+<td>异步运行时、Future 与 tokio 内部</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong><code>async fn</code> 编译出来就是一个实现了 <code>Future</code> 的状态机，只有被 <code>poll</code> 才会推进。</strong> 没人 <code>poll</code> 它，它就永远停在第一个 <code>.await</code> 上 —— 这不是 bug，是 Rust 异步的<strong>惰性</strong>语义。</p>
+<h2 id="一、async-到底被编译成了什么"><a href="#一、async-到底被编译成了什么" class="headerlink" title="一、async 到底被编译成了什么"></a>一、<code>async</code> 到底被编译成了什么</h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs rust"><span class="hljs-keyword">async</span> <span class="hljs-keyword">fn</span> <span class="hljs-title function_">fetch_two</span>(a: <span class="hljs-type">u64</span>, b: <span class="hljs-type">u64</span>) <span class="hljs-punctuation">-&gt;</span> <span class="hljs-type">u64</span> &#123;<br>    <span class="hljs-keyword">let</span> <span class="hljs-variable">x</span> = <span class="hljs-title function_ invoke__">step_one</span>(a).<span class="hljs-keyword">await</span>;<br>    <span class="hljs-keyword">let</span> <span class="hljs-variable">y</span> = <span class="hljs-title function_ invoke__">step_two</span>(b).<span class="hljs-keyword">await</span>;<br>    x + y<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>编译器大致生成：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs rust"><span class="hljs-keyword">enum</span> <span class="hljs-title class_">FetchTwo</span> &#123;<br>    Start &#123; a: <span class="hljs-type">u64</span>, b: <span class="hljs-type">u64</span> &#125;,<br>    WaitStepOne &#123; fut: StepOne &#125;,<br>    WaitStepTwo &#123; x: <span class="hljs-type">u64</span>, fut: StepTwo &#125;,<br>    Done,<br>&#125;<br><br><span class="hljs-keyword">impl</span> <span class="hljs-title class_">Future</span> <span class="hljs-keyword">for</span> <span class="hljs-title class_">FetchTwo</span> &#123;<br>    <span class="hljs-keyword">type</span> <span class="hljs-title class_">Output</span> = <span class="hljs-type">u64</span>;<br>    <span class="hljs-keyword">fn</span> <span class="hljs-title function_">poll</span>(<span class="hljs-keyword">self</span>: Pin&lt;&amp;<span class="hljs-keyword">mut</span> <span class="hljs-keyword">Self</span>&gt;, cx: &amp;<span class="hljs-keyword">mut</span> Context&lt;<span class="hljs-symbol">&#x27;_</span>&gt;) <span class="hljs-punctuation">-&gt;</span> Poll&lt;<span class="hljs-type">u64</span>&gt; &#123;<br>        <span class="hljs-comment">// 每次 poll：推进到下一个 await 点，或者返回 Pending</span><br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>关键点</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>状态机</td>
+<td>每个 <code>.await</code> 是一个状态切换点</td>
+</tr>
+<tr>
+<td>惰性</td>
+<td>创建 <code>Future</code> 不执行任何代码</td>
+</tr>
+<tr>
+<td><code>poll</code> 驱动</td>
+<td>只有 <code>poll</code> 才推进，返回 <code>Pending</code> 表示「还没好」</td>
+</tr>
+<tr>
+<td><code>Pin</code></td>
+<td>状态机可能自引用，所以不能随便移动</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>async fn</code> 调用后什么都没发生</strong>。<code>let f = fetch_two(1, 2);</code> 只是构造了一个状态机，<code>step_one</code> 一行都没跑。必须 <code>.await</code> 或者 <code>tokio::spawn(f)</code> 才真正开始。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>Pin</code> 不是装饰</strong>。<code>async</code> 块内部的局部变量可能被后续状态引用（自引用结构），移动会导致悬垂指针。<code>Pin&lt;&amp;mut T&gt;</code> 就是在类型层面保证「这个值不会被移动」。</p>
+</blockquote>
+<h2 id="二、Future-trait-与执行器"><a href="#二、Future-trait-与执行器" class="headerlink" title="二、Future trait 与执行器"></a>二、<code>Future</code> trait 与执行器</h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs rust"><span class="hljs-keyword">pub</span> <span class="hljs-keyword">trait</span> <span class="hljs-title class_">Future</span> &#123;<br>    <span class="hljs-keyword">type</span> <span class="hljs-title class_">Output</span>;<br>    <span class="hljs-keyword">fn</span> <span class="hljs-title function_">poll</span>(<span class="hljs-keyword">self</span>: Pin&lt;&amp;<span class="hljs-keyword">mut</span> <span class="hljs-keyword">Self</span>&gt;, cx: &amp;<span class="hljs-keyword">mut</span> Context&lt;<span class="hljs-symbol">&#x27;_</span>&gt;) <span class="hljs-punctuation">-&gt;</span> Poll&lt;<span class="hljs-keyword">Self</span>::Output&gt;;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>一个极简执行器长这样：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><code class="hljs rust"><span class="hljs-keyword">use</span> std::future::Future;<br><span class="hljs-keyword">use</span> std::pin::Pin;<br><span class="hljs-keyword">use</span> std::sync::&#123;Arc, Mutex&#125;;<br><span class="hljs-keyword">use</span> std::task::&#123;Context, Poll, Wake, Waker&#125;;<br><br><span class="hljs-keyword">struct</span> <span class="hljs-title class_">MyWaker</span>;<br><span class="hljs-keyword">impl</span> <span class="hljs-title class_">Wake</span> <span class="hljs-keyword">for</span> <span class="hljs-title class_">MyWaker</span> &#123;<br>    <span class="hljs-keyword">fn</span> <span class="hljs-title function_">wake</span>(<span class="hljs-keyword">self</span>: Arc&lt;<span class="hljs-keyword">Self</span>&gt;) &#123; <span class="hljs-comment">/* 唤醒：把任务重新放回队列 */</span> &#125;<br>&#125;<br><br><span class="hljs-keyword">fn</span> <span class="hljs-title function_">block_on</span>&lt;F: Future&gt;(fut: F) <span class="hljs-punctuation">-&gt;</span> F::Output &#123;<br>    <span class="hljs-keyword">let</span> <span class="hljs-variable">waker</span> = Waker::<span class="hljs-title function_ invoke__">from</span>(Arc::<span class="hljs-title function_ invoke__">new</span>(MyWaker));<br>    <span class="hljs-keyword">let</span> <span class="hljs-keyword">mut </span><span class="hljs-variable">cx</span> = Context::<span class="hljs-title function_ invoke__">from_waker</span>(&amp;waker);<br>    <span class="hljs-keyword">let</span> <span class="hljs-keyword">mut </span><span class="hljs-variable">fut</span> = std::pin::pin!(fut);<br>    <span class="hljs-keyword">loop</span> &#123;<br>        <span class="hljs-keyword">match</span> fut.<span class="hljs-title function_ invoke__">as_mut</span>().<span class="hljs-title function_ invoke__">poll</span>(&amp;<span class="hljs-keyword">mut</span> cx) &#123;<br>            Poll::<span class="hljs-title function_ invoke__">Ready</span>(v) =&gt; <span class="hljs-keyword">return</span> v,<br>            Poll::Pending =&gt; std::thread::<span class="hljs-title function_ invoke__">yield_now</span>(),   <span class="hljs-comment">// 真实执行器会 park 等唤醒</span><br>        &#125;<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>角色</th>
+<th>职责</th>
+<th>谁提供</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Future</code></td>
+<td>描述「怎么推进」</td>
+<td>用户代码 &#x2F; <code>async</code></td>
+</tr>
+<tr>
+<td><code>Waker</code></td>
+<td>「好了，来 poll 我」的通知机制</td>
+<td>运行时（IO 驱动）</td>
+</tr>
+<tr>
+<td>Executor</td>
+<td>持有任务队列，反复 <code>poll</code></td>
+<td>tokio &#x2F; async-std &#x2F; smol</td>
+</tr>
+<tr>
+<td>Reactor</td>
+<td>监听 epoll&#x2F;kqueue，就绪时 <code>wake</code></td>
+<td>tokio 的 IO driver</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>Rust 标准库没有异步运行时</strong>。<code>std::future::Future</code> 只是协议，<code>block_on</code>、定时器、TCP 全在 tokio 这类库里。这也是为什么「Rust 异步」的学习曲线陡 —— 你得同时学语言特性和运行时。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>Poll::Pending</code> 前必须注册 waker</strong>。如果返回 <code>Pending</code> 却没人记住这个 <code>Waker</code>，任务就永远不会被唤醒 —— 表现为「程序挂住，CPU 为 0」。这是手写 <code>Future</code> 最常见的错误。</p>
+</blockquote>
+<h2 id="三、tokio-的运行时结构"><a href="#三、tokio-的运行时结构" class="headerlink" title="三、tokio 的运行时结构"></a>三、tokio 的运行时结构</h2><table>
+<thead>
+<tr>
+<th>组件</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>多线程调度器</td>
+<td>N 个 worker 线程共享一个任务队列（work-stealing）</td>
+</tr>
+<tr>
+<td>当前线程调度器</td>
+<td>单线程，适合 <code>!Send</code> 任务</td>
+</tr>
+<tr>
+<td>IO driver</td>
+<td>基于 epoll&#x2F;kqueue&#x2F;IOCP，就绪时唤醒对应任务</td>
+</tr>
+<tr>
+<td>时间轮</td>
+<td>管理 <code>sleep</code> &#x2F; <code>timeout</code>，避免每个定时器一个线程</td>
+</tr>
+<tr>
+<td>阻塞线程池</td>
+<td><code>spawn_blocking</code> 的专用池，默认 512 线程</td>
+</tr>
+</tbody></table>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs rust"><span class="hljs-comment">// 多线程运行时（默认）</span><br><span class="hljs-meta">#[tokio::main]</span><br><span class="hljs-keyword">async</span> <span class="hljs-keyword">fn</span> <span class="hljs-title function_">main</span>() &#123; <span class="hljs-comment">/* worker 数 = CPU 核数 */</span> &#125;<br><br><span class="hljs-comment">// 单线程运行时（测试、!Send 场景）</span><br><span class="hljs-meta">#[tokio::main(flavor = <span class="hljs-string">&quot;current_thread&quot;</span>)]</span><br><span class="hljs-keyword">async</span> <span class="hljs-keyword">fn</span> <span class="hljs-title function_">main</span>() &#123; &#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>#[tokio::main]</code> 只是 <code>Runtime::new().block_on(...)</code> 的语法糖</strong>。在异步上下文里再调 <code>block_on</code> 会 panic（<code>Cannot start a runtime from within a runtime</code>）。需要同步调异步，用 <code>spawn_blocking</code> + <code>Handle::block_on</code>，或者干脆把那段逻辑改成异步。</p>
+</blockquote>
+<h2 id="四、Send-报错：跨-await-持有了非-Send"><a href="#四、Send-报错：跨-await-持有了非-Send" class="headerlink" title="四、Send 报错：跨 .await 持有了非 Send"></a>四、<code>Send</code> 报错：跨 <code>.await</code> 持有了非 <code>Send</code></h2><p>这是异步 Rust 最高频的编译错误：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs rust"><span class="hljs-keyword">async</span> <span class="hljs-keyword">fn</span> <span class="hljs-title function_">bad</span>(m: Arc&lt;Mutex&lt;<span class="hljs-type">i32</span>&gt;&gt;) &#123;<br>    <span class="hljs-keyword">let</span> <span class="hljs-variable">guard</span> = m.<span class="hljs-title function_ invoke__">lock</span>().<span class="hljs-title function_ invoke__">unwrap</span>();   <span class="hljs-comment">// MutexGuard: !Send</span><br>    tokio::time::<span class="hljs-title function_ invoke__">sleep</span>(Duration::<span class="hljs-title function_ invoke__">from_secs</span>(<span class="hljs-number">1</span>)).<span class="hljs-keyword">await</span>;  <span class="hljs-comment">// ✗ 跨 await 持有</span><br>    <span class="hljs-built_in">println!</span>(<span class="hljs-string">&quot;&#123;&#125;&quot;</span>, *guard);<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>编译器会说 <code>future cannot be sent between threads safely</code>。原因：<code>.await</code> 处状态机的局部变量会被存进 Future 结构体，而 <code>spawn</code> 要求 <code>Future: Send</code>。</p>
+<table>
+<thead>
+<tr>
+<th>修法</th>
+<th>做法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>缩小作用域</td>
+<td>用完立刻 <code>drop(guard)</code>，再 <code>.await</code></td>
+</tr>
+<tr>
+<td>换 <code>tokio::sync::Mutex</code></td>
+<td>它的 guard 是 <code>Send</code>（但锁是异步的）</td>
+</tr>
+<tr>
+<td>用 <code>std::sync::Mutex</code> 只做短临界区</td>
+<td>别在锁里做 IO</td>
+</tr>
+<tr>
+<td>不 <code>spawn</code>，用 <code>join!</code></td>
+<td>同线程内并发，不要求 <code>Send</code></td>
+</tr>
+</tbody></table>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs rust"><span class="hljs-keyword">async</span> <span class="hljs-keyword">fn</span> <span class="hljs-title function_">good</span>(m: Arc&lt;Mutex&lt;<span class="hljs-type">i32</span>&gt;&gt;) &#123;<br>    <span class="hljs-keyword">let</span> <span class="hljs-variable">v</span> = &#123; <span class="hljs-keyword">let</span> <span class="hljs-variable">g</span> = m.<span class="hljs-title function_ invoke__">lock</span>().<span class="hljs-title function_ invoke__">unwrap</span>(); *g &#125;;   <span class="hljs-comment">// 临界区结束，guard 已 drop</span><br>    tokio::time::<span class="hljs-title function_ invoke__">sleep</span>(Duration::<span class="hljs-title function_ invoke__">from_secs</span>(<span class="hljs-number">1</span>)).<span class="hljs-keyword">await</span>;<br>    <span class="hljs-built_in">println!</span>(<span class="hljs-string">&quot;&#123;v&#125;&quot;</span>);<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>std::sync::Mutex</code> 不是不能用</strong>，而是<strong>不能跨 <code>.await</code> 持有</strong>。它比 <code>tokio::sync::Mutex</code> 快得多，短临界区（几微秒）就该用它。只有在锁内需要 <code>.await</code> 时才换 tokio 版本。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ **报错位置经常指向 <code>spawn</code>，而不是真正的 <code>await</code>**。看到 <code>future cannot be sent</code> 时，去函数里找所有 <code>.await</code>，逐个检查之前是否有 <code>Rc</code>、<code>RefCell</code>、<code>MutexGuard</code>、<code>&amp;T</code>（非 <code>&#39;static</code> 引用）还活着。</p>
+</blockquote>
+<h2 id="五、阻塞是异步的头号杀手"><a href="#五、阻塞是异步的头号杀手" class="headerlink" title="五、阻塞是异步的头号杀手"></a>五、阻塞是异步的头号杀手</h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs rust"><span class="hljs-meta">#[tokio::main]</span><br><span class="hljs-keyword">async</span> <span class="hljs-keyword">fn</span> <span class="hljs-title function_">main</span>() &#123;<br>    <span class="hljs-comment">// ✗ 阻塞整个 worker 线程</span><br>    <span class="hljs-keyword">let</span> <span class="hljs-variable">data</span> = std::fs::<span class="hljs-title function_ invoke__">read_to_string</span>(<span class="hljs-string">&quot;big.txt&quot;</span>).<span class="hljs-title function_ invoke__">unwrap</span>();<br><br>    <span class="hljs-comment">// ✓ 丢到阻塞池</span><br>    <span class="hljs-keyword">let</span> <span class="hljs-variable">data</span> = tokio::task::<span class="hljs-title function_ invoke__">spawn_blocking</span>(|| std::fs::<span class="hljs-title function_ invoke__">read_to_string</span>(<span class="hljs-string">&quot;big.txt&quot;</span>))<br>        .<span class="hljs-keyword">await</span>.<span class="hljs-title function_ invoke__">unwrap</span>().<span class="hljs-title function_ invoke__">unwrap</span>();<br><br>    <span class="hljs-comment">// ✓ 或者用 tokio 的异步版本</span><br>    <span class="hljs-keyword">let</span> <span class="hljs-variable">data</span> = tokio::fs::<span class="hljs-title function_ invoke__">read_to_string</span>(<span class="hljs-string">&quot;big.txt&quot;</span>).<span class="hljs-keyword">await</span>.<span class="hljs-title function_ invoke__">unwrap</span>();<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>阻塞操作</th>
+<th>后果</th>
+<th>正确做法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>std::fs::*</code></td>
+<td>卡住一个 worker</td>
+<td><code>tokio::fs</code> 或 <code>spawn_blocking</code></td>
+</tr>
+<tr>
+<td><code>reqwest::blocking</code></td>
+<td>同上，且会 panic</td>
+<td><code>reqwest</code> 异步版</td>
+</tr>
+<tr>
+<td>CPU 密集计算</td>
+<td>卡住 worker 数百毫秒</td>
+<td><code>spawn_blocking</code> 或 <code>rayon</code></td>
+</tr>
+<tr>
+<td><code>std::thread::sleep</code></td>
+<td>卡住 worker</td>
+<td><code>tokio::time::sleep</code></td>
+</tr>
+<tr>
+<td>同步 <code>Mutex</code> 长临界区</td>
+<td>其他任务排队</td>
+<td>缩短临界区</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>tokio 默认 worker 数 &#x3D; CPU 核数</strong>。8 核机器上只要 8 个任务同时做同步阻塞，整个运行时就会「假死」—— 表现是 QPS 骤降但 CPU 不高，非常难查。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ **<code>tokio::fs</code> 内部其实就是 <code>spawn_blocking</code>**，不是真正的 IO 多路复用（Linux 上文件 IO 不支持 epoll）。所以大量文件操作时，阻塞池也会被打满，要留意 <code>spawn_blocking</code> 的队列长度。</p>
+</blockquote>
+<h2 id="六、结构化并发：join-select-spawn"><a href="#六、结构化并发：join-select-spawn" class="headerlink" title="六、结构化并发：join &#x2F; select &#x2F; spawn"></a>六、结构化并发：<code>join</code> &#x2F; <code>select</code> &#x2F; <code>spawn</code></h2><table>
+<thead>
+<tr>
+<th>API</th>
+<th>语义</th>
+<th>取消行为</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>join!</code></td>
+<td>并发等待全部完成</td>
+<td>任一 panic 会传播</td>
+</tr>
+<tr>
+<td><code>try_join!</code></td>
+<td>并发，任一失败即返回</td>
+<td>其余被 drop（取消）</td>
+</tr>
+<tr>
+<td><code>select!</code></td>
+<td>等第一个完成</td>
+<td><strong>其余分支被取消</strong></td>
+</tr>
+<tr>
+<td><code>spawn</code></td>
+<td>独立任务，detached</td>
+<td>主任务结束不影响它</td>
+</tr>
+<tr>
+<td><code>JoinSet</code></td>
+<td>管理一组任务</td>
+<td>可整体取消、可收集结果</td>
+</tr>
+</tbody></table>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs rust"><span class="hljs-keyword">use</span> tokio::time::&#123;sleep, timeout, Duration&#125;;<br><br><span class="hljs-keyword">async</span> <span class="hljs-keyword">fn</span> <span class="hljs-title function_">race</span>() &#123;<br>    tokio::<span class="hljs-built_in">select!</span> &#123;<br>        v = <span class="hljs-title function_ invoke__">slow_query</span>() =&gt; <span class="hljs-built_in">println!</span>(<span class="hljs-string">&quot;query: &#123;v&#125;&quot;</span>),<br>        _ = <span class="hljs-title function_ invoke__">sleep</span>(Duration::<span class="hljs-title function_ invoke__">from_secs</span>(<span class="hljs-number">3</span>)) =&gt; <span class="hljs-built_in">println!</span>(<span class="hljs-string">&quot;超时&quot;</span>),<br>    &#125;   <span class="hljs-comment">// slow_query 在这里被 drop，即取消</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>select!</code> 的取消是「drop future」</strong>。如果被取消的分支里有 <code>spawn</code> 出去的子任务，那些子任务<strong>不会</strong>被取消，会继续在后台跑。要级联取消，用 <code>JoinSet</code> 或 <code>CancellationToken</code>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>select!</code> 默认随机选择就绪分支</strong>（公平），但<strong>不是所有分支都会被 poll</strong> —— 一旦某个分支先完成，其余分支的 future 直接被丢弃。所以分支里不要放「有副作用且必须完成」的操作。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>spawn</code> 出去的任务不会随主任务结束而终止</strong>。<code>main</code> 返回时运行时关闭，这些任务被强制丢弃 —— 如果它们正在写文件，可能留下半个文件。需要优雅退出就用 <code>JoinSet</code> 或 <code>CancellationToken</code> + <code>select!</code>。</p>
+</blockquote>
+<h2 id="七、async-trait-与-impl-Trait"><a href="#七、async-trait-与-impl-Trait" class="headerlink" title="七、async trait 与 impl Trait"></a>七、<code>async</code> trait 与 <code>impl Trait</code></h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs rust"><span class="hljs-comment">// Rust 1.75+：trait 里可以直接写 async fn（RPITIT）</span><br><span class="hljs-keyword">trait</span> <span class="hljs-title class_">Repo</span> &#123;<br>    <span class="hljs-keyword">async</span> <span class="hljs-keyword">fn</span> <span class="hljs-title function_">get</span>(&amp;<span class="hljs-keyword">self</span>, id: <span class="hljs-type">u64</span>) <span class="hljs-punctuation">-&gt;</span> <span class="hljs-type">Option</span>&lt;<span class="hljs-type">String</span>&gt;;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>限制</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>不是对象安全</td>
+<td><code>Box&lt;dyn Repo&gt;</code> 编译不过</td>
+</tr>
+<tr>
+<td>需要 <code>Send</code> 边界时麻烦</td>
+<td>用 <code>trait Repo: Send</code> 或 <code>#[async_trait]</code></td>
+</tr>
+<tr>
+<td>返回类型无法命名</td>
+<td>只能 <code>impl Future</code>，不能写具体类型</td>
+</tr>
+</tbody></table>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs rust"><span class="hljs-comment">// 需要 dyn 时用 async-trait（装箱，有额外开销）</span><br><span class="hljs-keyword">use</span> async_trait::async_trait;<br><br><span class="hljs-meta">#[async_trait]</span><br><span class="hljs-keyword">trait</span> <span class="hljs-title class_">Repo</span>: <span class="hljs-built_in">Send</span> + <span class="hljs-built_in">Sync</span> &#123;<br>    <span class="hljs-keyword">async</span> <span class="hljs-keyword">fn</span> <span class="hljs-title function_">get</span>(&amp;<span class="hljs-keyword">self</span>, id: <span class="hljs-type">u64</span>) <span class="hljs-punctuation">-&gt;</span> <span class="hljs-type">Option</span>&lt;<span class="hljs-type">String</span>&gt;;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>#[async_trait]</code> 每个方法都会 <code>Box::pin</code> 一次</strong>，在热路径上（每请求调用几十次）会有可测量的开销。能用原生 <code>async fn in trait</code> 就别用它。</p>
+</blockquote>
+<h2 id="八、常见性能陷阱"><a href="#八、常见性能陷阱" class="headerlink" title="八、常见性能陷阱"></a>八、常见性能陷阱</h2><table>
+<thead>
+<tr>
+<th>现象</th>
+<th>原因</th>
+<th>修法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>异步比同步还慢</td>
+<td>小任务 <code>spawn</code> 开销超过收益</td>
+<td>批量合并，或直接顺序执行</td>
+</tr>
+<tr>
+<td>CPU 不高但延迟大</td>
+<td>某处同步阻塞</td>
+<td>找 <code>std::</code> 调用，换 tokio 版</td>
+</tr>
+<tr>
+<td>内存持续上涨</td>
+<td>任务泄漏（spawn 后不回收）</td>
+<td><code>JoinSet</code> 管理生命周期</td>
+</tr>
+<tr>
+<td>定时器精度差</td>
+<td>tokio 时间轮精度约 1ms</td>
+<td>别依赖亚毫秒定时</td>
+</tr>
+<tr>
+<td>锁竞争严重</td>
+<td>全局 <code>Mutex</code></td>
+<td>分片锁 &#x2F; 无锁结构</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>tokio::spawn</code> 有成本</strong>（约几百纳秒 + 一次堆分配）。一个请求里 spawn 上千个小任务，开销可能超过实际工作。判断标准：任务耗时是否显著大于 1 微秒。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>#[tokio::main]</code> 的 worker 数不要盲目调大</strong>。超过 CPU 核数只会增加调度开销。IO 密集场景想提高并发，应该增大「同时在途的任务数」，而不是线程数。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 以为 <code>async fn</code> 调用即执行（实际要 <code>poll</code>）</li>
+<li><input disabled="" type="checkbox"> 手写 <code>Future</code> 返回 <code>Pending</code> 却没注册 waker，任务永久挂起</li>
+<li><input disabled="" type="checkbox"> 跨 <code>.await</code> 持有 <code>MutexGuard</code> &#x2F; <code>Rc</code> &#x2F; <code>RefCell</code>，<code>Send</code> 报错</li>
+<li><input disabled="" type="checkbox"> 在异步上下文里调 <code>block_on</code>，直接 panic</li>
+<li><input disabled="" type="checkbox"> 用 <code>std::fs</code> &#x2F; <code>reqwest::blocking</code> 卡死 worker</li>
+<li><input disabled="" type="checkbox"> CPU 密集任务不丢 <code>spawn_blocking</code></li>
+<li><input disabled="" type="checkbox"> 以为 <code>tokio::fs</code> 是真异步（内部仍是阻塞池）</li>
+<li><input disabled="" type="checkbox"> <code>select!</code> 分支里有必须完成的副作用操作</li>
+<li><input disabled="" type="checkbox"> <code>select!</code> 取消后子任务仍在后台跑</li>
+<li><input disabled="" type="checkbox"> <code>spawn</code> 的任务无人管理，泄漏</li>
+<li><input disabled="" type="checkbox"> <code>main</code> 结束时后台任务正在写文件，留下半成品</li>
+<li><input disabled="" type="checkbox"> 用 <code>#[async_trait]</code> 在热路径上，每调用一次装箱一次</li>
+<li><input disabled="" type="checkbox"> 每个请求 spawn 上千个小任务，开销超过收益</li>
+<li><input disabled="" type="checkbox"> 盲目调大 worker 线程数，调度开销反增</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><ul>
+<li><a target="_blank" rel="noopener" href="https://rust-lang.github.io/async-book/">Asynchronous Programming in Rust</a></li>
+<li><a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/future/trait.Future.html">std · <code>Future</code></a></li>
+<li><a target="_blank" rel="noopener" href="https://doc.rust-lang.org/std/pin/index.html">std · <code>Pin</code></a></li>
+<li><a target="_blank" rel="noopener" href="https://tokio.rs/tokio/tutorial">tokio · 教程</a></li>
+<li><a target="_blank" rel="noopener" href="https://docs.rs/tokio/latest/tokio/macro.select.html">tokio · <code>select!</code></a></li>
+<li><a target="_blank" rel="noopener" href="https://docs.rs/tokio/latest/tokio/task/fn.spawn_blocking.html">tokio · <code>spawn_blocking</code></a></li>
+<li><a target="_blank" rel="noopener" href="https://blog.rust-lang.org/2023/12/21/async-fn-rpit-in-traits.html">Rust Blog · async fn in traits</a></li>
+<li><a target="_blank" rel="noopener" href="https://docs.rs/async-trait/">async-trait crate</a></li>
+</ul>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/rust/" class="category-chain-item">rust</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/rust/" class="print-no-link">#rust</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 125 · Rust（五）：异步运行时、Future 与 tokio 内部</div>
+      <div>https://ethan-iopasd.github.io/2026/10/19/每日技术博客125-Rust异步运行时与Future/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月19日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/19/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2120-Rust%E5%AE%8F%E6%9E%84%E5%BB%BA%E8%84%9A%E6%9C%AC%E4%B8%8Eunsafe%E8%BE%B9%E7%95%8C/" title="每日技术博客 120 · Rust（四）：宏、构建脚本与 unsafe 边界">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 120 · Rust（四）：宏、构建脚本与 unsafe 边界</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

@@ -1,0 +1,1054 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-19 · 第 122 篇 AI 系列第二篇。预训练学「世界长什么样」，微调学「任务怎么干」，对齐学「按什么规矩干」—— 三段目标不同、数据量差三个数量级、失败模式也完全不同。  📚 AI 系列目录   章节 主题 状态    一 Transformer 与注意力机制 已发布   二 预训练、微调与对齐 本篇   三 RAG 检索增强生成 已发布   四 Age">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 122 · AI（二）：预训练、微调与对齐">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/19/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2122-%E9%A2%84%E8%AE%AD%E7%BB%83%E5%BE%AE%E8%B0%83%E4%B8%8E%E5%AF%B9%E9%BD%90/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-19 · 第 122 篇 AI 系列第二篇。预训练学「世界长什么样」，微调学「任务怎么干」，对齐学「按什么规矩干」—— 三段目标不同、数据量差三个数量级、失败模式也完全不同。  📚 AI 系列目录   章节 主题 状态    一 Transformer 与注意力机制 已发布   二 预训练、微调与对齐 本篇   三 RAG 检索增强生成 已发布   四 Age">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-19T10:55:00.000Z">
+<meta property="article:modified_time" content="2026-10-19T09:58:45.006Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="ai">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 122 · AI（二）：预训练、微调与对齐 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 122 · AI（二）：预训练、微调与对齐"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-19 18:55" pubdate>
+          2026年10月19日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.1k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          18 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 122 · AI（二）：预训练、微调与对齐</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-19 · 第 122 篇</p>
+<p>AI 系列第二篇。预训练学「世界长什么样」，微调学「任务怎么干」，对齐学「按什么规矩干」—— 三段目标不同、数据量差三个数量级、失败模式也完全不同。</p>
+</blockquote>
+<h2 id="📚-AI-系列目录"><a href="#📚-AI-系列目录" class="headerlink" title="📚 AI 系列目录"></a>📚 AI 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>Transformer 与注意力机制</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>预训练、微调与对齐</td>
+<td><strong>本篇</strong></td>
+</tr>
+<tr>
+<td>三</td>
+<td>RAG 检索增强生成</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td>Agent、工具调用与上下文工程</td>
+<td>已发布</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>一个 LLM 的最终行为 &#x3D; 预训练给的底座 + SFT 给的格式 + 偏好对齐给的倾向。</strong> 改底座要几千张卡，改 SFT 要几万条样本，改对齐偏好只需要几百组对比 —— 但<strong>没有任何一步能修掉底座里不存在的能力</strong>。</p>
+<h2 id="一、三段式训练管线"><a href="#一、三段式训练管线" class="headerlink" title="一、三段式训练管线"></a>一、三段式训练管线</h2><table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>目标</th>
+<th>数据规模</th>
+<th>算力占比</th>
+<th>典型方法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>预训练（Pre-training）</td>
+<td>学语言与世界知识</td>
+<td>万亿 token</td>
+<td>~95%</td>
+<td>自回归下一 token 预测</td>
+</tr>
+<tr>
+<td>监督微调（SFT）</td>
+<td>学会按指令组织输出</td>
+<td>万~百万条</td>
+<td>~1%</td>
+<td>指令-回答对，只算回答的 loss</td>
+</tr>
+<tr>
+<td>偏好对齐（RLHF &#x2F; DPO）</td>
+<td>学会「更好」的回答</td>
+<td>千~十万组对比</td>
+<td>~4%</td>
+<td>PPO &#x2F; DPO &#x2F; KTO</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>顺序不能反</strong>。先对齐再微调会让模型「遗忘对齐」，这叫 <strong>对齐税（alignment tax）</strong>；先微调再预训练则会把微调学到的格式冲掉。实践中 SFT 与 RLHF 常交替多轮，但每一轮都必须在前一轮基础上做。</p>
+</blockquote>
+<h2 id="二、预训练：目标函数简单，工程极难"><a href="#二、预训练：目标函数简单，工程极难" class="headerlink" title="二、预训练：目标函数简单，工程极难"></a>二、预训练：目标函数简单，工程极难</h2><p>自回归语言模型的目标就一个：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs text">L = -Σ log P(token_t | token_&lt;t)<br></code></pre></td></tr></table></figure>
+
+<p>即「给定前文，预测下一个 token」，全序列并行计算，每个位置都是一个训练样本。</p>
+<table>
+<thead>
+<tr>
+<th>要点</th>
+<th>做法</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>分词</td>
+<td>BPE &#x2F; SentencePiece</td>
+<td>词表 32K~150K，直接影响中文效率</td>
+</tr>
+<tr>
+<td>序列打包</td>
+<td>多条短样本拼成定长序列</td>
+<td>避免 padding 浪费</td>
+</tr>
+<tr>
+<td>学习率</td>
+<td>warmup + cosine decay</td>
+<td>峰值通常 1e-4 ~ 3e-4</td>
+</tr>
+<tr>
+<td>精度</td>
+<td>BF16 &#x2F; FP8</td>
+<td>FP16 需要 loss scaling，BF16 不用</td>
+</tr>
+<tr>
+<td>并行</td>
+<td>数据 &#x2F; 张量 &#x2F; 流水 &#x2F; 序列并行</td>
+<td>大模型必须组合使用</td>
+</tr>
+<tr>
+<td>显存</td>
+<td>ZeRO &#x2F; FSDP 分片优化器状态</td>
+<td>7B 全量训练至少 8×80G</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># 关键：label 与 input 错一位</span><br>input_ids = batch[<span class="hljs-string">&quot;input_ids&quot;</span>][:, :-<span class="hljs-number">1</span>]<br>labels = batch[<span class="hljs-string">&quot;input_ids&quot;</span>][:, <span class="hljs-number">1</span>:]<br>loss = F.cross_entropy(logits.view(-<span class="hljs-number">1</span>, vocab), labels.reshape(-<span class="hljs-number">1</span>), ignore_index=-<span class="hljs-number">100</span>)<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>ignore_index=-100</code> 是 PyTorch <code>CrossEntropyLoss</code> 的默认值</strong>，padding 位置必须设成它才会被跳过。忘了设会把 padding 也算进 loss，模型学会「预测 padding」。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>因果 mask 是下三角</strong>。SFT 时如果输入是 <code>[prompt][answer]</code>，prompt 部分也要 mask 掉 loss（设 <code>-100</code>），否则模型会去学「复述用户的问题」，浪费容量且容易导致复读。</p>
+</blockquote>
+<h2 id="三、SFT：把「续写」掰成「对话」"><a href="#三、SFT：把「续写」掰成「对话」" class="headerlink" title="三、SFT：把「续写」掰成「对话」"></a>三、SFT：把「续写」掰成「对话」</h2><p>预训练模型只会续写，SFT 教它识别「该我说话了」：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs text">&lt;|user|&gt;把这段话翻译成英文：今天天气不错&lt;|end|&gt;<br>&lt;|assistant|&gt;The weather is nice today.&lt;|end|&gt;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>决策点</th>
+<th>常见选择</th>
+<th>影响</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>只训 assistant 段</td>
+<td>loss mask 掉 user 段</td>
+<td>标准做法，省算力</td>
+</tr>
+<tr>
+<td>全序列训练</td>
+<td>不 mask</td>
+<td>会让模型学「扮演用户」，可能更会推理</td>
+</tr>
+<tr>
+<td>模板一致性</td>
+<td>训练与推理用同一套特殊 token</td>
+<td><strong>不一致会导致格式崩坏</strong></td>
+</tr>
+<tr>
+<td>数据配比</td>
+<td>通用 + 领域 + 安全 混合</td>
+<td>决定能力分布</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">def</span> <span class="hljs-title function_">build_labels</span>(<span class="hljs-params">input_ids, assistant_spans, ignore=-<span class="hljs-number">100</span></span>):<br>    labels = torch.full_like(input_ids, ignore)<br>    <span class="hljs-keyword">for</span> start, end <span class="hljs-keyword">in</span> assistant_spans:<br>        labels[start:end] = input_ids[start:end]<br>    <span class="hljs-keyword">return</span> labels<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>SFT 学的是格式，不是知识</strong>。想靠 SFT 灌入新知识，效果远不如 RAG 或继续预训练。SFT 数据超过几万条后收益迅速递减，<strong>数据质量比数量重要一个量级</strong>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>灾难性遗忘</strong>是 SFT 的头号风险。只训领域数据几百步，通用能力就明显退化。缓解手段：混入 5%~20% 的通用数据、降低学习率（1e-5 ~ 2e-5）、只训部分层。</p>
+</blockquote>
+<h2 id="四、LoRA：微调的默认姿势"><a href="#四、LoRA：微调的默认姿势" class="headerlink" title="四、LoRA：微调的默认姿势"></a>四、LoRA：微调的默认姿势</h2><p>全量微调 7B 模型要 100GB+ 显存。LoRA 冻结原权重，只训练一对低秩矩阵：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs text">W&#x27; = W + (α / r) · B · A        A: (r, d)  B: (d, r)   r &lt;&lt; d<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">class</span> <span class="hljs-title class_">LoRALinear</span>(torch.nn.Module):<br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">__init__</span>(<span class="hljs-params">self, base, r=<span class="hljs-number">8</span>, alpha=<span class="hljs-number">16</span></span>):<br>        <span class="hljs-built_in">super</span>().__init__()<br>        <span class="hljs-variable language_">self</span>.base = base                       <span class="hljs-comment"># 冻结</span><br>        <span class="hljs-keyword">for</span> p <span class="hljs-keyword">in</span> <span class="hljs-variable language_">self</span>.base.parameters():<br>            p.requires_grad = <span class="hljs-literal">False</span><br>        d_in, d_out = base.in_features, base.out_features<br>        <span class="hljs-variable language_">self</span>.A = torch.nn.Parameter(torch.randn(r, d_in) * <span class="hljs-number">0.01</span>)<br>        <span class="hljs-variable language_">self</span>.B = torch.nn.Parameter(torch.zeros(d_out, r))   <span class="hljs-comment"># 零初始化</span><br>        <span class="hljs-variable language_">self</span>.scale = alpha / r<br><br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">forward</span>(<span class="hljs-params">self, x</span>):<br>        <span class="hljs-keyword">return</span> <span class="hljs-variable language_">self</span>.base(x) + <span class="hljs-variable language_">self</span>.scale * (x @ <span class="hljs-variable language_">self</span>.A.T @ <span class="hljs-variable language_">self</span>.B.T)<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>典型值</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>r</code>（秩）</td>
+<td>8 &#x2F; 16 &#x2F; 64</td>
+<td>越大容量越强，显存也越大</td>
+</tr>
+<tr>
+<td><code>alpha</code></td>
+<td>16 &#x2F; 32</td>
+<td>缩放系数，实际学习率 ≈ <code>alpha/r</code></td>
+</tr>
+<tr>
+<td><code>target_modules</code></td>
+<td><code>q_proj,k_proj,v_proj,o_proj</code></td>
+<td>只挂注意力通常够用</td>
+</tr>
+<tr>
+<td><code>dropout</code></td>
+<td>0.05</td>
+<td>小数据集防过拟合</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>B</code> 必须零初始化</strong>。这样初始时 <code>B·A = 0</code>，模型行为与原始完全一致，训练从一开始就是「在原模型基础上微调」，而不是「先破坏再学」。<code>A</code> 用随机小值即可。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>alpha/r</code> 是等效学习率</strong>。把 <code>r</code> 从 8 调到 64 而不动 <code>alpha</code>，等效学习率降了 8 倍，训练会明显变慢 —— 调 <code>r</code> 时记得同步调 <code>alpha</code>。</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>显存</th>
+<th>效果</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>全量微调</td>
+<td>最高</td>
+<td>最好</td>
+<td>数据充足、有卡</td>
+</tr>
+<tr>
+<td>LoRA</td>
+<td>低（~1&#x2F;4）</td>
+<td>接近全量</td>
+<td>默认选择</td>
+</tr>
+<tr>
+<td>QLoRA</td>
+<td>极低（4bit 量化底座）</td>
+<td>略低于 LoRA</td>
+<td>单卡 24G 微调 7B</td>
+</tr>
+<tr>
+<td>Prefix &#x2F; P-Tuning</td>
+<td>极低</td>
+<td>较弱</td>
+<td>分类、抽取类任务</td>
+</tr>
+</tbody></table>
+<h2 id="五、RLHF：用人类偏好当奖励"><a href="#五、RLHF：用人类偏好当奖励" class="headerlink" title="五、RLHF：用人类偏好当奖励"></a>五、RLHF：用人类偏好当奖励</h2><p>SFT 之后模型「会答」，但不知道「哪种答法更好」。RLHF 三步：</p>
+<table>
+<thead>
+<tr>
+<th>步骤</th>
+<th>产物</th>
+<th>数据</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1. 训奖励模型（RM）</td>
+<td>一个打分器</td>
+<td>人类对同一问题的多个回答排序</td>
+</tr>
+<tr>
+<td>2. PPO 优化</td>
+<td>策略模型</td>
+<td>RM 实时打分</td>
+</tr>
+<tr>
+<td>3. 加 KL 约束</td>
+<td>防跑偏</td>
+<td>与 SFT 模型的 KL 散度惩罚</td>
+</tr>
+</tbody></table>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs text">reward = RM(response) - β · KL(policy ‖ sft_reference)<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>KL 惩罚不能省</strong>。没有它，策略会找到 RM 的漏洞疯狂刷分（reward hacking），输出退化成「人类看着像好答案但实际空洞」的文本。<code>β</code> 典型值 0.01~0.1。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>PPO 需要四个模型同时驻留</strong>：策略、参考、奖励、价值。7B 模型下显存约 4 倍，工程复杂度高，这也是 DPO 流行的直接原因。</p>
+</blockquote>
+<h2 id="六、DPO：把-RL-变成分类问题"><a href="#六、DPO：把-RL-变成分类问题" class="headerlink" title="六、DPO：把 RL 变成分类问题"></a>六、DPO：把 RL 变成分类问题</h2><p>DPO 绕开奖励模型，直接用偏好对做监督：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs text">L = -log σ( β·[ log π(y_w|x)/π_ref(y_w|x) - log π(y_l|x)/π_ref(y_l|x) ] )<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">def</span> <span class="hljs-title function_">dpo_loss</span>(<span class="hljs-params">policy, ref, batch, beta=<span class="hljs-number">0.1</span></span>):<br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">logp</span>(<span class="hljs-params">model, ids, mask</span>):<br>        logits = model(ids).logits[:, :-<span class="hljs-number">1</span>]<br>        lp = F.log_softmax(logits, -<span class="hljs-number">1</span>)<br>        tgt = ids[:, <span class="hljs-number">1</span>:].unsqueeze(-<span class="hljs-number">1</span>)<br>        <span class="hljs-keyword">return</span> (lp.gather(-<span class="hljs-number">1</span>, tgt).squeeze(-<span class="hljs-number">1</span>) * mask[:, <span class="hljs-number">1</span>:]).<span class="hljs-built_in">sum</span>(-<span class="hljs-number">1</span>)<br><br>    lw = logp(policy, batch[<span class="hljs-string">&quot;win&quot;</span>], batch[<span class="hljs-string">&quot;win_mask&quot;</span>]) - logp(ref, batch[<span class="hljs-string">&quot;win&quot;</span>], batch[<span class="hljs-string">&quot;win_mask&quot;</span>])<br>    ll = logp(policy, batch[<span class="hljs-string">&quot;lose&quot;</span>], batch[<span class="hljs-string">&quot;lose_mask&quot;</span>]) - logp(ref, batch[<span class="hljs-string">&quot;lose&quot;</span>], batch[<span class="hljs-string">&quot;lose_mask&quot;</span>])<br>    <span class="hljs-keyword">return</span> -F.logsigmoid(beta * (lw - ll)).mean()<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>RLHF (PPO)</th>
+<th>DPO</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>需要奖励模型</td>
+<td>是</td>
+<td>否</td>
+</tr>
+<tr>
+<td>训练稳定性</td>
+<td>差，超参敏感</td>
+<td>好，像普通 SFT</td>
+</tr>
+<tr>
+<td>显存</td>
+<td>4 个模型</td>
+<td>2 个模型</td>
+</tr>
+<tr>
+<td>在线采样</td>
+<td>是（on-policy）</td>
+<td>否（off-policy）</td>
+</tr>
+<tr>
+<td>上限</td>
+<td>更高</td>
+<td>略低，但足够</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>DPO 对偏好数据质量极度敏感</strong>。标注噪声会被直接学进去，且没有奖励模型这层「平滑」。实践中 DPO 之前通常先做一轮 SFT，否则 <code>π_ref</code> 太差会让 loss 无意义。</p>
+</blockquote>
+<h2 id="七、效果与成本对照"><a href="#七、效果与成本对照" class="headerlink" title="七、效果与成本对照"></a>七、效果与成本对照</h2><table>
+<thead>
+<tr>
+<th>想解决的问题</th>
+<th>首选方案</th>
+<th>成本</th>
+<th>风险</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>模型不知道内部文档</td>
+<td>RAG</td>
+<td>最低</td>
+<td>检索质量</td>
+</tr>
+<tr>
+<td>输出格式不对</td>
+<td>SFT（几百条）</td>
+<td>低</td>
+<td>过拟合</td>
+</tr>
+<tr>
+<td>领域术语不熟</td>
+<td>继续预训练 &#x2F; LoRA</td>
+<td>中</td>
+<td>遗忘</td>
+</tr>
+<tr>
+<td>回答风格&#x2F;倾向不对</td>
+<td>DPO</td>
+<td>中</td>
+<td>偏好数据噪声</td>
+</tr>
+<tr>
+<td>推理能力不足</td>
+<td>换更大底座</td>
+<td>最高</td>
+<td>——</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>能力问题不要用对齐解决</strong>。模型根本不会的题，SFT 一万条也学不会，只会学会「假装会」。先确认是<strong>知识缺失</strong>（用 RAG）、<strong>格式缺失</strong>（用 SFT）还是<strong>底座能力不足</strong>（换模型）。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 用 SFT 灌知识，数据堆到十万条还是不会</li>
+<li><input disabled="" type="checkbox"> prompt 段没 mask loss，模型学会复述问题</li>
+<li><input disabled="" type="checkbox"> padding 没设 <code>ignore_index=-100</code>，loss 被稀释</li>
+<li><input disabled="" type="checkbox"> 训练&#x2F;推理的特殊 token 模板不一致，输出格式崩坏</li>
+<li><input disabled="" type="checkbox"> LoRA 的 <code>B</code> 没零初始化，训练初期性能断崖</li>
+<li><input disabled="" type="checkbox"> 只调 <code>r</code> 不调 <code>alpha</code>，等效学习率被悄悄改掉</li>
+<li><input disabled="" type="checkbox"> LoRA 只挂 <code>q_proj</code>，容量不够却以为是数据问题</li>
+<li><input disabled="" type="checkbox"> 灾难性遗忘：纯领域数据训几百步，通用能力退化</li>
+<li><input disabled="" type="checkbox"> RLHF 不加 KL 惩罚，reward hacking</li>
+<li><input disabled="" type="checkbox"> 以为 DPO 一定优于 RLHF（上限更低但更稳）</li>
+<li><input disabled="" type="checkbox"> 用噪声大的偏好数据跑 DPO，把错误偏好学死</li>
+<li><input disabled="" type="checkbox"> 想用对齐修掉底座根本没有的能力</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><ul>
+<li><a target="_blank" rel="noopener" href="https://arxiv.org/abs/2203.02155">Training Language Models to Follow Instructions with Human Feedback (InstructGPT)</a></li>
+<li><a target="_blank" rel="noopener" href="https://arxiv.org/abs/2106.09685">LoRA: Low-Rank Adaptation of Large Language Models</a></li>
+<li><a target="_blank" rel="noopener" href="https://arxiv.org/abs/2305.14314">QLoRA: Efficient Finetuning of Quantized LLMs</a></li>
+<li><a target="_blank" rel="noopener" href="https://arxiv.org/abs/2305.18290">Direct Preference Optimization</a></li>
+<li><a target="_blank" rel="noopener" href="https://huggingface.co/docs/peft/index">Hugging Face PEFT 文档</a></li>
+<li><a target="_blank" rel="noopener" href="https://huggingface.co/docs/trl/dpo_trainer">TRL · DPO Trainer</a></li>
+<li><a target="_blank" rel="noopener" href="https://arxiv.org/abs/2001.08361">Scaling Laws for Neural Language Models</a></li>
+</ul>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/ai/" class="category-chain-item">ai</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/ai/" class="print-no-link">#ai</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 122 · AI（二）：预训练、微调与对齐</div>
+      <div>https://ethan-iopasd.github.io/2026/10/19/每日技术博客122-预训练微调与对齐/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月19日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/19/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2121-Transformer%E4%B8%8E%E6%B3%A8%E6%84%8F%E5%8A%9B%E6%9C%BA%E5%88%B6/" title="每日技术博客 121 · AI（一）：Transformer 与注意力机制">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 121 · AI（一）：Transformer 与注意力机制</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2026/10/19/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2123-RAG%E6%A3%80%E7%B4%A2%E5%A2%9E%E5%BC%BA%E7%94%9F%E6%88%90/" title="每日技术博客 123 · AI（三）：RAG 检索增强生成">
+                        <span class="hidden-mobile">每日技术博客 123 · AI（三）：RAG 检索增强生成</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

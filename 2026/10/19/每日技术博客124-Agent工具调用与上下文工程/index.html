@@ -1,0 +1,1021 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-19 · 第 124 篇 AI 系列第四篇。Agent 不是「更聪明的模型」，而是「模型 + 循环 + 工具 + 状态」的一套运行时。真正难的不是让它调用工具，是让它在二十轮之后还记得自己要干什么。  📚 AI 系列目录   章节 主题 状态    一 Transformer 与注意力机制 已发布   二 预训练、微调与对齐 已发布   三 RAG 检索增强生">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 124 · AI（四）：Agent、工具调用与上下文工程">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/19/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2124-Agent%E5%B7%A5%E5%85%B7%E8%B0%83%E7%94%A8%E4%B8%8E%E4%B8%8A%E4%B8%8B%E6%96%87%E5%B7%A5%E7%A8%8B/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-19 · 第 124 篇 AI 系列第四篇。Agent 不是「更聪明的模型」，而是「模型 + 循环 + 工具 + 状态」的一套运行时。真正难的不是让它调用工具，是让它在二十轮之后还记得自己要干什么。  📚 AI 系列目录   章节 主题 状态    一 Transformer 与注意力机制 已发布   二 预训练、微调与对齐 已发布   三 RAG 检索增强生">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-19T11:25:00.000Z">
+<meta property="article:modified_time" content="2026-10-19T09:59:22.075Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="ai">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 124 · AI（四）：Agent、工具调用与上下文工程 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 124 · AI（四）：Agent、工具调用与上下文工程"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-19 19:25" pubdate>
+          2026年10月19日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.4k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          21 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 124 · AI（四）：Agent、工具调用与上下文工程</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-19 · 第 124 篇</p>
+<p>AI 系列第四篇。Agent 不是「更聪明的模型」，而是「模型 + 循环 + 工具 + 状态」的一套运行时。真正难的不是让它调用工具，是让它在二十轮之后还记得自己要干什么。</p>
+</blockquote>
+<h2 id="📚-AI-系列目录"><a href="#📚-AI-系列目录" class="headerlink" title="📚 AI 系列目录"></a>📚 AI 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>Transformer 与注意力机制</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>预训练、微调与对齐</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>RAG 检索增强生成</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td>Agent、工具调用与上下文工程</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>Agent 的可靠性 ≈ 单步成功率 ^ 步数。</strong> 单步 95% 的准确率跑 20 步，端到端只剩 36%。所以工程重点从来不是「让单步更强」，而是<strong>减少步数、缩小每步的决策空间、给失败留退路</strong>。</p>
+<h2 id="一、Agent-的最小构成"><a href="#一、Agent-的最小构成" class="headerlink" title="一、Agent 的最小构成"></a>一、Agent 的最小构成</h2><table>
+<thead>
+<tr>
+<th>组件</th>
+<th>作用</th>
+<th>缺了会怎样</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>模型（LLM）</td>
+<td>决策中枢</td>
+<td>——</td>
+</tr>
+<tr>
+<td>循环（Loop）</td>
+<td>反复「思考-行动-观察」</td>
+<td>一次性回答，无法多步</td>
+</tr>
+<tr>
+<td>工具（Tools）</td>
+<td>与外部世界交互</td>
+<td>只能空谈，无法查证与执行</td>
+</tr>
+<tr>
+<td>状态（State）</td>
+<td>记住已做过什么</td>
+<td>原地打转，重复调用</td>
+</tr>
+<tr>
+<td>终止条件</td>
+<td>知道何时停</td>
+<td>无限循环或过早放弃</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">def</span> <span class="hljs-title function_">agent_loop</span>(<span class="hljs-params">llm, tools, task, max_steps=<span class="hljs-number">10</span></span>):<br>    messages = [&#123;<span class="hljs-string">&quot;role&quot;</span>: <span class="hljs-string">&quot;user&quot;</span>, <span class="hljs-string">&quot;content&quot;</span>: task&#125;]<br>    <span class="hljs-keyword">for</span> step <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(max_steps):<br>        resp = llm.chat(messages, tools=tools)<br>        <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> resp.tool_calls:                 <span class="hljs-comment"># 模型给出最终答案</span><br>            <span class="hljs-keyword">return</span> resp.content<br>        <span class="hljs-keyword">for</span> call <span class="hljs-keyword">in</span> resp.tool_calls:<br>            result = dispatch(call, tools)      <span class="hljs-comment"># 执行工具</span><br>            messages.append(&#123;<span class="hljs-string">&quot;role&quot;</span>: <span class="hljs-string">&quot;tool&quot;</span>, <span class="hljs-string">&quot;tool_call_id&quot;</span>: call.<span class="hljs-built_in">id</span>,<br>                             <span class="hljs-string">&quot;content&quot;</span>: truncate(result, <span class="hljs-number">2000</span>)&#125;)<br>    <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;达到最大步数，未完成&quot;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>必须硬性限制步数</strong>。没有 <code>max_steps</code> 的 Agent 在工具返回空结果时会陷入死循环，一夜烧掉几百美元。生产环境还要加 token 预算和墙钟时间上限。</p>
+</blockquote>
+<h2 id="二、工具设计：Agent-成败的分水岭"><a href="#二、工具设计：Agent-成败的分水岭" class="headerlink" title="二、工具设计：Agent 成败的分水岭"></a>二、工具设计：Agent 成败的分水岭</h2><p>工具不是「把 API 包一层」就完事，它其实是<strong>给模型看的用户界面</strong>。</p>
+<table>
+<thead>
+<tr>
+<th>设计要点</th>
+<th>反例</th>
+<th>正例</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>名称自解释</td>
+<td><code>q1</code>、<code>do_it</code></td>
+<td><code>search_orders_by_date</code></td>
+</tr>
+<tr>
+<td>参数少而明确</td>
+<td>一个 <code>params: object</code></td>
+<td>三个具名参数，带类型和枚举</td>
+</tr>
+<tr>
+<td>描述写清边界</td>
+<td>「查询数据」</td>
+<td>「按日期查订单，仅支持近 90 天」</td>
+</tr>
+<tr>
+<td>返回结构化</td>
+<td>一大段 HTML</td>
+<td>JSON，字段精简</td>
+</tr>
+<tr>
+<td>错误可读</td>
+<td><code>500 Internal Error</code></td>
+<td>「未找到订单 123，请确认单号」</td>
+</tr>
+<tr>
+<td>幂等性</td>
+<td>每次调用都下单</td>
+<td>带 <code>idempotency_key</code></td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><code class="hljs python">tools = [&#123;<br>    <span class="hljs-string">&quot;type&quot;</span>: <span class="hljs-string">&quot;function&quot;</span>,<br>    <span class="hljs-string">&quot;function&quot;</span>: &#123;<br>        <span class="hljs-string">&quot;name&quot;</span>: <span class="hljs-string">&quot;search_orders_by_date&quot;</span>,<br>        <span class="hljs-string">&quot;description&quot;</span>: <span class="hljs-string">&quot;按日期范围查询订单。仅支持最近 90 天，单次最多返回 50 条。&quot;</span>,<br>        <span class="hljs-string">&quot;parameters&quot;</span>: &#123;<br>            <span class="hljs-string">&quot;type&quot;</span>: <span class="hljs-string">&quot;object&quot;</span>,<br>            <span class="hljs-string">&quot;properties&quot;</span>: &#123;<br>                <span class="hljs-string">&quot;start_date&quot;</span>: &#123;<span class="hljs-string">&quot;type&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>, <span class="hljs-string">&quot;description&quot;</span>: <span class="hljs-string">&quot;YYYY-MM-DD，含当天&quot;</span>&#125;,<br>                <span class="hljs-string">&quot;end_date&quot;</span>:   &#123;<span class="hljs-string">&quot;type&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>, <span class="hljs-string">&quot;description&quot;</span>: <span class="hljs-string">&quot;YYYY-MM-DD，含当天&quot;</span>&#125;,<br>                <span class="hljs-string">&quot;status&quot;</span>:     &#123;<span class="hljs-string">&quot;type&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>, <span class="hljs-string">&quot;enum&quot;</span>: [<span class="hljs-string">&quot;paid&quot;</span>, <span class="hljs-string">&quot;shipped&quot;</span>, <span class="hljs-string">&quot;refunded&quot;</span>]&#125;,<br>            &#125;,<br>            <span class="hljs-string">&quot;required&quot;</span>: [<span class="hljs-string">&quot;start_date&quot;</span>, <span class="hljs-string">&quot;end_date&quot;</span>],<br>        &#125;,<br>    &#125;,<br>&#125;]<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>工具数量超过 20 个，模型的选择准确率会明显下降</strong>。解法是<strong>分层</strong>：先给一个 <code>list_capabilities()</code> 或按场景分组，让模型先选「域」再选「工具」，而不是一次性塞 50 个函数定义。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>工具返回值也会占上下文</strong>。一次返回 5000 行 JSON，下一轮就爆了。<strong>在工具内部做截断和摘要</strong>，只回必要字段，比在 prompt 里求模型「忽略无关内容」有效得多。</p>
+</blockquote>
+<h2 id="三、上下文工程：Agent-的核心战场"><a href="#三、上下文工程：Agent-的核心战场" class="headerlink" title="三、上下文工程：Agent 的核心战场"></a>三、上下文工程：Agent 的核心战场</h2><p>多轮 Agent 的上下文会不断膨胀：每轮的工具结果都堆在 <code>messages</code> 里。</p>
+<table>
+<thead>
+<tr>
+<th>策略</th>
+<th>做法</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>滑动窗口</td>
+<td>只保留最近 N 轮</td>
+<td>短任务</td>
+</tr>
+<tr>
+<td>摘要压缩</td>
+<td>旧轮次交给模型总结成一段</td>
+<td>长对话</td>
+</tr>
+<tr>
+<td>结构化状态</td>
+<td>关键事实抽成 JSON 状态机</td>
+<td>流程型任务</td>
+</tr>
+<tr>
+<td>工具结果截断</td>
+<td>只保留前 N 字符 + 摘要</td>
+<td>所有场景</td>
+</tr>
+<tr>
+<td>子 Agent 隔离</td>
+<td>子任务在独立上下文跑完，只回结论</td>
+<td>深度探索</td>
+</tr>
+<tr>
+<td>外置记忆</td>
+<td>写文件 &#x2F; 数据库，用时再检索</td>
+<td>跨会话</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">def</span> <span class="hljs-title function_">compact</span>(<span class="hljs-params">messages, keep_recent=<span class="hljs-number">6</span>, max_tokens=<span class="hljs-number">8000</span></span>):<br>    <span class="hljs-string">&quot;&quot;&quot;保留最近若干轮，更早的压成摘要。&quot;&quot;&quot;</span><br>    <span class="hljs-keyword">if</span> count_tokens(messages) &lt;= max_tokens:<br>        <span class="hljs-keyword">return</span> messages<br>    head, recent = messages[:-keep_recent], messages[-keep_recent:]<br>    summary = llm.summarize(head)          <span class="hljs-comment"># 一次性压缩</span><br>    <span class="hljs-keyword">return</span> [&#123;<span class="hljs-string">&quot;role&quot;</span>: <span class="hljs-string">&quot;system&quot;</span>, <span class="hljs-string">&quot;content&quot;</span>: <span class="hljs-string">f&quot;此前进展摘要：<span class="hljs-subst">&#123;summary&#125;</span>&quot;</span>&#125;] + recent<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>摘要会丢细节</strong>，而 Agent 恰恰依赖细节（比如某个 ID、某个报错）。所以<strong>关键事实要外置成结构化状态</strong>（一个 JSON 字典），而不是指望摘要保留。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>不要把「已完成的步骤」只放在对话历史里</strong>。模型会忘、会被压缩掉。用一个显式的 <code>todo</code> 列表，每轮都重新注入，比任何提示词技巧都管用。</p>
+</blockquote>
+<h2 id="四、规划与反思模式"><a href="#四、规划与反思模式" class="headerlink" title="四、规划与反思模式"></a>四、规划与反思模式</h2><table>
+<thead>
+<tr>
+<th>模式</th>
+<th>做法</th>
+<th>优点</th>
+<th>缺点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>ReAct</td>
+<td>思考 → 行动 → 观察，交替进行</td>
+<td>简单、通用</td>
+<td>步数多，易打转</td>
+</tr>
+<tr>
+<td>Plan-and-Execute</td>
+<td>先出完整计划，再逐步执行</td>
+<td>全局视野</td>
+<td>计划错则全错</td>
+</tr>
+<tr>
+<td>Reflection</td>
+<td>执行后自评，不满意则重来</td>
+<td>质量高</td>
+<td>成本翻倍</td>
+</tr>
+<tr>
+<td>多 Agent 协作</td>
+<td>规划者 &#x2F; 执行者 &#x2F; 评审者分工</td>
+<td>分工清晰</td>
+<td>通信开销大</td>
+</tr>
+<tr>
+<td>图编排</td>
+<td>显式状态机，节点是步骤</td>
+<td>可控、可观测</td>
+<td>不够灵活</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs python">PLAN_PROMPT = <span class="hljs-string">&quot;&quot;&quot;把任务拆成不超过 5 步的可执行计划，每步必须：</span><br><span class="hljs-string">1. 能用给定工具完成；2. 有明确成功判据；3. 不依赖未提供的信息。</span><br><span class="hljs-string">输出 JSON: &#123;&quot;steps&quot;: [&#123;&quot;id&quot;: 1, &quot;action&quot;: &quot;...&quot;, &quot;done_when&quot;: &quot;...&quot;&#125;]&#125;&quot;&quot;&quot;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>Reflection 不是免费的</strong>。每轮自评都要多一次完整前向，成本翻倍且可能陷入「反复自我否定」。建议<strong>只在最终交付前跑一次</strong>，而不是每步都跑。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>Plan-and-Execute 的失败模式是「计划与执行脱节」</strong>：计划里说「先查 A 再查 B」，但执行时发现 A 不存在。必须允许<strong>重规划（replan）</strong>，否则一步卡死全程。</p>
+</blockquote>
+<h2 id="五、可靠性的三个杠杆"><a href="#五、可靠性的三个杠杆" class="headerlink" title="五、可靠性的三个杠杆"></a>五、可靠性的三个杠杆</h2><table>
+<thead>
+<tr>
+<th>杠杆</th>
+<th>做法</th>
+<th>效果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>减少步数</td>
+<td>把常用多步合并成一个复合工具</td>
+<td>指数级提升成功率</td>
+</tr>
+<tr>
+<td>缩小决策空间</td>
+<td>枚举参数、限定可选值</td>
+<td>降低幻觉</td>
+</tr>
+<tr>
+<td>加校验与重试</td>
+<td>每步输出做 schema 校验</td>
+<td>拦截格式错误</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">def</span> <span class="hljs-title function_">safe_tool_call</span>(<span class="hljs-params">call, registry, retries=<span class="hljs-number">2</span></span>):<br>    fn = registry.get(call.name)<br>    <span class="hljs-keyword">if</span> fn <span class="hljs-keyword">is</span> <span class="hljs-literal">None</span>:<br>        <span class="hljs-keyword">return</span> <span class="hljs-string">f&quot;错误：不存在工具 <span class="hljs-subst">&#123;call.name&#125;</span>，可用：<span class="hljs-subst">&#123;<span class="hljs-built_in">list</span>(registry)&#125;</span>&quot;</span><br>    <span class="hljs-keyword">for</span> attempt <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(retries + <span class="hljs-number">1</span>):<br>        <span class="hljs-keyword">try</span>:<br>            args = validate_json(call.arguments, fn.schema)   <span class="hljs-comment"># 严格校验</span><br>            <span class="hljs-keyword">return</span> fn(**args)<br>        <span class="hljs-keyword">except</span> ValidationError <span class="hljs-keyword">as</span> e:<br>            <span class="hljs-keyword">return</span> <span class="hljs-string">f&quot;参数不合法：<span class="hljs-subst">&#123;e&#125;</span>. 请按 schema 重新调用。&quot;</span>   <span class="hljs-comment"># 回给模型自纠</span><br>        <span class="hljs-keyword">except</span> TransientError:<br>            <span class="hljs-keyword">if</span> attempt == retries:<br>                <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;服务暂时不可用，请改用其他方式。&quot;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>参数校验失败要把错误原文回给模型</strong>，让它自己改。直接抛异常终止任务，是最浪费的一种处理 —— 模型通常第二次就能改对。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>对写操作要格外小心</strong>。删数据、发邮件、下单这类不可逆操作，必须有<strong>人工确认</strong>或<strong>dry-run 模式</strong>。Agent 幻觉出一个参数就造成了真实损失，这是目前最典型的事故形态。</p>
+</blockquote>
+<h2 id="六、评估与可观测"><a href="#六、评估与可观测" class="headerlink" title="六、评估与可观测"></a>六、评估与可观测</h2><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>指标</th>
+<th>采集方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>任务成功率</td>
+<td>端到端完成比例</td>
+<td>有明确判据的任务自动判定</td>
+</tr>
+<tr>
+<td>步数</td>
+<td>平均 &#x2F; P95 步数</td>
+<td>循环计数</td>
+</tr>
+<tr>
+<td>工具错误率</td>
+<td>调用失败比例</td>
+<td>工具层埋点</td>
+</tr>
+<tr>
+<td>成本</td>
+<td>token &#x2F; 单任务</td>
+<td>累加 usage</td>
+</tr>
+<tr>
+<td>轨迹质量</td>
+<td>是否有冗余步骤</td>
+<td>人工抽检 + LLM 裁判</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs python">trace = &#123;<span class="hljs-string">&quot;task_id&quot;</span>: tid, <span class="hljs-string">&quot;steps&quot;</span>: [], <span class="hljs-string">&quot;total_tokens&quot;</span>: <span class="hljs-number">0</span>, <span class="hljs-string">&quot;cost_usd&quot;</span>: <span class="hljs-number">0.0</span>&#125;<br><span class="hljs-comment"># 每一步都记录：模型输入摘要、工具名、参数、返回摘要、耗时</span><br>trace[<span class="hljs-string">&quot;steps&quot;</span>].append(&#123;<span class="hljs-string">&quot;i&quot;</span>: step, <span class="hljs-string">&quot;tool&quot;</span>: call.name, <span class="hljs-string">&quot;args&quot;</span>: args,<br>                       <span class="hljs-string">&quot;result_len&quot;</span>: <span class="hljs-built_in">len</span>(result), <span class="hljs-string">&quot;ms&quot;</span>: elapsed&#125;)<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>没有轨迹日志的 Agent 无法调试</strong>。出问题时你要能回答「它在第几步、看到了什么、为什么这么选」。把每步的输入输出摘要落盘，比事后加日志便宜得多。</p>
+</blockquote>
+<h2 id="七、安全边界"><a href="#七、安全边界" class="headerlink" title="七、安全边界"></a>七、安全边界</h2><table>
+<thead>
+<tr>
+<th>风险</th>
+<th>场景</th>
+<th>对策</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>提示注入</td>
+<td>工具返回的内容里藏指令</td>
+<td>工具结果标记为「数据」，不参与指令解析</td>
+</tr>
+<tr>
+<td>越权操作</td>
+<td>模型调用超出用户权限的工具</td>
+<td>工具层做权限校验，不信模型</td>
+</tr>
+<tr>
+<td>数据外泄</td>
+<td>把敏感信息拼进外部请求</td>
+<td>出口过滤、字段脱敏</td>
+</tr>
+<tr>
+<td>无限循环</td>
+<td>工具持续返回空</td>
+<td>步数 &#x2F; 时间 &#x2F; 成本三重上限</td>
+</tr>
+<tr>
+<td>供应链</td>
+<td>加载不可信的工具插件</td>
+<td>白名单 + 签名</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>提示注入无法靠提示词防住</strong>。只要工具返回的内容进了上下文，模型就可能把它当指令。可靠做法是<strong>在架构上隔离</strong>：把不可信内容放在明确的「数据区」，且高危操作永远需要独立授权，不因模型说了什么而放行。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 没有 <code>max_steps</code>，工具返回空时死循环烧钱</li>
+<li><input disabled="" type="checkbox"> 一次性给模型 50 个工具，选择准确率崩掉</li>
+<li><input disabled="" type="checkbox"> 工具描述含糊，模型反复猜参数</li>
+<li><input disabled="" type="checkbox"> 工具返回整页 HTML &#x2F; 全量 JSON，下一轮上下文爆掉</li>
+<li><input disabled="" type="checkbox"> 只靠对话历史记进度，压缩后忘了做到哪</li>
+<li><input disabled="" type="checkbox"> 每步都跑 Reflection，成本和延迟翻倍</li>
+<li><input disabled="" type="checkbox"> 计划与执行脱节，不允许重规划</li>
+<li><input disabled="" type="checkbox"> 参数校验失败直接抛异常终止，而不是回给模型自纠</li>
+<li><input disabled="" type="checkbox"> 写操作（删除、支付）没有人工确认或 dry-run</li>
+<li><input disabled="" type="checkbox"> 把工具返回内容当可信指令，被提示注入</li>
+<li><input disabled="" type="checkbox"> 没有轨迹日志，出问题无法复盘</li>
+<li><input disabled="" type="checkbox"> 以为换个更强的模型就能解决可靠性问题（步数才是主因）</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><ul>
+<li><a target="_blank" rel="noopener" href="https://arxiv.org/abs/2210.03629">ReAct: Synergizing Reasoning and Acting in Language Models</a></li>
+<li><a target="_blank" rel="noopener" href="https://arxiv.org/abs/2302.04761">Toolformer</a></li>
+<li><a target="_blank" rel="noopener" href="https://arxiv.org/abs/2303.11366">Reflexion: Language Agents with Verbal Reinforcement Learning</a></li>
+<li><a target="_blank" rel="noopener" href="https://platform.openai.com/docs/guides/function-calling">OpenAI · Function Calling 指南</a></li>
+<li><a target="_blank" rel="noopener" href="https://docs.anthropic.com/en/docs/build-with-claude/tool-use">Anthropic · Tool Use 文档</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.anthropic.com/research/building-effective-agents">Building Effective Agents（Anthropic）</a></li>
+<li><a target="_blank" rel="noopener" href="https://owasp.org/www-project-top-10-for-large-language-model-applications/">OWASP Top 10 for LLM Applications</a></li>
+</ul>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/ai/" class="category-chain-item">ai</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/ai/" class="print-no-link">#ai</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 124 · AI（四）：Agent、工具调用与上下文工程</div>
+      <div>https://ethan-iopasd.github.io/2026/10/19/每日技术博客124-Agent工具调用与上下文工程/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月19日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/19/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2123-RAG%E6%A3%80%E7%B4%A2%E5%A2%9E%E5%BC%BA%E7%94%9F%E6%88%90/" title="每日技术博客 123 · AI（三）：RAG 检索增强生成">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 123 · AI（三）：RAG 检索增强生成</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

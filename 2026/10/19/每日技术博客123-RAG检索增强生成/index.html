@@ -1,0 +1,1037 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-19 · 第 123 篇 AI 系列第三篇。RAG 不是「向量库 + 大模型」两个组件拼起来就完事，它是一条五段流水线，任何一段的召回损失都无法被后面的生成弥补。  📚 AI 系列目录   章节 主题 状态    一 Transformer 与注意力机制 已发布   二 预训练、微调与对齐 已发布   三 RAG 检索增强生成 本篇   四 Agent、工具调">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 123 · AI（三）：RAG 检索增强生成">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/19/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2123-RAG%E6%A3%80%E7%B4%A2%E5%A2%9E%E5%BC%BA%E7%94%9F%E6%88%90/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-19 · 第 123 篇 AI 系列第三篇。RAG 不是「向量库 + 大模型」两个组件拼起来就完事，它是一条五段流水线，任何一段的召回损失都无法被后面的生成弥补。  📚 AI 系列目录   章节 主题 状态    一 Transformer 与注意力机制 已发布   二 预训练、微调与对齐 已发布   三 RAG 检索增强生成 本篇   四 Agent、工具调">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-19T11:10:00.000Z">
+<meta property="article:modified_time" content="2026-10-19T09:59:02.877Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="ai">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 123 · AI（三）：RAG 检索增强生成 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 123 · AI（三）：RAG 检索增强生成"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-19 19:10" pubdate>
+          2026年10月19日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.3k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          20 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 123 · AI（三）：RAG 检索增强生成</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-19 · 第 123 篇</p>
+<p>AI 系列第三篇。RAG 不是「向量库 + 大模型」两个组件拼起来就完事，它是一条五段流水线，<strong>任何一段的召回损失都无法被后面的生成弥补</strong>。</p>
+</blockquote>
+<h2 id="📚-AI-系列目录"><a href="#📚-AI-系列目录" class="headerlink" title="📚 AI 系列目录"></a>📚 AI 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>Transformer 与注意力机制</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>预训练、微调与对齐</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>RAG 检索增强生成</td>
+<td><strong>本篇</strong></td>
+</tr>
+<tr>
+<td>四</td>
+<td>Agent、工具调用与上下文工程</td>
+<td>已发布</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>RAG 的效果上限由召回决定，不是由模型决定。</strong> 检索不到的东西，再强的模型也编不出来；而检索到但塞不进上下文，等于没检索。所以优化顺序永远是：<strong>切分 → 召回 → 重排 → 压缩 → 生成</strong>，倒过来做是浪费时间。</p>
+<h2 id="一、五段流水线"><a href="#一、五段流水线" class="headerlink" title="一、五段流水线"></a>一、五段流水线</h2><table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>输入</th>
+<th>输出</th>
+<th>失败表现</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>切分（Chunking）</td>
+<td>原始文档</td>
+<td>语义完整的块</td>
+<td>答案被切断，跨块信息拼不起来</td>
+</tr>
+<tr>
+<td>索引（Embedding）</td>
+<td>块</td>
+<td>向量</td>
+<td>相似度算不准，语义相近的排不到一起</td>
+</tr>
+<tr>
+<td>召回（Retrieval）</td>
+<td>query</td>
+<td>Top-K 候选</td>
+<td>正确块不在候选里</td>
+</tr>
+<tr>
+<td>重排（Rerank）</td>
+<td>候选</td>
+<td>精排结果</td>
+<td>正确块排在第 20 位，被截断</td>
+</tr>
+<tr>
+<td>生成（Generation）</td>
+<td>上下文 + query</td>
+<td>回答</td>
+<td>有材料却编造、引用错位</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>最常见的误判</strong>：回答不对就换更大的模型。但 80% 的 RAG 问题在召回阶段 —— 先把「正确块是否出现在 Top-K 里」测出来，再谈别的。</p>
+</blockquote>
+<h2 id="二、切分：RAG-里最被低估的一步"><a href="#二、切分：RAG-里最被低估的一步" class="headerlink" title="二、切分：RAG 里最被低估的一步"></a>二、切分：RAG 里最被低估的一步</h2><table>
+<thead>
+<tr>
+<th>策略</th>
+<th>做法</th>
+<th>优点</th>
+<th>缺点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>定长切分</td>
+<td>每 N 个 token 切一刀</td>
+<td>简单、块大小均匀</td>
+<td>语义断裂</td>
+</tr>
+<tr>
+<td>按结构切</td>
+<td>按标题 &#x2F; 段落 &#x2F; 代码块</td>
+<td>语义完整</td>
+<td>块大小不均</td>
+</tr>
+<tr>
+<td>递归切分</td>
+<td>先按段落，超长再按句子</td>
+<td>平衡</td>
+<td>仍可能切断表格</td>
+</tr>
+<tr>
+<td>语义切分</td>
+<td>按 embedding 相似度找断点</td>
+<td>语义最完整</td>
+<td>慢，成本高</td>
+</tr>
+<tr>
+<td>父子块</td>
+<td>子块检索、父块喂给模型</td>
+<td>兼顾精度与上下文</td>
+<td>实现复杂</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">def</span> <span class="hljs-title function_">chunk_by_structure</span>(<span class="hljs-params">text, max_chars=<span class="hljs-number">800</span>, overlap=<span class="hljs-number">100</span></span>):<br>    <span class="hljs-string">&quot;&quot;&quot;按标题分段，超长再滑动窗口切，保留重叠避免语义断裂。&quot;&quot;&quot;</span><br>    sections = re.split(<span class="hljs-string">r&quot;\n(?=#&#123;1,3&#125; )&quot;</span>, text)<br>    chunks = []<br>    <span class="hljs-keyword">for</span> sec <span class="hljs-keyword">in</span> sections:<br>        <span class="hljs-keyword">if</span> <span class="hljs-built_in">len</span>(sec) &lt;= max_chars:<br>            chunks.append(sec)<br>            <span class="hljs-keyword">continue</span><br>        step = max_chars - overlap<br>        <span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(<span class="hljs-number">0</span>, <span class="hljs-built_in">len</span>(sec), step):<br>            piece = sec[i:i + max_chars]<br>            <span class="hljs-keyword">if</span> piece.strip():<br>                chunks.append(piece)<br>    <span class="hljs-keyword">return</span> chunks<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>建议值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>块大小</td>
+<td>300~800 token</td>
+<td>太小丢上下文，太大稀释相似度</td>
+</tr>
+<tr>
+<td>重叠</td>
+<td>10%~15%</td>
+<td>防止关键句被切断</td>
+</tr>
+<tr>
+<td>元数据</td>
+<td>来源、标题、时间、权限</td>
+<td><strong>过滤和引用都靠它</strong></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>块太大是隐形的召回杀手</strong>。一个 2000 token 的块里只有一句话相关，embedding 会被无关内容稀释，相似度排不上去。而块太小又会丢上下文 —— 折中方案是<strong>小块检索、大块生成</strong>（父文档检索）。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>表格和代码不要按字符切</strong>。Markdown 表格切一半就语义全失，代码切一半直接语法错误。这两类要整块保留，或者用专门的解析器转成结构化描述再切。</p>
+</blockquote>
+<h2 id="三、向量化与召回"><a href="#三、向量化与召回" class="headerlink" title="三、向量化与召回"></a>三、向量化与召回</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># 离线：建索引</span><br>vecs = embed_model.encode(chunks, normalize_embeddings=<span class="hljs-literal">True</span>)<br>index.add(vecs)                       <span class="hljs-comment"># FAISS / pgvector / Milvus</span><br><br><span class="hljs-comment"># 在线：召回</span><br>q = embed_model.encode([query], normalize_embeddings=<span class="hljs-literal">True</span>)<br>scores, ids = index.search(q, k=<span class="hljs-number">20</span>)   <span class="hljs-comment"># 先粗召回 20 条</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>检索方式</th>
+<th>原理</th>
+<th>强项</th>
+<th>弱项</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>稠密向量（Dense）</td>
+<td>语义相似度</td>
+<td>同义改写、跨语言</td>
+<td>精确匹配（型号、编号）差</td>
+</tr>
+<tr>
+<td>稀疏向量（BM25）</td>
+<td>词频统计</td>
+<td>关键词、专有名词</td>
+<td>不理解同义词</td>
+</tr>
+<tr>
+<td>混合检索（Hybrid）</td>
+<td>两路结果融合</td>
+<td>兼顾</td>
+<td>需要调权重</td>
+</tr>
+<tr>
+<td>多向量</td>
+<td>每块生成多个问题向量</td>
+<td>提升召回</td>
+<td>索引膨胀</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">def</span> <span class="hljs-title function_">hybrid_retrieve</span>(<span class="hljs-params">query, k=<span class="hljs-number">20</span>, alpha=<span class="hljs-number">0.5</span></span>):<br>    <span class="hljs-string">&quot;&quot;&quot;alpha 越大越偏语义。RRF 融合比加权分数更稳（不同分数量纲不同）。&quot;&quot;&quot;</span><br>    dense_ids = dense_search(query, k)<br>    sparse_ids = bm25_search(query, k)<br>    fused = &#123;&#125;<br>    <span class="hljs-keyword">for</span> rank, i <span class="hljs-keyword">in</span> <span class="hljs-built_in">enumerate</span>(dense_ids):<br>        fused[i] = fused.get(i, <span class="hljs-number">0</span>) + alpha / (<span class="hljs-number">60</span> + rank)<br>    <span class="hljs-keyword">for</span> rank, i <span class="hljs-keyword">in</span> <span class="hljs-built_in">enumerate</span>(sparse_ids):<br>        fused[i] = fused.get(i, <span class="hljs-number">0</span>) + (<span class="hljs-number">1</span> - alpha) / (<span class="hljs-number">60</span> + rank)<br>    <span class="hljs-keyword">return</span> <span class="hljs-built_in">sorted</span>(fused, key=fused.get, reverse=<span class="hljs-literal">True</span>)[:k]<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>Dense 和 BM25 的分数不可直接相加</strong>。一个是余弦相似度（0~1），一个是无上界的 BM25 分值，加权求和会被量纲支配。<strong>用 RRF（倒数排名融合）</strong> 只依赖名次，不需要归一化，是混合检索的默认解。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>归一化 embedding 后，余弦相似度等于内积</strong>，可以直接用内积索引（更快）。忘了归一化会让长文本天然分数偏高，产生系统性偏差。</p>
+</blockquote>
+<h2 id="四、重排：把对的那条顶上来"><a href="#四、重排：把对的那条顶上来" class="headerlink" title="四、重排：把对的那条顶上来"></a>四、重排：把对的那条顶上来</h2><p>粗召回 20 条，真正相关的可能排在第 12 位。Rerank 用交叉编码器逐对打分：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">from</span> sentence_transformers <span class="hljs-keyword">import</span> CrossEncoder<br><br>reranker = CrossEncoder(<span class="hljs-string">&quot;BAAI/bge-reranker-v2-m3&quot;</span>)<br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">rerank</span>(<span class="hljs-params">query, candidates, top_n=<span class="hljs-number">5</span></span>):<br>    pairs = [(query, c[<span class="hljs-string">&quot;text&quot;</span>]) <span class="hljs-keyword">for</span> c <span class="hljs-keyword">in</span> candidates]<br>    scores = reranker.predict(pairs)<br>    ranked = <span class="hljs-built_in">sorted</span>(<span class="hljs-built_in">zip</span>(candidates, scores), key=<span class="hljs-keyword">lambda</span> x: -x[<span class="hljs-number">1</span>])<br>    <span class="hljs-keyword">return</span> [c <span class="hljs-keyword">for</span> c, s <span class="hljs-keyword">in</span> ranked[:top_n]]<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>方式</th>
+<th>原理</th>
+<th>速度</th>
+<th>精度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Bi-encoder（召回用）</td>
+<td>query 和 doc 各自编码</td>
+<td>快（可预建索引）</td>
+<td>中</td>
+</tr>
+<tr>
+<td>Cross-encoder（重排用）</td>
+<td>query+doc 拼接后一起过模型</td>
+<td>慢（不能预建）</td>
+<td>高</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>Cross-encoder 不能用来做全库检索</strong>，因为每个候选都要跑一次完整前向。它的位置只能是「在 Top-20 里选 Top-5」。这也是为什么召回和重排必须分两段。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>重排不是万能的</strong>。如果正确块压根没进 Top-20，重排也救不回来 —— 先加大召回 <code>k</code>（比如 50），再靠重排收敛，比调重排模型有效。</p>
+</blockquote>
+<h2 id="五、上下文组装"><a href="#五、上下文组装" class="headerlink" title="五、上下文组装"></a>五、上下文组装</h2><p>召回 5 条 800 token 的块 &#x3D; 4000 token，加上系统提示和对话历史，很容易撑爆上下文，或者把关键信息挤到中间。</p>
+<table>
+<thead>
+<tr>
+<th>问题</th>
+<th>对策</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>总长超限</td>
+<td>按分数截断、摘要压缩</td>
+</tr>
+<tr>
+<td>无关内容稀释</td>
+<td>每块先做相关性过滤</td>
+</tr>
+<tr>
+<td>关键信息在中间被忽略（lost in the middle）</td>
+<td>把最相关的放<strong>开头和结尾</strong></td>
+</tr>
+<tr>
+<td>引用错位</td>
+<td>每块带编号，要求模型标注 <code>[1]</code></td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">def</span> <span class="hljs-title function_">build_context</span>(<span class="hljs-params">chunks, max_tokens=<span class="hljs-number">6000</span></span>):<br>    <span class="hljs-string">&quot;&quot;&quot;按相关性排序，但把最强的放头尾，利用 U 型注意力偏好。&quot;&quot;&quot;</span><br>    ranked = <span class="hljs-built_in">sorted</span>(chunks, key=<span class="hljs-keyword">lambda</span> c: -c[<span class="hljs-string">&quot;score&quot;</span>])<br>    head, tail = [], []<br>    total = <span class="hljs-number">0</span><br>    <span class="hljs-keyword">for</span> i, c <span class="hljs-keyword">in</span> <span class="hljs-built_in">enumerate</span>(ranked):<br>        <span class="hljs-keyword">if</span> total + c[<span class="hljs-string">&quot;tokens&quot;</span>] &gt; max_tokens:<br>            <span class="hljs-keyword">break</span><br>        (head <span class="hljs-keyword">if</span> i % <span class="hljs-number">2</span> == <span class="hljs-number">0</span> <span class="hljs-keyword">else</span> tail).append(c)<br>        total += c[<span class="hljs-string">&quot;tokens&quot;</span>]<br>    ordered = head + tail[::-<span class="hljs-number">1</span>]<br>    <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;\n\n&quot;</span>.join(<span class="hljs-string">f&quot;[<span class="hljs-subst">&#123;i+<span class="hljs-number">1</span>&#125;</span>] <span class="hljs-subst">&#123;c[<span class="hljs-string">&#x27;text&#x27;</span>]&#125;</span>&quot;</span> <span class="hljs-keyword">for</span> i, c <span class="hljs-keyword">in</span> <span class="hljs-built_in">enumerate</span>(ordered))<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>「lost in the middle」是实测现象</strong>，不是玄学：模型对上下文开头和结尾的利用率显著高于中间。所以别简单按分数从高到低排，把最强的放两头。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>块之间要加分隔符和编号</strong>，否则模型会把相邻块的内容混成一段，引用时也说不清来自哪。</p>
+</blockquote>
+<h2 id="六、评估：不测就是瞎调"><a href="#六、评估：不测就是瞎调" class="headerlink" title="六、评估：不测就是瞎调"></a>六、评估：不测就是瞎调</h2><table>
+<thead>
+<tr>
+<th>指标</th>
+<th>衡量什么</th>
+<th>怎么算</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Recall@K</td>
+<td>正确块是否进了 Top-K</td>
+<td>人工标注或用 LLM 判定</td>
+</tr>
+<tr>
+<td>MRR</td>
+<td>正确块排多靠前</td>
+<td>倒数名次均值</td>
+</tr>
+<tr>
+<td>Faithfulness</td>
+<td>回答是否忠于材料</td>
+<td>LLM 裁判：有无编造</td>
+</tr>
+<tr>
+<td>Answer Relevance</td>
+<td>回答是否切题</td>
+<td>LLM 裁判</td>
+</tr>
+<tr>
+<td>Context Precision</td>
+<td>塞进去的块有多少有用</td>
+<td>有用块 &#x2F; 总块数</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">def</span> <span class="hljs-title function_">eval_retrieval</span>(<span class="hljs-params">questions, gold_chunk_ids, retriever, k=<span class="hljs-number">20</span></span>):<br>    <span class="hljs-string">&quot;&quot;&quot;最小可用的召回评估：正确块进 Top-K 的比例。&quot;&quot;&quot;</span><br>    hit, mrr = <span class="hljs-number">0</span>, <span class="hljs-number">0.0</span><br>    <span class="hljs-keyword">for</span> q <span class="hljs-keyword">in</span> questions:<br>        ids = retriever(q, k)<br>        <span class="hljs-keyword">if</span> gold_chunk_ids[q] <span class="hljs-keyword">in</span> ids:<br>            hit += <span class="hljs-number">1</span><br>            mrr += <span class="hljs-number">1</span> / (ids.index(gold_chunk_ids[q]) + <span class="hljs-number">1</span>)<br>    n = <span class="hljs-built_in">len</span>(questions)<br>    <span class="hljs-keyword">return</span> &#123;<span class="hljs-string">&quot;recall@k&quot;</span>: hit / n, <span class="hljs-string">&quot;mrr&quot;</span>: mrr / n&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>没有标注就先用 LLM 造测试集</strong>：拿每篇文档生成 5 个问题，问题对应的块就是 gold。这套自举标注能覆盖大部分召回问题，比拍脑袋调参靠谱得多。</p>
+</blockquote>
+<h2 id="七、工程落地要点"><a href="#七、工程落地要点" class="headerlink" title="七、工程落地要点"></a>七、工程落地要点</h2><table>
+<thead>
+<tr>
+<th>关注点</th>
+<th>做法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>增量更新</td>
+<td>文档变更时只重建该文档的块，用 doc_id 做删除</td>
+</tr>
+<tr>
+<td>权限隔离</td>
+<td>元数据带 ACL，检索时先过滤再算相似度</td>
+</tr>
+<tr>
+<td>多租户</td>
+<td>索引分区或按 tenant_id 过滤</td>
+</tr>
+<tr>
+<td>缓存</td>
+<td>query → 结果缓存，高频问题直接命中</td>
+</tr>
+<tr>
+<td>可观测</td>
+<td>记录每次召回的 ids 和分数，出问题能复盘</td>
+</tr>
+<tr>
+<td>降级</td>
+<td>检索服务挂了要有「无 RAG 直答」的兜底</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>权限过滤必须在召回前做</strong>。先召回再过滤会导致「本来能召回 20 条，过滤后只剩 2 条」，且泄露了无权文档的存在性。用带过滤条件的向量索引（pgvector 的 <code>WHERE</code>、Milvus 的 scalar filter）。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>向量库不是必须的</strong>。文档少于几千块时，用 numpy 暴力算余弦相似度（几千 × 768 维）只要几毫秒，比维护一套向量库简单得多。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 块切得太大，embedding 被无关内容稀释，召回排不上去</li>
+<li><input disabled="" type="checkbox"> 块切得太小，答案跨块拼不起来</li>
+<li><input disabled="" type="checkbox"> 按字符切表格和代码，语义直接毁掉</li>
+<li><input disabled="" type="checkbox"> embedding 忘了归一化，长文本系统性占优</li>
+<li><input disabled="" type="checkbox"> Dense 和 BM25 的分数直接加权相加（量纲不同）</li>
+<li><input disabled="" type="checkbox"> 只做稠密检索，型号、编号这类精确匹配召回不到</li>
+<li><input disabled="" type="checkbox"> 粗召回 <code>k</code> 设得太小，重排无米下锅</li>
+<li><input disabled="" type="checkbox"> 用 cross-encoder 做全库检索，慢到不可用</li>
+<li><input disabled="" type="checkbox"> 上下文按分数从高到低排，最强证据落在中间被忽略</li>
+<li><input disabled="" type="checkbox"> 塞进去的块没有编号，模型引用错位</li>
+<li><input disabled="" type="checkbox"> 先召回再按权限过滤，泄露无权文档的存在性</li>
+<li><input disabled="" type="checkbox"> 完全没有评估集，全凭体感调参</li>
+<li><input disabled="" type="checkbox"> 回答不对就换更大的模型，其实是召回问题</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><ul>
+<li><a target="_blank" rel="noopener" href="https://arxiv.org/abs/2005.11401">Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks</a></li>
+<li><a target="_blank" rel="noopener" href="https://arxiv.org/abs/2307.03172">Lost in the Middle: How Language Models Use Long Contexts</a></li>
+<li><a target="_blank" rel="noopener" href="https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf">Reciprocal Rank Fusion</a></li>
+<li><a target="_blank" rel="noopener" href="https://huggingface.co/BAAI/bge-reranker-v2-m3">BGE Reranker 模型卡</a></li>
+<li><a target="_blank" rel="noopener" href="https://docs.ragas.io/">RAGAS: 自动化 RAG 评估</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/pgvector/pgvector">pgvector</a></li>
+<li><a target="_blank" rel="noopener" href="https://faiss.ai/">FAISS 文档</a></li>
+</ul>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/ai/" class="category-chain-item">ai</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/ai/" class="print-no-link">#ai</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 123 · AI（三）：RAG 检索增强生成</div>
+      <div>https://ethan-iopasd.github.io/2026/10/19/每日技术博客123-RAG检索增强生成/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月19日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/19/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2122-%E9%A2%84%E8%AE%AD%E7%BB%83%E5%BE%AE%E8%B0%83%E4%B8%8E%E5%AF%B9%E9%BD%90/" title="每日技术博客 122 · AI（二）：预训练、微调与对齐">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 122 · AI（二）：预训练、微调与对齐</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2026/10/19/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2124-Agent%E5%B7%A5%E5%85%B7%E8%B0%83%E7%94%A8%E4%B8%8E%E4%B8%8A%E4%B8%8B%E6%96%87%E5%B7%A5%E7%A8%8B/" title="每日技术博客 124 · AI（四）：Agent、工具调用与上下文工程">
+                        <span class="hidden-mobile">每日技术博客 124 · AI（四）：Agent、工具调用与上下文工程</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

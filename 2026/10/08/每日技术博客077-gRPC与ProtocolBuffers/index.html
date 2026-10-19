@@ -19,15 +19,15 @@
   <meta name="author" content="iopasd">
   <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
   
-    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 077 篇 gRPC 系列第一篇。Protocol Buffers 的字段编号与兼容规则、编码原理，以及 gRPC 的四类调用与状态码。  📚 gRPC 系列目录   章节 主题 状态    一 Protocol Buffers 与 gRPC 基础 本篇    开场：一句话结论gRPC &#x3D; HTTP&#x2F;2 + Protocol">
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 077 篇 gRPC 系列第一篇。Protocol Buffers 的字段编号与兼容规则、编码原理，以及 gRPC 的四类调用与状态码。  📚 gRPC 系列目录   章节 主题 状态    一 Protocol Buffers 与 gRPC 基础 本篇   二 流式调用、拦截器与生产实践 已发布    开场：一句话结论gRPC &#x3D; H">
 <meta property="og:type" content="article">
 <meta property="og:title" content="每日技术博客 077 · gRPC（一）：Protocol Buffers 与 gRPC 基础">
 <meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2077-gRPC%E4%B8%8EProtocolBuffers/index.html">
 <meta property="og:site_name" content="Ethan-iopasd">
-<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 077 篇 gRPC 系列第一篇。Protocol Buffers 的字段编号与兼容规则、编码原理，以及 gRPC 的四类调用与状态码。  📚 gRPC 系列目录   章节 主题 状态    一 Protocol Buffers 与 gRPC 基础 本篇    开场：一句话结论gRPC &#x3D; HTTP&#x2F;2 + Protocol">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 077 篇 gRPC 系列第一篇。Protocol Buffers 的字段编号与兼容规则、编码原理，以及 gRPC 的四类调用与状态码。  📚 gRPC 系列目录   章节 主题 状态    一 Protocol Buffers 与 gRPC 基础 本篇   二 流式调用、拦截器与生产实践 已发布    开场：一句话结论gRPC &#x3D; H">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-10-08T05:20:00.000Z">
-<meta property="article:modified_time" content="2026-10-08T03:04:19.043Z">
+<meta property="article:modified_time" content="2026-10-19T10:00:16.125Z">
 <meta property="article:author" content="iopasd">
 <meta property="article:tag" content="grpc">
 <meta name="twitter:card" content="summary_large_image">
@@ -292,6 +292,11 @@
 <td>一</td>
 <td>Protocol Buffers 与 gRPC 基础</td>
 <td><strong>本篇</strong></td>
+</tr>
+<tr>
+<td>二</td>
+<td>流式调用、拦截器与生产实践</td>
+<td>已发布</td>
 </tr>
 </tbody></table>
 <hr>

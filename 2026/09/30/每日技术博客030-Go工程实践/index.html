@@ -19,15 +19,15 @@
   <meta name="author" content="iopasd">
   <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
   
-    <meta name="description" content="每日技术博客 · 2026-09-30 · 第 030 篇 error 链的包装与判定、panic 的边界、defer 陷阱，以及项目布局、测试、lint、版本注入的落地做法。  📚 Go 系列目录   章节 主题 状态    一 并发模型与 channel 已发布   二 错误处理与工程实践 本篇    开场：错误是值，panic 只留给「程序写错了」   情况 处理方式    可预期的失败">
+    <meta name="description" content="每日技术博客 · 2026-09-30 · 第 030 篇 error 链的包装与判定、panic 的边界、defer 陷阱，以及项目布局、测试、lint、版本注入的落地做法。  📚 Go 系列目录   章节 主题 状态    一 并发模型与 channel 已发布   二 错误处理与工程实践 本篇   三 内存管理、GC 与性能剖析 已发布   四 标准库实战与测试 已发布   五 项目结构">
 <meta property="og:type" content="article">
 <meta property="og:title" content="每日技术博客 030 · Go（二）：错误处理与工程实践">
 <meta property="og:url" content="https://ethan-iopasd.github.io/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2030-Go%E5%B7%A5%E7%A8%8B%E5%AE%9E%E8%B7%B5/index.html">
 <meta property="og:site_name" content="Ethan-iopasd">
-<meta property="og:description" content="每日技术博客 · 2026-09-30 · 第 030 篇 error 链的包装与判定、panic 的边界、defer 陷阱，以及项目布局、测试、lint、版本注入的落地做法。  📚 Go 系列目录   章节 主题 状态    一 并发模型与 channel 已发布   二 错误处理与工程实践 本篇    开场：错误是值，panic 只留给「程序写错了」   情况 处理方式    可预期的失败">
+<meta property="og:description" content="每日技术博客 · 2026-09-30 · 第 030 篇 error 链的包装与判定、panic 的边界、defer 陷阱，以及项目布局、测试、lint、版本注入的落地做法。  📚 Go 系列目录   章节 主题 状态    一 并发模型与 channel 已发布   二 错误处理与工程实践 本篇   三 内存管理、GC 与性能剖析 已发布   四 标准库实战与测试 已发布   五 项目结构">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-09-30T12:20:00.000Z">
-<meta property="article:modified_time" content="2026-09-30T05:29:09.904Z">
+<meta property="article:modified_time" content="2026-10-19T10:00:16.118Z">
 <meta property="article:author" content="iopasd">
 <meta property="article:tag" content="go">
 <meta name="twitter:card" content="summary_large_image">
@@ -297,6 +297,21 @@
 <td>二</td>
 <td>错误处理与工程实践</td>
 <td><strong>本篇</strong></td>
+</tr>
+<tr>
+<td>三</td>
+<td>内存管理、GC 与性能剖析</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td>标准库实战与测试</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>五</td>
+<td>项目结构、依赖注入与代码生成</td>
+<td>已发布</td>
 </tr>
 </tbody></table>
 <hr>
