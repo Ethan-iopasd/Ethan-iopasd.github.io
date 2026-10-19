@@ -1,0 +1,1049 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-19 · 第 120 篇 Rust 系列第四篇。宏在编译期展开，build.rs 在编译前跑，unsafe 是向编译器签的保证书 —— 这三处是 Rust「安全」叙事之外真正的自由裁量区，也是最容易出事故的地方。  📚 Rust 系列目录   章节 主题 状态    一 所有权、借用与生命周期 已发布   二 错误处理、并发与工程实践 已发布   三 trai">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 120 · Rust（四）：宏、构建脚本与 unsafe 边界">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/19/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2120-Rust%E5%AE%8F%E6%9E%84%E5%BB%BA%E8%84%9A%E6%9C%AC%E4%B8%8Eunsafe%E8%BE%B9%E7%95%8C/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-19 · 第 120 篇 Rust 系列第四篇。宏在编译期展开，build.rs 在编译前跑，unsafe 是向编译器签的保证书 —— 这三处是 Rust「安全」叙事之外真正的自由裁量区，也是最容易出事故的地方。  📚 Rust 系列目录   章节 主题 状态    一 所有权、借用与生命周期 已发布   二 错误处理、并发与工程实践 已发布   三 trai">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-19T10:20:00.000Z">
+<meta property="article:modified_time" content="2026-10-19T09:50:22.794Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="rust">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 120 · Rust（四）：宏、构建脚本与 unsafe 边界 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 120 · Rust（四）：宏、构建脚本与 unsafe 边界"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-19 18:20" pubdate>
+          2026年10月19日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.7k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          23 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 120 · Rust（四）：宏、构建脚本与 unsafe 边界</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-19 · 第 120 篇</p>
+<p>Rust 系列第四篇。宏在编译期展开，<code>build.rs</code> 在编译前跑，<code>unsafe</code> 是向编译器签的保证书 —— 这三处是 Rust「安全」叙事之外真正的自由裁量区，也是最容易出事故的地方。</p>
+</blockquote>
+<h2 id="📚-Rust-系列目录"><a href="#📚-Rust-系列目录" class="headerlink" title="📚 Rust 系列目录"></a>📚 Rust 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>所有权、借用与生命周期</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>错误处理、并发与工程实践</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>trait 系统、泛型与动态分发</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td>宏、构建脚本与 unsafe 边界</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>宏不是函数，<code>build.rs</code> 不是运行时，<code>unsafe</code> 不是关闭检查。</strong> 前两者是编译流水线的不同阶段，后者是一份「我保证已满足这些不变量」的契约 —— 编译器依然做类型检查，只是不再做那些它无法验证的内存安全证明。</p>
+<h2 id="一、四种宏，各在各的阶段"><a href="#一、四种宏，各在各的阶段" class="headerlink" title="一、四种宏，各在各的阶段"></a>一、四种宏，各在各的阶段</h2><table>
+<thead>
+<tr>
+<th>类型</th>
+<th>声明方式</th>
+<th>使用位置</th>
+<th>何时展开</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>声明宏（macro_rules）</td>
+<td><code>macro_rules! name</code></td>
+<td>表达式 &#x2F; 语句 &#x2F; item</td>
+<td>解析后、类型检查前</td>
+</tr>
+<tr>
+<td>过程宏 · derive</td>
+<td><code>#[proc_macro_derive(X)]</code></td>
+<td><code>#[derive(X)]</code></td>
+<td>同上，作用于 item</td>
+</tr>
+<tr>
+<td>过程宏 · 属性</td>
+<td><code>#[proc_macro_attribute]</code></td>
+<td><code>#[name]</code></td>
+<td>同上，可改写整个 item</td>
+</tr>
+<tr>
+<td>过程宏 · 函数式</td>
+<td><code>#[proc_macro]</code></td>
+<td><code>name!(...)</code></td>
+<td>同上，输入输出都是 token</td>
+</tr>
+</tbody></table>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs rust"><span class="hljs-comment">// 声明宏：基于模式匹配的语法重写</span><br><span class="hljs-built_in">macro_rules!</span> vec_of_strings &#123;<br>    ($($x:expr),* $(,)?) =&gt; &#123;<br>        <span class="hljs-built_in">vec!</span>[$(<span class="hljs-type">String</span>::<span class="hljs-title function_ invoke__">from</span>($x)),*]<br>    &#125;;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs rust"><span class="hljs-comment">// 函数式过程宏：输入 TokenStream，输出 TokenStream</span><br><span class="hljs-meta">#[proc_macro]</span><br><span class="hljs-keyword">pub</span> <span class="hljs-keyword">fn</span> <span class="hljs-title function_">make_answer</span>(input: TokenStream) <span class="hljs-punctuation">-&gt;</span> TokenStream &#123;<br>    <span class="hljs-keyword">let</span> <span class="hljs-variable">n</span>: <span class="hljs-type">u32</span> = input.<span class="hljs-title function_ invoke__">to_string</span>().<span class="hljs-title function_ invoke__">trim</span>().<span class="hljs-title function_ invoke__">parse</span>().<span class="hljs-title function_ invoke__">unwrap</span>();<br>    <span class="hljs-built_in">format!</span>(<span class="hljs-string">&quot;fn answer() -&gt; u32 &#123;&#123; &#123;&#125; &#125;&#125;&quot;</span>, n).<span class="hljs-title function_ invoke__">parse</span>().<span class="hljs-title function_ invoke__">unwrap</span>()<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>macro_rules!</code> 的卫生性（hygiene）只覆盖局部变量，不覆盖类型名和函数名</strong>。宏体内引用的 <code>Vec</code>、<code>String</code> 是在<strong>调用处</strong>解析的 —— 调用方 <code>use</code> 了同名符号就会出问题。过程宏则完全无卫生性，生成的代码必须写全路径（<code>::std::vec::Vec</code>）。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>声明宏里 <code>$x:expr</code> 后面的 <code>*</code> 会贪婪匹配</strong>，<code>vec![1, 2, 3]</code> 里如果同时有 <code>($($x:expr),*)</code> 和 <code>($($x:expr),+ $(,)?)</code> 两个分支，顺序写反会让第一个分支永远匹配不到。宏分支按<strong>书写顺序</strong>尝试，不会选「更具体」的。</p>
+</blockquote>
+<h2 id="二、过程宏的工程约束"><a href="#二、过程宏的工程约束" class="headerlink" title="二、过程宏的工程约束"></a>二、过程宏的工程约束</h2><p>过程宏必须放在<strong>独立的 <code>proc-macro = true</code> crate</strong> 里，这是 Cargo 的硬性要求：</p>
+<figure class="highlight toml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs toml"><span class="hljs-comment"># Cargo.toml</span><br><span class="hljs-section">[lib]</span><br><span class="hljs-attr">proc-macro</span> = <span class="hljs-literal">true</span><br><br><span class="hljs-section">[dependencies]</span><br><span class="hljs-attr">syn</span> = &#123; version = <span class="hljs-string">&quot;2&quot;</span>, features = [<span class="hljs-string">&quot;full&quot;</span>] &#125;<br><span class="hljs-attr">quote</span> = <span class="hljs-string">&quot;1&quot;</span><br><span class="hljs-attr">proc-macro2</span> = <span class="hljs-string">&quot;1&quot;</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>crate</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>proc-macro2</code></td>
+<td>提供可脱离编译器运行的 <code>TokenStream</code>（便于单元测试）</td>
+</tr>
+<tr>
+<td><code>syn</code></td>
+<td>把 TokenStream 解析成 AST，<code>derive</code> 用 <code>DeriveInput</code></td>
+</tr>
+<tr>
+<td><code>quote</code></td>
+<td>用 <code>quote!</code> 模板把 Rust 代码片段拼成 TokenStream</td>
+</tr>
+</tbody></table>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><code class="hljs rust"><span class="hljs-keyword">use</span> proc_macro::TokenStream;<br><span class="hljs-keyword">use</span> quote::quote;<br><span class="hljs-keyword">use</span> syn::&#123;parse_macro_input, DeriveInput&#125;;<br><br><span class="hljs-meta">#[proc_macro_derive(Describe)]</span><br><span class="hljs-keyword">pub</span> <span class="hljs-keyword">fn</span> <span class="hljs-title function_">describe_derive</span>(input: TokenStream) <span class="hljs-punctuation">-&gt;</span> TokenStream &#123;<br>    <span class="hljs-keyword">let</span> <span class="hljs-variable">ast</span> = parse_macro_input!(input <span class="hljs-keyword">as</span> DeriveInput);<br>    <span class="hljs-keyword">let</span> <span class="hljs-variable">name</span> = &amp;ast.ident;<br>    <span class="hljs-keyword">let</span> (impl_generics, ty_generics, where_clause) = ast.generics.<span class="hljs-title function_ invoke__">split_for_impl</span>();<br><br>    quote! &#123;<br>        <span class="hljs-keyword">impl</span> #impl_generics ::std::fmt::Display <span class="hljs-keyword">for</span> #name #ty_generics #where_clause &#123;<br>            <span class="hljs-keyword">fn</span> <span class="hljs-title function_">fmt</span>(&amp;<span class="hljs-keyword">self</span>, f: &amp;<span class="hljs-keyword">mut</span> ::std::fmt::Formatter&lt;<span class="hljs-symbol">&#x27;_</span>&gt;) <span class="hljs-punctuation">-&gt;</span> ::std::fmt::<span class="hljs-type">Result</span> &#123;<br>                ::std::<span class="hljs-built_in">write!</span>(f, <span class="hljs-built_in">stringify!</span>(#name))<br>            &#125;<br>        &#125;<br>    &#125;.<span class="hljs-title function_ invoke__">into</span>()<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>split_for_impl()</code> 不能省</strong>。手写 <code>impl&lt;#generics&gt; Trait for #name&lt;#generics&gt;</code> 在带生命周期或 where 子句的泛型类型上必然出错，这是 derive 宏最常见的 bug。三个返回值分别对应「impl 侧泛型」「类型侧泛型」「where 子句」。</p>
+<p>⚠️ <strong>过程宏出错时 <code>panic!</code> 的报错位置很糟</strong>（指向 <code>#[derive]</code> 那一行）。用 <code>syn::Error::to_compile_error()</code> 返回结构化错误，能精确指向字段。</p>
+<p>⚠️ <strong>过程宏不能修改输入之外的任何东西</strong>。它无法读取文件系统、无法访问调用方的类型信息，<code>derive</code> 只能看到被标注的那个 item 的语法树。想做「跨类型反射」只能靠注册表模式或 build script。</p>
+</blockquote>
+<h2 id="三、build-rs：编译前的那段任意代码"><a href="#三、build-rs：编译前的那段任意代码" class="headerlink" title="三、build.rs：编译前的那段任意代码"></a>三、<code>build.rs</code>：编译前的那段任意代码</h2><p><code>build.rs</code> 在 <strong>crate 编译之前</strong>运行，产物通过 <code>OUT_DIR</code> 交给主代码：</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs rust"><span class="hljs-comment">// build.rs</span><br><span class="hljs-keyword">use</span> std::&#123;env, fs, path::PathBuf&#125;;<br><br><span class="hljs-keyword">fn</span> <span class="hljs-title function_">main</span>() &#123;<br>    <span class="hljs-keyword">let</span> <span class="hljs-variable">out</span> = PathBuf::<span class="hljs-title function_ invoke__">from</span>(env::<span class="hljs-title function_ invoke__">var</span>(<span class="hljs-string">&quot;OUT_DIR&quot;</span>).<span class="hljs-title function_ invoke__">unwrap</span>());<br>    <span class="hljs-keyword">let</span> <span class="hljs-variable">code</span> = <span class="hljs-string">&quot;pub const BUILD_TAG: &amp;str = \&quot;2026-10-19\&quot;;&quot;</span>;<br>    fs::<span class="hljs-title function_ invoke__">write</span>(out.<span class="hljs-title function_ invoke__">join</span>(<span class="hljs-string">&quot;build_info.rs&quot;</span>), code).<span class="hljs-title function_ invoke__">unwrap</span>();<br><br>    <span class="hljs-comment">// 声明依赖：这些文件变了要重新跑 build.rs</span><br>    <span class="hljs-built_in">println!</span>(<span class="hljs-string">&quot;cargo:rerun-if-changed=build.rs&quot;</span>);<br>    <span class="hljs-built_in">println!</span>(<span class="hljs-string">&quot;cargo:rerun-if-changed=proto/schema.proto&quot;</span>);<br>    <span class="hljs-built_in">println!</span>(<span class="hljs-string">&quot;cargo:rustc-env=APP_VERSION=1.2.3&quot;</span>);<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs rust"><span class="hljs-comment">// src/lib.rs</span><br>include!(<span class="hljs-built_in">concat!</span>(<span class="hljs-built_in">env!</span>(<span class="hljs-string">&quot;OUT_DIR&quot;</span>), <span class="hljs-string">&quot;/build_info.rs&quot;</span>));<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th><code>cargo:</code> 指令</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>rerun-if-changed=PATH</code></td>
+<td>该文件变更时重跑（<strong>不写则任何文件变更都重跑</strong>）</td>
+</tr>
+<tr>
+<td><code>rerun-if-env-changed=VAR</code></td>
+<td>环境变量变更时重跑</td>
+</tr>
+<tr>
+<td><code>rustc-env=K=V</code></td>
+<td>注入编译期环境变量，代码里用 <code>env!</code> 读</td>
+</tr>
+<tr>
+<td><code>rustc-link-lib=LIB</code></td>
+<td>链接系统库</td>
+</tr>
+<tr>
+<td><code>rustc-link-search=PATH</code></td>
+<td>链接搜索路径</td>
+</tr>
+<tr>
+<td><code>cargo:warning=MSG</code></td>
+<td>在构建输出里打印警告</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>不写任何 <code>rerun-if-changed</code> 时，Cargo 的默认行为是「包内任意文件变动都重跑」</strong>，看似安全其实很糟：<code>target/</code> 之外任何文件改动（包括 <code>.git</code> 索引）都会触发全量重编。反过来，写了 <code>rerun-if-changed</code> 之后<strong>只</strong>监控列出的文件，漏了 proto 或模板文件就会拿到过期产物。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>build.rs</code> 在宿主机上编译运行，不是目标机</strong>。交叉编译时它拿到的 <code>cfg!</code> 和链接的是宿主机环境，判断目标平台要用 <code>CARGO_CFG_TARGET_OS</code> 这类环境变量，不能用 <code>cfg!(target_os = ...)</code>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>build.rs</code> 是供应链攻击的常见入口</strong>。它拥有完整的文件系统和网络权限，且默认在 <code>cargo build</code> 时静默执行。引入不熟悉的 crate 时值得看一眼它有没有 <code>build.rs</code>。</p>
+</blockquote>
+<h2 id="四、unsafe-到底解锁了什么"><a href="#四、unsafe-到底解锁了什么" class="headerlink" title="四、unsafe 到底解锁了什么"></a>四、<code>unsafe</code> 到底解锁了什么</h2><p><code>unsafe</code> 只开启<strong>五件事</strong>，其余检查一个不少：</p>
+<table>
+<thead>
+<tr>
+<th>允许的操作</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>解引用裸指针</td>
+<td><code>*const T</code> &#x2F; <code>*mut T</code></td>
+</tr>
+<tr>
+<td>调用 <code>unsafe fn</code></td>
+<td>包括外部 C 函数</td>
+</tr>
+<tr>
+<td>访问 &#x2F; 修改 <code>static mut</code></td>
+<td>全局可变状态</td>
+</tr>
+<tr>
+<td>实现 <code>unsafe trait</code></td>
+<td>如 <code>Send</code> &#x2F; <code>Sync</code></td>
+</tr>
+<tr>
+<td>访问 union 字段</td>
+<td><code>union</code> 的读取总是 unsafe</td>
+</tr>
+</tbody></table>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs rust"><span class="hljs-comment">// 注意：unsafe 块不解除借用检查，也不解除类型检查</span><br><span class="hljs-keyword">let</span> <span class="hljs-keyword">mut </span><span class="hljs-variable">x</span> = <span class="hljs-number">5</span>;<br><span class="hljs-keyword">let</span> <span class="hljs-variable">p</span> = &amp;<span class="hljs-keyword">mut</span> x <span class="hljs-keyword">as</span> *<span class="hljs-keyword">mut</span> <span class="hljs-type">i32</span>;<br><span class="hljs-keyword">unsafe</span> &#123;<br>    *p = <span class="hljs-number">10</span>;               <span class="hljs-comment">// ✓ 需要 unsafe</span><br>    <span class="hljs-comment">// let q = &amp;mut x;     // ✗ 依然会报借用冲突（如果 p 仍活跃）</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>unsafe</code> 块的边界要尽量小，并且每个块都要写 <code>// SAFETY:</code> 注释说明「为什么这里满足不变量」</strong>。这是社区惯例，也是 review 时唯一能验证的依据。<code>unsafe &#123; &#125;</code> 包住整个函数体等于没写。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>unsafe fn</code> 的函数体在 Rust 2024 里不再自动是 unsafe 上下文</strong>。以前 <code>unsafe fn</code> 内部可以直接做 unsafe 操作，2024 edition 要求显式再写 <code>unsafe &#123;&#125;</code> 块。这是为了强制你标注每处不安全的边界。</p>
+</blockquote>
+<h2 id="五、写对-unsafe-的四条不变量"><a href="#五、写对-unsafe-的四条不变量" class="headerlink" title="五、写对 unsafe 的四条不变量"></a>五、写对 unsafe 的四条不变量</h2><p>一个 unsafe 块是否「真的安全」，取决于你是否维持了编译器无法验证的那些条件。最常见的四类：</p>
+<table>
+<thead>
+<tr>
+<th>不变量</th>
+<th>破坏后果</th>
+<th>典型场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>指针必须指向有效、对齐、已初始化的内存</td>
+<td>UB（段错误或静默读脏数据）</td>
+<td><code>slice::from_raw_parts</code></td>
+</tr>
+<tr>
+<td>引用必须满足别名规则（<code>&amp;T</code> 可共享 &#x2F; <code>&amp;mut T</code> 独占）</td>
+<td>UB，优化器可能重排</td>
+<td>把裸指针转引用</td>
+</tr>
+<tr>
+<td>长度不能超过分配大小</td>
+<td>越界读，可能泄露内存</td>
+<td>FFI 缓冲区</td>
+</tr>
+<tr>
+<td>类型必须真的符合 trait 契约</td>
+<td>逻辑错误或 UB</td>
+<td><code>unsafe impl Send</code></td>
+</tr>
+</tbody></table>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs rust"><span class="hljs-comment">/// # Safety</span><br><span class="hljs-comment">/// `ptr` 必须指向至少 `len` 个已初始化的 `u8`，且在整个生命周期内不被修改。</span><br><span class="hljs-keyword">pub</span> <span class="hljs-keyword">unsafe</span> <span class="hljs-keyword">fn</span> <span class="hljs-title function_">read_bytes</span>&lt;<span class="hljs-symbol">&#x27;a</span>&gt;(ptr: *<span class="hljs-keyword">const</span> <span class="hljs-type">u8</span>, len: <span class="hljs-type">usize</span>) <span class="hljs-punctuation">-&gt;</span> &amp;<span class="hljs-symbol">&#x27;a</span> [<span class="hljs-type">u8</span>] &#123;<br>    <span class="hljs-comment">// SAFETY: 调用方按文档保证了有效性与不别名</span><br>    <span class="hljs-keyword">unsafe</span> &#123; std::slice::<span class="hljs-title function_ invoke__">from_raw_parts</span>(ptr, len) &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>from_raw_parts</code> 的 <code>len</code> 为 0 时，指针仍必须是「对齐的非空指针」</strong>。<code>std::ptr::null()</code> 配 <code>len = 0</code> 是 UB，虽然实践中常常「看起来没事」。正确做法是 <code>NonNull::dangling()</code>。</p>
+<p>⚠️ <strong><code>&amp;mut T</code> 独占性在 unsafe 里依然成立</strong>。把同一个裸指针转成两个 <code>&amp;mut T</code> 是 UB，哪怕你不并发访问 —— LLVM 的 <code>noalias</code> 会基于这个假设做优化。</p>
+</blockquote>
+<h2 id="六、Miri-与工具链"><a href="#六、Miri-与工具链" class="headerlink" title="六、Miri 与工具链"></a>六、Miri 与工具链</h2><p>写了 unsafe，就得有办法验证它没写错：</p>
+<table>
+<thead>
+<tr>
+<th>工具</th>
+<th>检查什么</th>
+<th>用法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Miri</td>
+<td>UB、越界、别名违规、未初始化读</td>
+<td><code>cargo +nightly miri test</code></td>
+</tr>
+<tr>
+<td><code>-Z sanitizer=address</code></td>
+<td>内存越界、use-after-free</td>
+<td>需 nightly</td>
+</tr>
+<tr>
+<td><code>-Z sanitizer=thread</code></td>
+<td>数据竞争</td>
+<td>需 nightly</td>
+</tr>
+<tr>
+<td><code>cargo clippy</code></td>
+<td>常见错误模式、<code>unsafe</code> 误用</td>
+<td><code>cargo clippy -- -D warnings</code></td>
+</tr>
+<tr>
+<td><code>cargo geiger</code></td>
+<td>统计依赖树里的 unsafe 用量</td>
+<td><code>cargo geiger</code></td>
+</tr>
+<tr>
+<td><code>cargo miri setup</code></td>
+<td>初始化 Miri 环境</td>
+<td>首次运行前</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>Miri 只能验证「被执行到的那条路径」</strong>。测试覆盖率低的时候，Miri 通过不代表没 UB。而且 Miri 不支持 FFI 调用和部分系统调用，跑 <code>unsafe</code> 封装的 C 库时会被跳过。</p>
+<p>⚠️ <strong>Miri 慢一到两个数量级</strong>，别在 CI 里跑全量集成测试，挑核心 unsafe 模块的单元测试跑即可。</p>
+</blockquote>
+<h2 id="七、什么时候真的该用-unsafe"><a href="#七、什么时候真的该用-unsafe" class="headerlink" title="七、什么时候真的该用 unsafe"></a>七、什么时候真的该用 unsafe</h2><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>该用吗</th>
+<th>替代方案</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>调用 C 库</td>
+<td>必须</td>
+<td><code>bindgen</code> 生成绑定，自己只写薄封装</td>
+</tr>
+<tr>
+<td>高性能数据结构（自写 <code>Vec</code>）</td>
+<td>通常该用</td>
+<td>先用安全实现 benchmark，确认瓶颈</td>
+</tr>
+<tr>
+<td>零拷贝解析</td>
+<td>常见</td>
+<td><code>bytes</code> crate 已封装好</td>
+</tr>
+<tr>
+<td>消除借用检查器报错</td>
+<td><strong>不该</strong></td>
+<td>重构数据布局，或 <code>Rc&lt;RefCell&gt;</code> &#x2F; <code>Arc&lt;Mutex&gt;</code></td>
+</tr>
+<tr>
+<td>访问硬件寄存器</td>
+<td>必须</td>
+<td><code>volatile</code> 读写在裸指针上</td>
+</tr>
+<tr>
+<td>实现自定义分配器</td>
+<td>必须</td>
+<td><code>GlobalAlloc</code> 本身是 unsafe trait</td>
+</tr>
+</tbody></table>
+<p>判断标准很朴素：<strong>只有当「安全版本已测出性能瓶颈」或「必须跨越 FFI 边界」时才用 unsafe</strong>，而不是「编译器不让我过所以加 unsafe」。</p>
+<blockquote>
+<p>⚠️ <strong>用 <code>unsafe</code> 绕过借用检查器是最坏的一种用法</strong>。借用检查器的报错通常指向真实的设计问题（共享可变状态），绕过去之后问题从编译期挪到了运行期，而 Rust 的整个安全叙事就失效了。</p>
+</blockquote>
+<h2 id="八、宏、build-rs、unsafe-在发布链路上的影响"><a href="#八、宏、build-rs、unsafe-在发布链路上的影响" class="headerlink" title="八、宏、build.rs、unsafe 在发布链路上的影响"></a>八、宏、build.rs、unsafe 在发布链路上的影响</h2><table>
+<thead>
+<tr>
+<th>环节</th>
+<th>影响</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>编译时间</td>
+<td>过程宏 + <code>syn</code> 显著拉长；<code>build.rs</code> 每次依赖变更都重跑</td>
+</tr>
+<tr>
+<td>二进制体积</td>
+<td>声明宏展开的代码会重复；<code>build.rs</code> 注入的字符串常量很便宜</td>
+</tr>
+<tr>
+<td>可复现构建</td>
+<td><code>build.rs</code> 里读时间戳 &#x2F; 随机数会破坏可复现性</td>
+</tr>
+<tr>
+<td>供应链风险</td>
+<td><code>build.rs</code> 与过程宏都在构建期执行任意代码</td>
+</tr>
+<tr>
+<td>审计成本</td>
+<td>unsafe 块必须有 <code>// SAFETY:</code>，否则 review 无从下手</td>
+</tr>
+</tbody></table>
+<figure class="highlight toml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs toml"><span class="hljs-comment"># 让构建可复现：禁用 build.rs 里的时间依赖</span><br><span class="hljs-section">[profile.release]</span><br><span class="hljs-attr">codegen-units</span> = <span class="hljs-number">1</span><br><span class="hljs-attr">lto</span> = <span class="hljs-literal">true</span><br><span class="hljs-attr">strip</span> = <span class="hljs-string">&quot;symbols&quot;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ **<code>cargo publish</code> 不会运行 <code>build.rs</code>**，但 <code>cargo install</code> 会。所以 <code>build.rs</code> 里的网络请求在离线环境装包时会失败。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 宏分支顺序写反，更具体的模式永远匹配不到</li>
+<li><input disabled="" type="checkbox"> 以为 <code>macro_rules!</code> 有完整卫生性，宏体里裸写 <code>Vec</code> &#x2F; <code>String</code></li>
+<li><input disabled="" type="checkbox"> 过程宏里手拼泛型参数，没用 <code>split_for_impl()</code></li>
+<li><input disabled="" type="checkbox"> 过程宏 <code>panic!</code> 报错定位到 <code>#[derive]</code> 行，看不出是哪个字段</li>
+<li><input disabled="" type="checkbox"> 过程宏试图访问调用方的其他类型信息（拿不到）</li>
+<li><input disabled="" type="checkbox"> <code>build.rs</code> 不写 <code>rerun-if-changed</code>，任何文件变动都触发全量重编</li>
+<li><input disabled="" type="checkbox"> 写了 <code>rerun-if-changed</code> 但漏了模板 &#x2F; proto 文件，拿到过期产物</li>
+<li><input disabled="" type="checkbox"> 交叉编译时在 <code>build.rs</code> 里用 <code>cfg!(target_os)</code> 判断目标平台</li>
+<li><input disabled="" type="checkbox"> <code>unsafe &#123; &#125;</code> 包住整个函数体，边界形同虚设</li>
+<li><input disabled="" type="checkbox"> unsafe 块没有 <code>// SAFETY:</code> 注释，review 无法验证</li>
+<li><input disabled="" type="checkbox"> <code>slice::from_raw_parts(null, 0)</code> 当合法用法</li>
+<li><input disabled="" type="checkbox"> 同一裸指针转出两个 <code>&amp;mut T</code></li>
+<li><input disabled="" type="checkbox"> <code>unsafe impl Send</code> 用来消除编译错误</li>
+<li><input disabled="" type="checkbox"> Rust 2024 edition 下 <code>unsafe fn</code> 里没写 <code>unsafe &#123;&#125;</code> 块</li>
+<li><input disabled="" type="checkbox"> 以为跑了 Miri 就没 UB（只覆盖被执行到的路径）</li>
+<li><input disabled="" type="checkbox"> 为了绕过借用检查器加 unsafe</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><ul>
+<li><a target="_blank" rel="noopener" href="https://doc.rust-lang.org/book/ch19-06-macros.html">The Rust Book · Macros</a></li>
+<li><a target="_blank" rel="noopener" href="https://doc.rust-lang.org/reference/macros-by-example.html">The Rust Reference · Macros by Example</a></li>
+<li><a target="_blank" rel="noopener" href="https://doc.rust-lang.org/reference/procedural-macros.html">The Rust Reference · Procedural Macros</a></li>
+<li><a target="_blank" rel="noopener" href="https://doc.rust-lang.org/cargo/reference/build-scripts.html">The Cargo Book · Build Scripts</a></li>
+<li><a target="_blank" rel="noopener" href="https://doc.rust-lang.org/nomicon/">The Rustonomicon</a></li>
+<li><a target="_blank" rel="noopener" href="https://doc.rust-lang.org/reference/unsafe-blocks.html">The Rust Reference · Unsafe Blocks</a></li>
+<li><a target="_blank" rel="noopener" href="https://doc.rust-lang.org/edition-guide/rust-2024/unsafe-op-in-unsafe-fn.html">Rust 2024 Edition Guide · unsafe_op_in_unsafe_fn</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/rust-lang/miri">Miri</a></li>
+<li><a target="_blank" rel="noopener" href="https://docs.rs/syn/latest/syn/struct.Generics.html#method.split_for_impl">syn · <code>Generics::split_for_impl</code></a></li>
+</ul>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/rust/" class="category-chain-item">rust</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/rust/" class="print-no-link">#rust</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 120 · Rust（四）：宏、构建脚本与 unsafe 边界</div>
+      <div>https://ethan-iopasd.github.io/2026/10/19/每日技术博客120-Rust宏构建脚本与unsafe边界/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月19日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/19/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2119-RustTrait%E6%B3%9B%E5%9E%8B%E4%B8%8E%E5%8A%A8%E6%80%81%E5%88%86%E5%8F%91/" title="每日技术博客 119 · Rust（三）：trait 系统、泛型与动态分发">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 119 · Rust（三）：trait 系统、泛型与动态分发</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
