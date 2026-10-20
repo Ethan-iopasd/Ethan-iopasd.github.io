@@ -1,0 +1,1002 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-20 · 第 127 篇 AI 系列第五篇。提示词不是「咒语」，是给模型看的程序：有输入输出契约、有失败分支、有版本管理。真正稳定的系统不靠调措辞，靠约束输出格式。  📚 AI 系列目录   章节 主题 状态    一 Transformer 与注意力机制 已发布   二 预训练、微调与对齐 已发布   三 RAG 检索增强生成 已发布   四 Agent、工">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 127 · AI（五）：提示工程与结构化输出">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/20/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2127-%E6%8F%90%E7%A4%BA%E5%B7%A5%E7%A8%8B%E4%B8%8E%E7%BB%93%E6%9E%84%E5%8C%96%E8%BE%93%E5%87%BA/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-20 · 第 127 篇 AI 系列第五篇。提示词不是「咒语」，是给模型看的程序：有输入输出契约、有失败分支、有版本管理。真正稳定的系统不靠调措辞，靠约束输出格式。  📚 AI 系列目录   章节 主题 状态    一 Transformer 与注意力机制 已发布   二 预训练、微调与对齐 已发布   三 RAG 检索增强生成 已发布   四 Agent、工">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-20T01:35:00.000Z">
+<meta property="article:modified_time" content="2026-10-20T01:30:37.144Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="ai">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 127 · AI（五）：提示工程与结构化输出 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 127 · AI（五）：提示工程与结构化输出"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-20 09:35" pubdate>
+          2026年10月20日 上午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.3k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          20 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 127 · AI（五）：提示工程与结构化输出</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-20 · 第 127 篇</p>
+<p>AI 系列第五篇。提示词不是「咒语」，是<strong>给模型看的程序</strong>：有输入输出契约、有失败分支、有版本管理。真正稳定的系统不靠调措辞，靠约束输出格式。</p>
+</blockquote>
+<h2 id="📚-AI-系列目录"><a href="#📚-AI-系列目录" class="headerlink" title="📚 AI 系列目录"></a>📚 AI 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>Transformer 与注意力机制</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>预训练、微调与对齐</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>RAG 检索增强生成</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td>Agent、工具调用与上下文工程</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>五</td>
+<td>提示工程与结构化输出</td>
+<td><strong>本篇</strong></td>
+</tr>
+<tr>
+<td>六</td>
+<td>模型评估与 LLM-as-Judge</td>
+<td>已发布</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>能用结构化输出解决的问题，不要靠提示词解决。</strong> 「请你只输出 JSON」的可靠性取决于模型的服从性，而 JSON Schema 约束解码的可靠性取决于解码器 —— 后者是 100%，前者是概率。</p>
+<h2 id="一、提示词的四个组成部分"><a href="#一、提示词的四个组成部分" class="headerlink" title="一、提示词的四个组成部分"></a>一、提示词的四个组成部分</h2><table>
+<thead>
+<tr>
+<th>部分</th>
+<th>作用</th>
+<th>缺了会怎样</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>角色 &#x2F; 上下文</td>
+<td>界定知识范围与视角</td>
+<td>答非所问，跨界编造</td>
+</tr>
+<tr>
+<td>任务</td>
+<td>明确要做什么</td>
+<td>输出散漫，抓不住重点</td>
+</tr>
+<tr>
+<td>约束</td>
+<td>格式、长度、禁止项</td>
+<td>格式不稳，需要反复重试</td>
+</tr>
+<tr>
+<td>示例（few-shot）</td>
+<td>用样本锚定风格与格式</td>
+<td>边界情况处理不一致</td>
+</tr>
+</tbody></table>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs text">[上下文] 你是一个只依据所给文档回答问题的助手。<br>[任务] 根据 &lt;docs&gt; 回答 &lt;question&gt;。<br>[约束] 1) 只用文档中的信息；2) 找不到就答「文档中未提及」；<br>       3) 引用来源用 [编号]；4) 不超过 150 字。<br>[示例] 问：X 是什么？ 答：X 是…… [1]<br>&lt;docs&gt;...&lt;/docs&gt;<br>&lt;question&gt;...&lt;/question&gt;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>约束要写成可判定的</strong>。「回答要专业」无法判定，「不超过 150 字」「必须含 [编号]」可以判定，也可以被测试。<strong>不可判定的约束等于没有约束。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>指令和数据的边界必须显式标记</strong>。用 XML 标签（<code>&lt;docs&gt;</code>、<code>&lt;question&gt;</code>）或明确的分隔符，让模型知道哪部分是「要处理的内容」、哪部分是「要遵守的规则」。这也是防提示注入的第一道防线。</p>
+</blockquote>
+<h2 id="二、几个真正有效的技巧"><a href="#二、几个真正有效的技巧" class="headerlink" title="二、几个真正有效的技巧"></a>二、几个真正有效的技巧</h2><table>
+<thead>
+<tr>
+<th>技巧</th>
+<th>做法</th>
+<th>适用</th>
+<th>效果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Few-shot</td>
+<td>给 2~5 个输入输出示例</td>
+<td>格式敏感、边界多</td>
+<td>最稳定，收益最大</td>
+</tr>
+<tr>
+<td>分步思考（CoT）</td>
+<td>要求先推理再给结论</td>
+<td>数学、多跳推理</td>
+<td>明显提升，但更慢更贵</td>
+</tr>
+<tr>
+<td>分解任务</td>
+<td>一个大任务拆成多次调用</td>
+<td>复杂流程</td>
+<td>稳定性提升最大</td>
+</tr>
+<tr>
+<td>自我检查</td>
+<td>生成后要求核对约束</td>
+<td>格式校验</td>
+<td>中等，成本翻倍</td>
+</tr>
+<tr>
+<td>预填充（prefill）</td>
+<td>让回答以固定前缀开始</td>
+<td>强制 JSON &#x2F; 特定格式</td>
+<td>高，且几乎零成本</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># 预填充：直接把输出「推」进目标格式，比在提示里求它可靠得多</span><br>resp = client.messages.create(<br>    model=<span class="hljs-string">&quot;claude-sonnet-4-5&quot;</span>,<br>    max_tokens=<span class="hljs-number">1024</span>,<br>    messages=[<br>        &#123;<span class="hljs-string">&quot;role&quot;</span>: <span class="hljs-string">&quot;user&quot;</span>, <span class="hljs-string">&quot;content&quot;</span>: prompt&#125;,<br>        &#123;<span class="hljs-string">&quot;role&quot;</span>: <span class="hljs-string">&quot;assistant&quot;</span>, <span class="hljs-string">&quot;content&quot;</span>: <span class="hljs-string">&quot;&#123;&quot;</span>&#125;,   <span class="hljs-comment"># 预填充左花括号</span><br>    ],<br>)<br><span class="hljs-comment"># 输出必然以 &#123; 开头，省掉了「模型先说一句好的，然后才给 JSON」的经典问题</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>CoT 不是万能的</strong>。对简单任务加「让我们一步步思考」反而会让模型把简单问题想复杂，甚至引入错误。<strong>只在确实需要多步推理时用</strong>，并且优先用「先给结论、再给依据」而不是无约束的长篇推理。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>few-shot 的示例会「传染」错误</strong>。示例里有一个错别字或格式不一致，模型会照样学。示例数量也不必多，<strong>3 个高质量示例通常优于 10 个平庸示例</strong>。</p>
+</blockquote>
+<h2 id="三、结构化输出：三层可靠性"><a href="#三、结构化输出：三层可靠性" class="headerlink" title="三、结构化输出：三层可靠性"></a>三、结构化输出：三层可靠性</h2><table>
+<thead>
+<tr>
+<th>方案</th>
+<th>可靠性</th>
+<th>成本</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>提示里写「输出 JSON」</td>
+<td>低（80~95%）</td>
+<td>最低</td>
+<td>会带 markdown 代码块、会加解释</td>
+</tr>
+<tr>
+<td>预填充 + 解析容错</td>
+<td>中（95~99%）</td>
+<td>低</td>
+<td>需要剥离 &#96;&#96;&#96;json 包裹</td>
+</tr>
+<tr>
+<td>JSON Schema 约束解码</td>
+<td><strong>高（100%）</strong></td>
+<td>中</td>
+<td>解码时按语法树剪枝，不可能输出非法 JSON</td>
+</tr>
+<tr>
+<td>函数调用 &#x2F; 工具模式</td>
+<td>高</td>
+<td>中</td>
+<td>模型直接返回结构化参数</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">from</span> pydantic <span class="hljs-keyword">import</span> BaseModel, Field<br><span class="hljs-keyword">from</span> openai <span class="hljs-keyword">import</span> OpenAI<br><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">Item</span>(<span class="hljs-title class_ inherited__">BaseModel</span>):<br>    name: <span class="hljs-built_in">str</span> = Field(description=<span class="hljs-string">&quot;商品名称&quot;</span>)<br>    price: <span class="hljs-built_in">float</span> = Field(gt=<span class="hljs-number">0</span>, description=<span class="hljs-string">&quot;单价，单位元&quot;</span>)<br>    tags: <span class="hljs-built_in">list</span>[<span class="hljs-built_in">str</span>] = Field(default_factory=<span class="hljs-built_in">list</span>)<br><br>client = OpenAI()<br>resp = client.beta.chat.completions.parse(<br>    model=<span class="hljs-string">&quot;gpt-4o-2024-08-06&quot;</span>,<br>    messages=[&#123;<span class="hljs-string">&quot;role&quot;</span>: <span class="hljs-string">&quot;user&quot;</span>, <span class="hljs-string">&quot;content&quot;</span>: <span class="hljs-string">&quot;从这段话里抽商品：...&quot;</span>&#125;],<br>    response_format=Item,<br>)<br>item = resp.choices[<span class="hljs-number">0</span>].message.parsed   <span class="hljs-comment"># 已经是 Item 实例，不是字符串</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>约束类型</th>
+<th>Schema 写法</th>
+<th>模型行为</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>必填字段</td>
+<td><code>required: [...]</code></td>
+<td>一定会输出</td>
+</tr>
+<tr>
+<td>枚举</td>
+<td><code>enum: [&quot;a&quot;,&quot;b&quot;]</code></td>
+<td>只在这几个值里选</td>
+</tr>
+<tr>
+<td>数值范围</td>
+<td><code>minimum</code> &#x2F; <code>maximum</code></td>
+<td>越界值被剪掉</td>
+</tr>
+<tr>
+<td>数组长度</td>
+<td><code>minItems</code> &#x2F; <code>maxItems</code></td>
+<td>按约束生成</td>
+</tr>
+<tr>
+<td>嵌套对象</td>
+<td><code>$defs</code> &#x2F; <code>$ref</code></td>
+<td>递归约束</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>约束解码会略损质量</strong>。强制某些 token 不可选，会让模型失去「先解释再作答」的余地，复杂推理任务上可能变差。<strong>推理密集的任务用「先自由推理、再结构化输出」两段式</strong>，比全程约束更好。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>不是所有字段都适合放进 schema</strong>。<code>reasoning</code> 这类自由文本字段如果放进严格 schema，会限制模型的表达。常见做法：推理走普通文本，最终结论走 schema。</p>
+</blockquote>
+<h2 id="四、解析容错：生产环境必备"><a href="#四、解析容错：生产环境必备" class="headerlink" title="四、解析容错：生产环境必备"></a>四、解析容错：生产环境必备</h2><p>即使有 schema 约束，也要为「不支持该特性的模型」准备降级路径：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">import</span> json, re<br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">parse_json_lenient</span>(<span class="hljs-params">text: <span class="hljs-built_in">str</span></span>):<br>    <span class="hljs-string">&quot;&quot;&quot;按可靠性从高到低尝试，全部失败返回 None 而不是抛异常。&quot;&quot;&quot;</span><br>    text = text.strip()<br>    <span class="hljs-comment"># 1. 直接解析</span><br>    <span class="hljs-keyword">try</span>:<br>        <span class="hljs-keyword">return</span> json.loads(text)<br>    <span class="hljs-keyword">except</span> json.JSONDecodeError:<br>        <span class="hljs-keyword">pass</span><br>    <span class="hljs-comment"># 2. 剥离 markdown 代码块</span><br>    m = re.search(<span class="hljs-string">r&quot;```(?:json)?\s*(.*?)```&quot;</span>, text, re.S)<br>    <span class="hljs-keyword">if</span> m:<br>        <span class="hljs-keyword">try</span>:<br>            <span class="hljs-keyword">return</span> json.loads(m.group(<span class="hljs-number">1</span>).strip())<br>        <span class="hljs-keyword">except</span> json.JSONDecodeError:<br>            <span class="hljs-keyword">pass</span><br>    <span class="hljs-comment"># 3. 截取第一个平衡的 &#123;...&#125; 或 [...]</span><br>    <span class="hljs-keyword">for</span> open_c, close_c <span class="hljs-keyword">in</span> ((<span class="hljs-string">&quot;&#123;&quot;</span>, <span class="hljs-string">&quot;&#125;&quot;</span>), (<span class="hljs-string">&quot;[&quot;</span>, <span class="hljs-string">&quot;]&quot;</span>)):<br>        start = text.find(open_c)<br>        <span class="hljs-keyword">if</span> start == -<span class="hljs-number">1</span>:<br>            <span class="hljs-keyword">continue</span><br>        depth = <span class="hljs-number">0</span><br>        <span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(start, <span class="hljs-built_in">len</span>(text)):<br>            <span class="hljs-keyword">if</span> text[i] == open_c:<br>                depth += <span class="hljs-number">1</span><br>            <span class="hljs-keyword">elif</span> text[i] == close_c:<br>                depth -= <span class="hljs-number">1</span><br>                <span class="hljs-keyword">if</span> depth == <span class="hljs-number">0</span>:<br>                    <span class="hljs-keyword">try</span>:<br>                        <span class="hljs-keyword">return</span> json.loads(text[start:i + <span class="hljs-number">1</span>])<br>                    <span class="hljs-keyword">except</span> json.JSONDecodeError:<br>                        <span class="hljs-keyword">break</span><br>    <span class="hljs-keyword">return</span> <span class="hljs-literal">None</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ **永远不要裸调 <code>json.loads</code>**。模型加一句「以下是结果：」就直接炸。生产代码必须有降级解析 + 重试 + 兜底值三层。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>重试时要把错误回给模型</strong>：「上次输出不符合 schema：<code>price</code> 字段缺失，请重新输出」。直接原样重试，大概率得到同样的错误。</p>
+</blockquote>
+<h2 id="五、温度与其他采样参数"><a href="#五、温度与其他采样参数" class="headerlink" title="五、温度与其他采样参数"></a>五、温度与其他采样参数</h2><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>作用</th>
+<th>建议</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>temperature</code></td>
+<td>随机性，0~2</td>
+<td>抽取&#x2F;分类用 0，创意写作用 0.7~1.0</td>
+</tr>
+<tr>
+<td><code>top_p</code></td>
+<td>核采样，累积概率阈值</td>
+<td>通常只调一个，别和 temperature 同时大改</td>
+</tr>
+<tr>
+<td><code>max_tokens</code></td>
+<td>输出上限</td>
+<td>按任务设，太小会截断</td>
+</tr>
+<tr>
+<td><code>stop</code></td>
+<td>停止序列</td>
+<td>用于截断多余内容</td>
+</tr>
+<tr>
+<td><code>seed</code></td>
+<td>尽量可复现</td>
+<td>不保证完全一致</td>
+</tr>
+<tr>
+<td><code>presence/frequency_penalty</code></td>
+<td>抑制重复</td>
+<td>长文本生成时有用</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>temperature=0</code> 也不保证完全确定性</strong>。浮点累加顺序、批处理、GPU 非确定性都会带来差异。需要严格可复现的场景（评估、回归测试），要么固定 seed 并接受偶发差异，要么用容差判定。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>同时调 <code>temperature</code> 和 <code>top_p</code> 会让行为难以预测</strong>。选一个调，另一个保持默认。</p>
+</blockquote>
+<h2 id="六、提示词的工程化管理"><a href="#六、提示词的工程化管理" class="headerlink" title="六、提示词的工程化管理"></a>六、提示词的工程化管理</h2><table>
+<thead>
+<tr>
+<th>实践</th>
+<th>做法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>版本化</td>
+<td>提示词存文件&#x2F;数据库，带版本号，不进代码字符串</td>
+</tr>
+<tr>
+<td>模板化</td>
+<td>变量用占位符，渲染时做转义</td>
+</tr>
+<tr>
+<td>回归测试</td>
+<td>一组固定输入 + 期望，每次改动跑一遍</td>
+</tr>
+<tr>
+<td>灰度</td>
+<td>新版本小流量验证，指标达标再全量</td>
+</tr>
+<tr>
+<td>可观测</td>
+<td>记录 prompt 版本、token 数、延迟、解析失败率</td>
+</tr>
+<tr>
+<td>缓存</td>
+<td>相同前缀的 prompt 命中缓存（多数厂商支持）</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># 提示词与代码分离，便于灰度与回滚</span><br>PROMPTS = &#123;<br>    <span class="hljs-string">&quot;extract.v1&quot;</span>: <span class="hljs-string">&quot;从文本中抽取商品信息：\n&#123;text&#125;&quot;</span>,<br>    <span class="hljs-string">&quot;extract.v2&quot;</span>: <span class="hljs-string">&quot;抽取商品名称、单价、标签。找不到的字段留空，不要编造。\n&#123;text&#125;&quot;</span>,<br>&#125;<br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">render</span>(<span class="hljs-params">version: <span class="hljs-built_in">str</span>, **kw</span>) -&gt; <span class="hljs-built_in">str</span>:<br>    <span class="hljs-keyword">return</span> PROMPTS[version].<span class="hljs-built_in">format</span>(**kw)<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>str.format</code> 会把用户输入里的 <code>&#123;&#125;</code> 当占位符</strong>，直接报错或被注入。用户内容必须<strong>最后拼接</strong>，或者用 <code>string.Template</code>（<code>$var</code> 语法）避免冲突。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>提示词缓存通常按「前缀」命中</strong>。把固定的大段说明放最前面、变量放最后，能显著提高缓存命中率，成本和延迟都能降一半以上。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 用「请你只输出 JSON」当唯一保障，没有 schema 约束</li>
+<li><input disabled="" type="checkbox"> 裸调 <code>json.loads</code>，模型加一句解释就崩</li>
+<li><input disabled="" type="checkbox"> 重试时原样重发，不把错误信息回给模型</li>
+<li><input disabled="" type="checkbox"> 约束写成「专业」「简洁」这类不可判定的形容词</li>
+<li><input disabled="" type="checkbox"> 对简单任务滥用 CoT，反而引入错误</li>
+<li><input disabled="" type="checkbox"> few-shot 示例里有错别字或格式不一致，被模型照学</li>
+<li><input disabled="" type="checkbox"> 用 <code>str.format</code> 渲染含用户输入的模板，花括号冲突</li>
+<li><input disabled="" type="checkbox"> 强制全流程结构化输出，复杂推理质量下降</li>
+<li><input disabled="" type="checkbox"> <code>temperature=0</code> 却期待完全可复现</li>
+<li><input disabled="" type="checkbox"> 同时大改 <code>temperature</code> 和 <code>top_p</code>，行为失控</li>
+<li><input disabled="" type="checkbox"> 提示词硬编码在代码里，无法灰度与回滚</li>
+<li><input disabled="" type="checkbox"> 没有解析失败率监控，线上静默出错</li>
+<li><input disabled="" type="checkbox"> 不区分指令与数据，被文档内容里的指令劫持</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><ul>
+<li><a target="_blank" rel="noopener" href="https://platform.openai.com/docs/guides/structured-outputs">OpenAI · Structured Outputs</a></li>
+<li><a target="_blank" rel="noopener" href="https://platform.openai.com/docs/guides/prompt-engineering">OpenAI · Prompt Engineering Guide</a></li>
+<li><a target="_blank" rel="noopener" href="https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview">Anthropic · Prompt Engineering 概览</a></li>
+<li><a target="_blank" rel="noopener" href="https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/prefill-claudes-response">Anthropic · 预填充（Prefill）技巧</a></li>
+<li><a target="_blank" rel="noopener" href="https://docs.pydantic.dev/latest/">Pydantic 文档</a></li>
+<li><a target="_blank" rel="noopener" href="https://json-schema.org/specification">JSON Schema 规范</a></li>
+<li><a target="_blank" rel="noopener" href="https://arxiv.org/abs/2201.11903">Chain-of-Thought Prompting</a></li>
+</ul>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/ai/" class="category-chain-item">ai</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/ai/" class="print-no-link">#ai</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 127 · AI（五）：提示工程与结构化输出</div>
+      <div>https://ethan-iopasd.github.io/2026/10/20/每日技术博客127-提示工程与结构化输出/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月20日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/19/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2124-Agent%E5%B7%A5%E5%85%B7%E8%B0%83%E7%94%A8%E4%B8%8E%E4%B8%8A%E4%B8%8B%E6%96%87%E5%B7%A5%E7%A8%8B/" title="每日技术博客 124 · AI（四）：Agent、工具调用与上下文工程">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 124 · AI（四）：Agent、工具调用与上下文工程</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2026/10/20/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2128-%E6%A8%A1%E5%9E%8B%E8%AF%84%E4%BC%B0%E4%B8%8ELLM%E8%A3%81%E5%88%A4/" title="每日技术博客 128 · AI（六）：模型评估与 LLM-as-Judge">
+                        <span class="hidden-mobile">每日技术博客 128 · AI（六）：模型评估与 LLM-as-Judge</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
