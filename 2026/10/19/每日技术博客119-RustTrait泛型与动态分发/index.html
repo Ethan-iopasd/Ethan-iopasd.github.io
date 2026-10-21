@@ -27,7 +27,7 @@
 <meta property="og:description" content="每日技术博客 · 2026-10-19 · 第 119 篇 Rust 系列第三篇。trait 既是接口又是约束，impl Trait 和 dyn Trait 是两条完全不同的路 —— 一个在编译期单态化展开，一个靠 vtable 在运行时查表。  📚 Rust 系列目录   章节 主题 状态    一 所有权、借用与生命周期 已发布   二 错误处理、并发与工程实践 已发布   三 trait">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-10-19T10:05:00.000Z">
-<meta property="article:modified_time" content="2026-10-21T01:57:24.607Z">
+<meta property="article:modified_time" content="2026-10-21T02:14:24.674Z">
 <meta property="article:author" content="iopasd">
 <meta property="article:tag" content="rust">
 <meta name="twitter:card" content="summary_large_image">
@@ -314,7 +314,6 @@
 <td>已发布</td>
 </tr>
 </tbody></table>
-<hr>
 <h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>trait 约束决定「能不能编译」，分发方式决定「运行时长什么样」。</strong> 泛型 + <code>impl Trait</code> 是单态化，零成本但会撑大二进制；<code>dyn Trait</code> 是 vtable，一份代码但多一次间接跳转、且受对象安全限制。</p>
 <h2 id="一、trait-到底是什么"><a href="#一、trait-到底是什么" class="headerlink" title="一、trait 到底是什么"></a>一、trait 到底是什么</h2><p>trait 在 Rust 里同时扮演三个角色，混着理解是很多困惑的来源：</p>
 <table>

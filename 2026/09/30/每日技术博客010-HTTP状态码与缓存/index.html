@@ -27,7 +27,7 @@
 <meta property="og:description" content="每日技术博客 · 2026-09-30 · 第 010 篇 HTTP 系列第一篇。状态码到底该怎么用、强缓存和协商缓存怎么配合 —— 这两个决定了接口语义是否清晰、以及页面二次访问有多快。  📚 HTTP 系列目录   章节 主题 状态    一 状态码与缓存 本篇   二 CORS、Cookie 与安全响应头 已发布   三 HTTP&#x2F;2、HTTP&#x2F;3 与连接管理 已发布">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-09-30T07:00:00.000Z">
-<meta property="article:modified_time" content="2026-10-21T01:57:24.581Z">
+<meta property="article:modified_time" content="2026-10-21T02:14:24.648Z">
 <meta property="article:author" content="iopasd">
 <meta property="article:tag" content="http">
 <meta name="twitter:card" content="summary_large_image">
@@ -324,7 +324,6 @@
 <td>已发布</td>
 </tr>
 </tbody></table>
-<hr>
 <h2 id="开场：状态码是给中间层看的"><a href="#开场：状态码是给中间层看的" class="headerlink" title="开场：状态码是给中间层看的"></a>开场：状态码是给中间层看的</h2><p>状态码不只是给前端判断用的 —— <strong>代理、网关、CDN、监控、浏览器缓存都靠它决定行为</strong>。用错了，缓存和重试逻辑都会跟着错。</p>
 <h2 id="一、状态码分类"><a href="#一、状态码分类" class="headerlink" title="一、状态码分类"></a>一、状态码分类</h2><table>
 <thead>

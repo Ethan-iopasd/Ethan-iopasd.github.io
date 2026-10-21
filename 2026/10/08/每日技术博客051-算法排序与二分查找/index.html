@@ -27,7 +27,7 @@
 <meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 051 篇 算法系列第二篇。标准库的 sort 到底用了什么算法、稳定性为什么会在多字段排序时咬人、二分查找的边界怎么写才不越界 —— 全是能直接对照的表格和模板。  📚 算法 系列目录   章节 主题 状态    一 复杂度与常用数据结构 已发布   二 排序与二分查找 本篇   三 动态规划 已发布   四 图论与最短路 已发布   五 贪心">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-10-08T01:20:00.000Z">
-<meta property="article:modified_time" content="2026-10-21T01:57:24.602Z">
+<meta property="article:modified_time" content="2026-10-21T02:14:24.667Z">
 <meta property="article:author" content="iopasd">
 <meta property="article:tag" content="algorithm">
 <meta name="twitter:card" content="summary_large_image">
@@ -319,7 +319,6 @@
 <td>已发布</td>
 </tr>
 </tbody></table>
-<hr>
 <h2 id="开场：排序快不快，取决于数据分布，不是算法名字"><a href="#开场：排序快不快，取决于数据分布，不是算法名字" class="headerlink" title="开场：排序快不快，取决于数据分布，不是算法名字"></a>开场：排序快不快，取决于数据分布，不是算法名字</h2><p><code>O(n log n)</code> 只是<strong>比较排序的下界</strong>，不是某个算法的专属标签。实际跑起来：TimSort 在「基本有序」的数据上是 <code>O(n)</code>，pdqsort 在「大量重复元素」上远快于朴素快排，而快排遇到「已排序输入 + 首元素作 pivot」会退化成 <code>O(n²)</code>。<strong>选排序前先看数据长什么样。</strong></p>
 <h2 id="一、O-n-log-n-下界从哪来"><a href="#一、O-n-log-n-下界从哪来" class="headerlink" title="一、O(n log n) 下界从哪来"></a>一、O(n log n) 下界从哪来</h2><p>n 个元素有 <code>n!</code> 种排列，每次比较只能把候选空间一分为二，所以决策树高度至少是 <code>log₂(n!)</code>。</p>
 <table>

@@ -27,7 +27,7 @@
 <meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 097 篇 Rust 系列第二篇。错误用 Result 显式建模、数据竞争用 Send&#x2F;Sync 静态排除、异步靠 tokio 跑起来 —— 以及 cargo 工程化的那套默认姿势。  📚 Rust 系列目录   章节 主题 状态    一 所有权、借用与生命周期 已发布   二 错误处理、并发与工程实践 本篇   三 trait 系统">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-10-08T07:15:00.000Z">
-<meta property="article:modified_time" content="2026-10-21T01:57:24.607Z">
+<meta property="article:modified_time" content="2026-10-21T02:14:24.674Z">
 <meta property="article:author" content="iopasd">
 <meta property="article:tag" content="rust">
 <meta name="twitter:card" content="summary_large_image">
@@ -314,7 +314,6 @@
 <td>已发布</td>
 </tr>
 </tbody></table>
-<hr>
 <h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p>Rust 里没有异常：**能恢复的错误走 <code>Result</code>，不可恢复的走 <code>panic!</code>**；并发能不能编译过，由 <code>Send</code>&#x2F;<code>Sync</code> 在编译期裁定。</p>
 <h2 id="一、Option-Result-与-运算符"><a href="#一、Option-Result-与-运算符" class="headerlink" title="一、Option &#x2F; Result 与 ? 运算符"></a>一、<code>Option</code> &#x2F; <code>Result</code> 与 <code>?</code> 运算符</h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs rust"><span class="hljs-keyword">enum</span> <span class="hljs-title class_">Option</span>&lt;T&gt; &#123; <span class="hljs-title function_ invoke__">Some</span>(T), <span class="hljs-literal">None</span> &#125;              <span class="hljs-comment">// 可能没有值</span><br><span class="hljs-keyword">enum</span> <span class="hljs-title class_">Result</span>&lt;T, E&gt; &#123; <span class="hljs-title function_ invoke__">Ok</span>(T), <span class="hljs-title function_ invoke__">Err</span>(E) &#125;           <span class="hljs-comment">// 可能失败</span><br></code></pre></td></tr></table></figure>
 

@@ -27,7 +27,7 @@
 <meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 105 篇 JavaScript 系列第五篇。ES2022~2025 已经定稿的那批 API（Object.groupBy、structuredClone、Promise.withResolvers…），加上那些十年不变的经典坑。  📚 JavaScript 系列目录   章节 主题 状态    一 事件循环与异步模型 已发布   二 原型链、t">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-10-08T07:55:00.000Z">
-<meta property="article:modified_time" content="2026-10-21T01:57:24.588Z">
+<meta property="article:modified_time" content="2026-10-21T02:14:24.655Z">
 <meta property="article:author" content="iopasd">
 <meta property="article:tag" content="javascript">
 <meta name="twitter:card" content="summary_large_image">
@@ -324,7 +324,6 @@
 <td>已发布</td>
 </tr>
 </tbody></table>
-<hr>
 <h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p>新 API 解决的是老写法里的<strong>默认行为坑</strong>（原地修改、<code>||</code> 吞掉 <code>0</code>、<code>JSON</code> 丢类型），记住「哪些已定稿、哪些还在提案」比记语法更重要。</p>
 <h2 id="一、-逻辑赋值"><a href="#一、-逻辑赋值" class="headerlink" title="一、?. &#x2F; ?? &#x2F; 逻辑赋值"></a>一、<code>?.</code> &#x2F; <code>??</code> &#x2F; 逻辑赋值</h2><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs js">obj?.<span class="hljs-property">a</span>?.<span class="hljs-property">b</span>            <span class="hljs-comment">// 短路返回 undefined，不抛错</span><br>arr?.[<span class="hljs-number">0</span>]             <span class="hljs-comment">// 下标</span><br>fn?.(x)              <span class="hljs-comment">// 调用</span><br><br>a ?? b               <span class="hljs-comment">// 仅当 a 是 null / undefined 时取 b</span><br>a ??= b              <span class="hljs-comment">// a 为 nullish 时赋值</span><br>a &amp;&amp;= b              <span class="hljs-comment">// a 为真值时赋值</span><br>a ||= b              <span class="hljs-comment">// a 为假值时赋值</span><br></code></pre></td></tr></table></figure>
 

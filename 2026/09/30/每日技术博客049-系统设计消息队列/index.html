@@ -19,15 +19,15 @@
   <meta name="author" content="iopasd">
   <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
   
-    <meta name="description" content="每日技术博客 · 2026-09-30 · 第 049 篇 系统设计系列第二篇。三种投递语义在现实中能做到哪个、消息在哪个环节丢的、重复消费为什么无法避免 —— 这一篇讲的是 MQ 的代价，不是它的好处。  📚 系统设计 系列目录   章节 主题 状态    一 限流、熔断与降级 已发布   二 消息队列与最终一致性 本篇   三 分布式一致性与共识 已发布    开场：MQ 换来的三个能力，">
+    <meta name="description" content="每日技术博客 · 2026-09-30 · 第 049 篇 系统设计系列第二篇。三种投递语义在现实中能做到哪个、消息在哪个环节丢的、重复消费为什么无法避免 —— 这一篇讲的是 MQ 的代价，不是它的好处。  📚 系统设计 系列目录   章节 主题 状态    一 限流、熔断与降级 已发布   二 消息队列与最终一致性 本篇   三 分布式一致性与共识 已发布   开场：MQ 换来的三个能力，都">
 <meta property="og:type" content="article">
 <meta property="og:title" content="每日技术博客 049 · 系统设计（二）：消息队列与最终一致性">
 <meta property="og:url" content="https://ethan-iopasd.github.io/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2049-%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/index.html">
 <meta property="og:site_name" content="Ethan-iopasd">
-<meta property="og:description" content="每日技术博客 · 2026-09-30 · 第 049 篇 系统设计系列第二篇。三种投递语义在现实中能做到哪个、消息在哪个环节丢的、重复消费为什么无法避免 —— 这一篇讲的是 MQ 的代价，不是它的好处。  📚 系统设计 系列目录   章节 主题 状态    一 限流、熔断与降级 已发布   二 消息队列与最终一致性 本篇   三 分布式一致性与共识 已发布    开场：MQ 换来的三个能力，">
+<meta property="og:description" content="每日技术博客 · 2026-09-30 · 第 049 篇 系统设计系列第二篇。三种投递语义在现实中能做到哪个、消息在哪个环节丢的、重复消费为什么无法避免 —— 这一篇讲的是 MQ 的代价，不是它的好处。  📚 系统设计 系列目录   章节 主题 状态    一 限流、熔断与降级 已发布   二 消息队列与最终一致性 本篇   三 分布式一致性与共识 已发布   开场：MQ 换来的三个能力，都">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-09-30T15:30:00.000Z">
-<meta property="article:modified_time" content="2026-10-21T01:57:24.600Z">
+<meta property="article:modified_time" content="2026-10-21T02:14:24.666Z">
 <meta property="article:author" content="iopasd">
 <meta property="article:tag" content="system-design">
 <meta name="twitter:card" content="summary_large_image">
@@ -304,7 +304,6 @@
 <td>已发布</td>
 </tr>
 </tbody></table>
-<hr>
 <h2 id="开场：MQ-换来的三个能力，都要用一致性去还"><a href="#开场：MQ-换来的三个能力，都要用一致性去还" class="headerlink" title="开场：MQ 换来的三个能力，都要用一致性去还"></a>开场：MQ 换来的三个能力，都要用一致性去还</h2><table>
 <thead>
 <tr>

@@ -27,7 +27,7 @@
 <meta property="og:description" content="每日技术博客 · 2026-10-21 · 第 130 篇 AI 系列第八篇。LLM 推理的瓶颈不是算力，是显存带宽：每生成一个 token 都要把全部权重从显存读一遍。理解了这一点，量化、KV cache、批处理、投机解码为什么有效就全都清楚了。  📚 AI 系列目录   章节 主题 状态    一 Transformer 与注意力机制 已发布   二 预训练、微调与对齐 已发布   三 R">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-10-21T01:50:00.000Z">
-<meta property="article:modified_time" content="2026-10-21T01:57:24.610Z">
+<meta property="article:modified_time" content="2026-10-21T02:14:24.678Z">
 <meta property="article:author" content="iopasd">
 <meta property="article:tag" content="ai">
 <meta name="twitter:card" content="summary_large_image">
@@ -339,7 +339,6 @@
 <td>已发布</td>
 </tr>
 </tbody></table>
-<hr>
 <h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>Prefill 是算力密集，Decode 是带宽密集 —— 这是两件完全不同的事。</strong> 首 token 延迟看 Prefill（受算力和 prompt 长度支配），生成速度看 Decode（受显存带宽支配），而吞吐看批处理。优化前先确认你被哪个卡住。</p>
 <h2 id="一、两阶段：Prefill-与-Decode"><a href="#一、两阶段：Prefill-与-Decode" class="headerlink" title="一、两阶段：Prefill 与 Decode"></a>一、两阶段：Prefill 与 Decode</h2><table>
 <thead>

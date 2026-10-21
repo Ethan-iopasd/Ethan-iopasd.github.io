@@ -27,7 +27,7 @@
 <meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 096 篇 Rust 系列第一篇。用编译期所有权检查换掉 GC 和运行时数据竞争检查，代价是你要学会跟借用检查器讲道理。  📚 Rust 系列目录   章节 主题 状态    一 所有权、借用与生命周期 本篇   二 错误处理、并发与工程实践 已发布   三 trait 系统、泛型与动态分发 已发布   四 宏、构建脚本与 unsafe 边界 已">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-10-08T07:10:00.000Z">
-<meta property="article:modified_time" content="2026-10-21T01:57:24.607Z">
+<meta property="article:modified_time" content="2026-10-21T02:14:24.673Z">
 <meta property="article:author" content="iopasd">
 <meta property="article:tag" content="rust">
 <meta name="twitter:card" content="summary_large_image">
@@ -314,7 +314,6 @@
 <td>已发布</td>
 </tr>
 </tbody></table>
-<hr>
 <h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p>Rust 不靠 GC，也不靠程序员自觉 —— 它把「谁负责释放内存」「谁能同时改这块内存」变成<strong>类型系统的一部分</strong>，编译不过就是真的会出事。</p>
 <h2 id="一、它到底在跟谁抢活"><a href="#一、它到底在跟谁抢活" class="headerlink" title="一、它到底在跟谁抢活"></a>一、它到底在跟谁抢活</h2><table>
 <thead>

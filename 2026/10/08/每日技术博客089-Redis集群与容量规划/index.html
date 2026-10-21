@@ -27,7 +27,7 @@
 <meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 089 篇 Redis 系列第四篇。复制、Sentinel、Cluster 三种高可用形态各自的边界，以及内存与大 key 的治理。  📚 Redis 系列目录   章节 主题 状态    一 数据结构与典型场景 已发布   二 缓存三大问题与持久化 已发布   三 分布式锁、限流与 Lua 已发布   四 主从、哨兵、Cluster 与容量规划">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-10-08T06:20:00.000Z">
-<meta property="article:modified_time" content="2026-10-21T01:57:24.586Z">
+<meta property="article:modified_time" content="2026-10-21T02:14:24.653Z">
 <meta property="article:author" content="iopasd">
 <meta property="article:tag" content="redis">
 <meta name="twitter:card" content="summary_large_image">
@@ -314,7 +314,6 @@
 <td>已发布</td>
 </tr>
 </tbody></table>
-<hr>
 <h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p>主从解决<strong>读扩展与备份</strong>，Sentinel 解决<strong>单主自动切换</strong>，Cluster 解决<strong>分片与水平扩展</strong> —— 三者不是替代关系，而 Cluster 的核心代价是<strong>多 key 操作不再自由</strong>。</p>
 <h2 id="一、主从复制：全量-部分重同步"><a href="#一、主从复制：全量-部分重同步" class="headerlink" title="一、主从复制：全量 &#x2F; 部分重同步"></a>一、主从复制：全量 &#x2F; 部分重同步</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash">replicaof 10.0.0.1 6379     <span class="hljs-comment"># Redis 5+ 推荐；slaveof 仍兼容</span><br>replica-read-only <span class="hljs-built_in">yes</span>       <span class="hljs-comment"># 从库只读</span><br></code></pre></td></tr></table></figure>
 

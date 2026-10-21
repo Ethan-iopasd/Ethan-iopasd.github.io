@@ -27,7 +27,7 @@
 <meta property="og:description" content="每日技术博客 · 2026-09-30 · 第 006 篇 Docker 系列第一篇。搞清镜像分层、容器可写层，以及 Dockerfile 里那些直接影响构建速度和镜像体积的写法。  📚 Docker 系列目录   章节 主题 状态    一 镜像分层与 Dockerfile 本篇   二 Compose、网络与数据卷 已发布   三 镜像瘦身与构建优化 已发布   四 网络模式与存储驱动 已">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-09-30T05:40:00.000Z">
-<meta property="article:modified_time" content="2026-10-21T01:57:24.576Z">
+<meta property="article:modified_time" content="2026-10-21T02:14:24.643Z">
 <meta property="article:author" content="iopasd">
 <meta property="article:tag" content="docker">
 <meta name="twitter:card" content="summary_large_image">
@@ -319,7 +319,6 @@
 <td>已发布</td>
 </tr>
 </tbody></table>
-<hr>
 <h2 id="开场：镜像是一层层叠出来的"><a href="#开场：镜像是一层层叠出来的" class="headerlink" title="开场：镜像是一层层叠出来的"></a>开场：镜像是一层层叠出来的</h2><p>每一条会改动文件系统的 Dockerfile 指令都产生一个<strong>只读层</strong>。容器启动时，在镜像最上面加一个<strong>可写层</strong>。</p>
 <p>理解这一点，缓存、体积、数据丢失的疑问都能自己推出来。</p>
 <h2 id="一、镜像分层"><a href="#一、镜像分层" class="headerlink" title="一、镜像分层"></a>一、镜像分层</h2><figure class="highlight dockerfile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs dockerfile">容器可写层        ← 容器运行时的改动都在这，删容器就没了<br>─────────────<br><span class="hljs-keyword">COPY</span><span class="language-bash"> app.py       ← 层 4（只读）</span><br><span class="hljs-keyword">RUN</span><span class="language-bash"> pip install   ← 层 3（只读）</span><br><span class="hljs-keyword">COPY</span><span class="language-bash"> requirements ← 层 2（只读）</span><br><span class="hljs-keyword">FROM</span> python:<span class="hljs-number">3.12</span>  ← 层 <span class="hljs-number">1</span>（基础镜像）<br></code></pre></td></tr></table></figure>

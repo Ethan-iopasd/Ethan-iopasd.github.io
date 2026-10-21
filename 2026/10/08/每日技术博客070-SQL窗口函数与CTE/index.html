@@ -27,7 +27,7 @@
 <meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 070 篇 SQL 系列第五篇。窗口函数不折叠行、GROUP BY 折叠行；LAST_VALUE 默认 frame 是坑；CTE 是物化还是内联取决于数据库。附去重取最新、Top-N、gaps-and-islands 三个实战模板。  📚 SQL 系列目录   章节 主题 状态    一 索引与执行计划 已发布   二 事务、隔离级别与锁 已发布">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-10-08T04:25:00.000Z">
-<meta property="article:modified_time" content="2026-10-21T01:57:24.580Z">
+<meta property="article:modified_time" content="2026-10-21T02:14:24.646Z">
 <meta property="article:author" content="iopasd">
 <meta property="article:tag" content="sql">
 <meta name="twitter:card" content="summary_large_image">
@@ -324,7 +324,6 @@
 <td>已发布</td>
 </tr>
 </tbody></table>
-<hr>
 <h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p>窗口函数在 <code>WHERE</code> &#x2F; <code>GROUP BY</code> <strong>之后</strong>、<code>ORDER BY</code> <strong>之前</strong>执行，所以它算出的列<strong>不能出现在 <code>WHERE</code> 里</strong>。想要「按排名过滤」只能套一层子查询或 CTE。</p>
 <h2 id="一、语法骨架"><a href="#一、语法骨架" class="headerlink" title="一、语法骨架"></a>一、语法骨架</h2><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs sql"><span class="hljs-keyword">SELECT</span> user_id, amount,<br>       <span class="hljs-built_in">SUM</span>(amount) <span class="hljs-keyword">OVER</span> (<span class="hljs-keyword">PARTITION</span> <span class="hljs-keyword">BY</span> user_id <span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> created_at) <span class="hljs-keyword">AS</span> running_total<br><span class="hljs-keyword">FROM</span> orders;<br></code></pre></td></tr></table></figure>
 

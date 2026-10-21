@@ -27,7 +27,7 @@
 <meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 088 篇 贪心难在证明而不在写；字符串算法的核心是把「逐字符比较」压缩成「摊还 O(1) 的跳转」。这一篇讲证明套路、KMP&#x2F;AC 自动机&#x2F;Manacher 和题型对照。  📚 算法 系列目录   章节 主题 状态    一 复杂度与常用数据结构 已发布   二 排序与二分查找 已发布   三 动态规划 已发布   四 图论">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-10-08T06:15:00.000Z">
-<meta property="article:modified_time" content="2026-10-21T01:57:24.602Z">
+<meta property="article:modified_time" content="2026-10-21T02:14:24.668Z">
 <meta property="article:author" content="iopasd">
 <meta property="article:tag" content="algorithm">
 <meta name="twitter:card" content="summary_large_image">
@@ -319,7 +319,6 @@
 <td>已发布</td>
 </tr>
 </tbody></table>
-<hr>
 <h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p>贪心不是「选当前最好的」，而是<strong>「能证明选当前最好的不会破坏最优解」</strong>——证不出来就不能用。字符串算法几乎全都在做同一件事：<strong>预处理一个数组，把匹配失败时的回退从「退一格」变成「退到已知的最长公共前后缀」</strong>。</p>
 <h2 id="一、贪心的正确性：局部最优凭什么等于全局最优"><a href="#一、贪心的正确性：局部最优凭什么等于全局最优" class="headerlink" title="一、贪心的正确性：局部最优凭什么等于全局最优"></a>一、贪心的正确性：局部最优凭什么等于全局最优</h2><p>三种主流证明套路：</p>
 <table>

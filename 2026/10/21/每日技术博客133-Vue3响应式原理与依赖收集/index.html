@@ -27,7 +27,7 @@
 <meta property="og:description" content="每日技术博客 · 2026-10-21 · 第 133 篇 Vue 3 系列第十一篇。reactive 不是「深度监听」，是在读取时记录依赖、在写入时通知依赖。理解了 effect 与 dep 的双向映射，shallowRef、toRaw、以及「为什么改了不更新」就都不需要背了。  📚 Vue 3 系列目录   章节 主题 状态    一 模板语法、响应式与组合式 API 已发布   二 组件">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-10-21T02:40:00.000Z">
-<meta property="article:modified_time" content="2026-10-21T01:58:48.385Z">
+<meta property="article:modified_time" content="2026-10-21T02:14:24.638Z">
 <meta property="article:author" content="iopasd">
 <meta property="article:tag" content="vue3">
 <meta name="twitter:card" content="summary_large_image">
@@ -349,7 +349,6 @@
 <td>已发布</td>
 </tr>
 </tbody></table>
-<hr>
 <h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>响应式的全部机制就是两个 Map：<code>target → key → dep</code>，以及 <code>dep → 一组 effect</code>。</strong> 读取时把当前 effect 塞进对应 dep，写入时把 dep 里的 effect 全跑一遍。所谓「响应式系统」，就是这套订阅关系的维护代码。</p>
 <h2 id="一、Proxy-相比-defineProperty-解决了什么"><a href="#一、Proxy-相比-defineProperty-解决了什么" class="headerlink" title="一、Proxy 相比 defineProperty 解决了什么"></a>一、Proxy 相比 defineProperty 解决了什么</h2><table>
 <thead>

@@ -27,7 +27,7 @@
 <meta property="og:description" content="每日技术博客 · 2026-09-30 · 第 009 篇 SQL 系列第二篇。ACID 到底靠什么保证、四种隔离级别分别防住了什么、以及死锁为什么会发生。  📚 SQL 系列目录   章节 主题 状态    一 索引与执行计划 已发布   二 事务、隔离级别与锁 本篇   三 慢查询排查实战 已发布   四 分库分表与读写分离 已发布   五 窗口函数与 CTE 已发布   六 数据库设计与">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-09-30T06:40:00.000Z">
-<meta property="article:modified_time" content="2026-10-21T01:57:24.578Z">
+<meta property="article:modified_time" content="2026-10-21T02:14:24.645Z">
 <meta property="article:author" content="iopasd">
 <meta property="article:tag" content="sql">
 <meta name="twitter:card" content="summary_large_image">
@@ -324,7 +324,6 @@
 <td>已发布</td>
 </tr>
 </tbody></table>
-<hr>
 <h2 id="开场：事务解决的是「一半成功」"><a href="#开场：事务解决的是「一半成功」" class="headerlink" title="开场：事务解决的是「一半成功」"></a>开场：事务解决的是「一半成功」</h2><p>转账要扣 A 加 B，中间挂了就会丢钱。事务就是把这组操作绑成一个<strong>原子单元</strong>。</p>
 <h2 id="一、ACID-各自靠什么实现"><a href="#一、ACID-各自靠什么实现" class="headerlink" title="一、ACID 各自靠什么实现"></a>一、ACID 各自靠什么实现</h2><table>
 <thead>

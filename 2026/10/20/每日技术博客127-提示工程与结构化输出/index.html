@@ -27,7 +27,7 @@
 <meta property="og:description" content="每日技术博客 · 2026-10-20 · 第 127 篇 AI 系列第五篇。提示词不是「咒语」，是给模型看的程序：有输入输出契约、有失败分支、有版本管理。真正稳定的系统不靠调措辞，靠约束输出格式。  📚 AI 系列目录   章节 主题 状态    一 Transformer 与注意力机制 已发布   二 预训练、微调与对齐 已发布   三 RAG 检索增强生成 已发布   四 Agent、工">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-10-20T01:35:00.000Z">
-<meta property="article:modified_time" content="2026-10-21T01:57:24.609Z">
+<meta property="article:modified_time" content="2026-10-21T02:14:24.677Z">
 <meta property="article:author" content="iopasd">
 <meta property="article:tag" content="ai">
 <meta name="twitter:card" content="summary_large_image">
@@ -339,7 +339,6 @@
 <td>已发布</td>
 </tr>
 </tbody></table>
-<hr>
 <h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>能用结构化输出解决的问题，不要靠提示词解决。</strong> 「请你只输出 JSON」的可靠性取决于模型的服从性，而 JSON Schema 约束解码的可靠性取决于解码器 —— 后者是 100%，前者是概率。</p>
 <h2 id="一、提示词的四个组成部分"><a href="#一、提示词的四个组成部分" class="headerlink" title="一、提示词的四个组成部分"></a>一、提示词的四个组成部分</h2><table>
 <thead>

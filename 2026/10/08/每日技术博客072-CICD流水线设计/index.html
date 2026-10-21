@@ -19,15 +19,15 @@
   <meta name="author" content="iopasd">
   <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
   
-    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 072 篇 CI&#x2F;CD 系列第一篇。流水线阶段划分、缓存与制品管理、GitHub Actions 实战、分支与环境分层、密钥管理、数据库迁移、发布与回滚策略、以及流水线自身的性能优化。  📚 CI&#x2F;CD 系列目录   章节 主题 状态    一 流水线设计与制品管理 本篇   二 容器化部署与 GitOps 已发布    开场">
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 072 篇 CI&#x2F;CD 系列第一篇。流水线阶段划分、缓存与制品管理、GitHub Actions 实战、分支与环境分层、密钥管理、数据库迁移、发布与回滚策略、以及流水线自身的性能优化。  📚 CI&#x2F;CD 系列目录   章节 主题 状态    一 流水线设计与制品管理 本篇   二 容器化部署与 GitOps 已发布   开场：">
 <meta property="og:type" content="article">
 <meta property="og:title" content="每日技术博客 072 · CI&#x2F;CD（一）：流水线设计与制品管理">
 <meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2072-CICD%E6%B5%81%E6%B0%B4%E7%BA%BF%E8%AE%BE%E8%AE%A1/index.html">
 <meta property="og:site_name" content="Ethan-iopasd">
-<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 072 篇 CI&#x2F;CD 系列第一篇。流水线阶段划分、缓存与制品管理、GitHub Actions 实战、分支与环境分层、密钥管理、数据库迁移、发布与回滚策略、以及流水线自身的性能优化。  📚 CI&#x2F;CD 系列目录   章节 主题 状态    一 流水线设计与制品管理 本篇   二 容器化部署与 GitOps 已发布    开场">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 072 篇 CI&#x2F;CD 系列第一篇。流水线阶段划分、缓存与制品管理、GitHub Actions 实战、分支与环境分层、密钥管理、数据库迁移、发布与回滚策略、以及流水线自身的性能优化。  📚 CI&#x2F;CD 系列目录   章节 主题 状态    一 流水线设计与制品管理 本篇   二 容器化部署与 GitOps 已发布   开场：">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-10-08T04:35:00.000Z">
-<meta property="article:modified_time" content="2026-10-21T01:57:24.603Z">
+<meta property="article:modified_time" content="2026-10-21T02:14:24.669Z">
 <meta property="article:author" content="iopasd">
 <meta property="article:tag" content="ci-cd">
 <meta name="twitter:card" content="summary_large_image">
@@ -299,7 +299,6 @@
 <td>已发布</td>
 </tr>
 </tbody></table>
-<hr>
 <h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>CI 是「每次提交都验证」，持续交付是「随时可发但由人点」，持续部署是「自动发到生产」</strong> —— 三者差的是<strong>最后一步是否自动</strong>。</p>
 <table>
 <thead>

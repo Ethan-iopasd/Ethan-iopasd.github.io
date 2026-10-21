@@ -27,7 +27,7 @@
 <meta property="og:description" content="每日技术博客 · 2026-09-30 · 第 013 篇 Vue 3 系列第六篇。把重复逻辑抽成 useXxx 函数，以及 mixin 时代那些坑为什么不会再犯。  📚 Vue 3 系列目录   章节 主题 状态    一 模板语法、响应式与组合式 API 已发布   二 组件、Props &#x2F; Emits &#x2F; 插槽与双向绑定 已发布   三 Vue Router 路由 已">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-09-30T08:00:00.000Z">
-<meta property="article:modified_time" content="2026-10-21T01:57:24.571Z">
+<meta property="article:modified_time" content="2026-10-21T02:14:24.636Z">
 <meta property="article:author" content="iopasd">
 <meta property="article:tag" content="vue3">
 <meta name="twitter:card" content="summary_large_image">
@@ -349,7 +349,6 @@
 <td>已发布</td>
 </tr>
 </tbody></table>
-<hr>
 <h2 id="开场：组合式函数就是普通函数"><a href="#开场：组合式函数就是普通函数" class="headerlink" title="开场：组合式函数就是普通函数"></a>开场：组合式函数就是普通函数</h2><p><strong>没有任何特殊语法。</strong> 一个用到 Vue 响应式 API 的普通函数，命名以 <code>use</code> 开头，就是组合式函数（composable）。</p>
 <p><code>mixin</code> 的坑它天然免疫 —— 因为数据来源是<strong>显式 import 的</strong>，不是隐式合并的。</p>
 <h2 id="一、为什么不用-mixin"><a href="#一、为什么不用-mixin" class="headerlink" title="一、为什么不用 mixin"></a>一、为什么不用 <code>mixin</code></h2><p><code>mixin</code> 的三个经典问题：</p>

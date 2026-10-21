@@ -27,7 +27,7 @@
 <meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 098 篇 Vue 3 系列收尾：自定义指令只能拿 DOM、Teleport 解决层叠上下文、插件机制决定全局能力怎么注入 —— 三者都是框架留的逃生舱，用错比不用更贵。  📚 Vue 3 系列目录   章节 主题 状态    一 模板语法、响应式与组合式 API 已发布   二 组件、Props &#x2F; Emits &#x2F; 插槽与双">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-10-08T07:20:00.000Z">
-<meta property="article:modified_time" content="2026-10-21T01:57:24.572Z">
+<meta property="article:modified_time" content="2026-10-21T02:14:24.637Z">
 <meta property="article:author" content="iopasd">
 <meta property="article:tag" content="vue3">
 <meta name="twitter:card" content="summary_large_image">
@@ -349,7 +349,6 @@
 <td>已发布</td>
 </tr>
 </tbody></table>
-<hr>
 <h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>自定义指令是操作 DOM 的最后手段，不是逻辑复用的手段。</strong> 逻辑复用优先用 composable；只有当需求本质是「对某个 DOM 元素做副作用」时才写指令。Teleport 管「DOM 渲染到哪」，插件管「全局能力怎么注入」。</p>
 <h2 id="一、自定义指令：钩子与生命周期的对应"><a href="#一、自定义指令：钩子与生命周期的对应" class="headerlink" title="一、自定义指令：钩子与生命周期的对应"></a>一、自定义指令：钩子与生命周期的对应</h2><p>指令对象是一组钩子，触发时机与<strong>所在组件</strong>强相关，作用对象是<strong>绑定的元素</strong>。</p>
 <figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> vFocus = &#123;<br>  <span class="hljs-title function_">created</span>(<span class="hljs-params">el, binding</span>) &#123;&#125;,          <span class="hljs-comment">// 属性/监听器应用前，未插入 DOM</span><br>  <span class="hljs-title function_">beforeMount</span>(<span class="hljs-params">el, binding</span>) &#123;&#125;,      <span class="hljs-comment">// 元素即将插入</span><br>  <span class="hljs-title function_">mounted</span>(<span class="hljs-params">el, binding</span>) &#123; el.<span class="hljs-title function_">focus</span>() &#125;,  <span class="hljs-comment">// 已插入父节点（最常用）</span><br>  <span class="hljs-title function_">beforeUpdate</span>(<span class="hljs-params">el, binding</span>) &#123;&#125;,     <span class="hljs-comment">// 所在组件更新前</span><br>  <span class="hljs-title function_">updated</span>(<span class="hljs-params">el, binding</span>) &#123;&#125;,          <span class="hljs-comment">// 组件与子组件都更新后</span><br>  <span class="hljs-title function_">beforeUnmount</span>(<span class="hljs-params">el, binding</span>) &#123;&#125;,    <span class="hljs-comment">// 移除前</span><br>  <span class="hljs-title function_">unmounted</span>(<span class="hljs-params">el, binding</span>) &#123;&#125;,        <span class="hljs-comment">// 移除后</span><br>&#125;<br></code></pre></td></tr></table></figure>

@@ -27,7 +27,7 @@
 <meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 083 篇 Vue 3 系列收官：i18n 的 Composition API 用法与插值顺序坑、SSR 的 hydration mismatch 成因、微前端五种方案的取舍边界。  📚 Vue 3 系列目录   章节 主题 状态    一 模板语法、响应式与组合式 API 已发布   二 组件、Props &#x2F; Emits &#x2F;">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-10-08T05:50:00.000Z">
-<meta property="article:modified_time" content="2026-10-21T01:57:24.572Z">
+<meta property="article:modified_time" content="2026-10-21T02:14:24.637Z">
 <meta property="article:author" content="iopasd">
 <meta property="article:tag" content="vue3">
 <meta name="twitter:card" content="summary_large_image">
@@ -349,7 +349,6 @@
 <td>已发布</td>
 </tr>
 </tbody></table>
-<hr>
 <h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p>国际化是<strong>消息 key 的组织问题</strong>，SSR 是<strong>两套运行时必须渲染出同一棵树</strong>，微前端是<strong>用运行时开销换团队自治</strong>——三件事都不难写，难的是知道代价在哪。</p>
 <h2 id="一、vue-i18n-的-Composition-API"><a href="#一、vue-i18n-的-Composition-API" class="headerlink" title="一、vue-i18n 的 Composition API"></a>一、vue-i18n 的 Composition API</h2><p><code>vue-i18n</code> v9 起支持 Vue 3，当前主版本 <strong>v11</strong>（v8 已 EOL）。</p>
 <figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-comment">// i18n/index.js</span><br><span class="hljs-keyword">import</span> &#123; createI18n &#125; <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;vue-i18n&#x27;</span><br><br><span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> i18n = <span class="hljs-title function_">createI18n</span>(&#123;<br>  <span class="hljs-attr">legacy</span>: <span class="hljs-literal">false</span>,          <span class="hljs-comment">// 必须关掉 Legacy API，才能用 useI18n</span><br>  <span class="hljs-attr">globalInjection</span>: <span class="hljs-literal">true</span>,  <span class="hljs-comment">// 模板里可直接 $t</span><br>  <span class="hljs-attr">locale</span>: <span class="hljs-string">&#x27;zh&#x27;</span>,<br>  <span class="hljs-attr">fallbackLocale</span>: <span class="hljs-string">&#x27;en&#x27;</span>,<br>  <span class="hljs-attr">messages</span>: &#123; en, zh &#125;,<br>&#125;)<br></code></pre></td></tr></table></figure>

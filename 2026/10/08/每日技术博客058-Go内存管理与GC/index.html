@@ -27,7 +27,7 @@
 <meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 058 篇 Go 系列第三篇。逃逸分析决定变量去哪、三色标记 + 混合写屏障决定何时回收、GOGC &#x2F; GOMEMLIMIT 决定回收多激进，剩下的事交给 pprof。  📚 Go 系列目录   章节 主题 状态    一 并发模型与 channel 已发布   二 错误处理与工程实践 已发布   三 内存管理、GC 与性能剖析 本篇">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-10-08T03:25:00.000Z">
-<meta property="article:modified_time" content="2026-10-21T01:57:24.591Z">
+<meta property="article:modified_time" content="2026-10-21T02:14:24.658Z">
 <meta property="article:author" content="iopasd">
 <meta property="article:tag" content="go">
 <meta name="twitter:card" content="summary_large_image">
@@ -314,7 +314,6 @@
 <td>已发布</td>
 </tr>
 </tbody></table>
-<hr>
 <h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p>Go 的内存问题只有三类：<strong>分配太多</strong>（看逃逸分析和 <code>-benchmem</code>）、<strong>回收太频繁</strong>（调 <code>GOGC</code>）、<strong>根本没收</strong>（goroutine 泄漏 &#x2F; 全局容器只增不减）。pprof 负责定位，<code>GOMEMLIMIT</code> 负责兜底。</p>
 <h2 id="一、goroutine-栈"><a href="#一、goroutine-栈" class="headerlink" title="一、goroutine 栈"></a>一、goroutine 栈</h2><table>
 <thead>

@@ -27,7 +27,7 @@
 <meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 091 篇 标准库够用是 Go 的卖点，但 context、io、json、time 各有必须知道的语义。这一篇讲这些包的实战用法、testing 全套写法和最常见的坑。  📚 Go 系列目录   章节 主题 状态    一 并发模型与 channel 已发布   二 错误处理与工程实践 已发布   三 内存管理、GC 与性能剖析 已发布   四">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-10-08T06:30:00.000Z">
-<meta property="article:modified_time" content="2026-10-21T01:57:24.591Z">
+<meta property="article:modified_time" content="2026-10-21T02:14:24.658Z">
 <meta property="article:author" content="iopasd">
 <meta property="article:tag" content="go">
 <meta name="twitter:card" content="summary_large_image">
@@ -314,7 +314,6 @@
 <td>已发布</td>
 </tr>
 </tbody></table>
-<hr>
 <h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong><code>context</code> 管取消与超时，<code>io</code> 管流式组合，<code>testing</code> 管表驱动 + 子测试 + 竞态检测。</strong> 这三样吃透，项目里 80% 的「标准库该用哪个」就不用查了。</p>
 <h2 id="一、context：取消、超时与请求域数据"><a href="#一、context：取消、超时与请求域数据" class="headerlink" title="一、context：取消、超时与请求域数据"></a>一、<code>context</code>：取消、超时与请求域数据</h2><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs go"><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">handle</span><span class="hljs-params">(ctx context.Context, id <span class="hljs-type">string</span>)</span></span> <span class="hljs-type">error</span> &#123;<br>    ctx, cancel := context.WithTimeout(ctx, <span class="hljs-number">3</span>*time.Second)<br>    <span class="hljs-keyword">defer</span> cancel()                        <span class="hljs-comment">// ⚠️ 必须调用，否则泄漏</span><br>    req, _ := http.NewRequestWithContext(ctx, http.MethodGet, url, <span class="hljs-literal">nil</span>)<br>    resp, err := http.DefaultClient.Do(req)<br>    <span class="hljs-keyword">if</span> err != <span class="hljs-literal">nil</span> &#123;<br>        <span class="hljs-keyword">return</span> fmt.Errorf(<span class="hljs-string">&quot;fetch %s: %w&quot;</span>, id, err)<br>    &#125;<br>    <span class="hljs-keyword">defer</span> resp.Body.Close()<br>    <span class="hljs-keyword">return</span> <span class="hljs-literal">nil</span><br>&#125;<br></code></pre></td></tr></table></figure>
 

@@ -27,7 +27,7 @@
 <meta property="og:description" content="每日技术博客 · 2026-10-19 · 第 122 篇 AI 系列第二篇。预训练学「世界长什么样」，微调学「任务怎么干」，对齐学「按什么规矩干」—— 三段目标不同、数据量差三个数量级、失败模式也完全不同。  📚 AI 系列目录   章节 主题 状态    一 Transformer 与注意力机制 已发布   二 预训练、微调与对齐 本篇   三 RAG 检索增强生成 已发布   四 Age">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-10-19T10:55:00.000Z">
-<meta property="article:modified_time" content="2026-10-21T01:57:24.608Z">
+<meta property="article:modified_time" content="2026-10-21T02:14:24.675Z">
 <meta property="article:author" content="iopasd">
 <meta property="article:tag" content="ai">
 <meta name="twitter:card" content="summary_large_image">
@@ -339,7 +339,6 @@
 <td>已发布</td>
 </tr>
 </tbody></table>
-<hr>
 <h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>一个 LLM 的最终行为 &#x3D; 预训练给的底座 + SFT 给的格式 + 偏好对齐给的倾向。</strong> 改底座要几千张卡，改 SFT 要几万条样本，改对齐偏好只需要几百组对比 —— 但<strong>没有任何一步能修掉底座里不存在的能力</strong>。</p>
 <h2 id="一、三段式训练管线"><a href="#一、三段式训练管线" class="headerlink" title="一、三段式训练管线"></a>一、三段式训练管线</h2><table>
 <thead>

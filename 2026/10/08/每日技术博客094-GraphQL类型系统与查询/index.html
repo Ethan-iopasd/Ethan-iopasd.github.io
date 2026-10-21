@@ -19,15 +19,15 @@
   <meta name="author" content="iopasd">
   <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
   
-    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 094 篇 GraphQL 系列第一篇。单端点、强类型 schema、查询文档与分页规范，以及 schema 演进必须守的向后兼容规则。  📚 GraphQL 系列目录   章节 主题 状态    一 Schema、类型系统与查询 本篇   二 解析器、N+1 与生产实践 已发布    开场：一句话结论GraphQL 把「返回哪些字段」的决定权从">
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 094 篇 GraphQL 系列第一篇。单端点、强类型 schema、查询文档与分页规范，以及 schema 演进必须守的向后兼容规则。  📚 GraphQL 系列目录   章节 主题 状态    一 Schema、类型系统与查询 本篇   二 解析器、N+1 与生产实践 已发布   开场：一句话结论GraphQL 把「返回哪些字段」的决定权从服">
 <meta property="og:type" content="article">
 <meta property="og:title" content="每日技术博客 094 · GraphQL（一）：Schema、类型系统与查询">
 <meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2094-GraphQL%E7%B1%BB%E5%9E%8B%E7%B3%BB%E7%BB%9F%E4%B8%8E%E6%9F%A5%E8%AF%A2/index.html">
 <meta property="og:site_name" content="Ethan-iopasd">
-<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 094 篇 GraphQL 系列第一篇。单端点、强类型 schema、查询文档与分页规范，以及 schema 演进必须守的向后兼容规则。  📚 GraphQL 系列目录   章节 主题 状态    一 Schema、类型系统与查询 本篇   二 解析器、N+1 与生产实践 已发布    开场：一句话结论GraphQL 把「返回哪些字段」的决定权从">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 094 篇 GraphQL 系列第一篇。单端点、强类型 schema、查询文档与分页规范，以及 schema 演进必须守的向后兼容规则。  📚 GraphQL 系列目录   章节 主题 状态    一 Schema、类型系统与查询 本篇   二 解析器、N+1 与生产实践 已发布   开场：一句话结论GraphQL 把「返回哪些字段」的决定权从服">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-10-08T07:00:00.000Z">
-<meta property="article:modified_time" content="2026-10-21T01:57:24.606Z">
+<meta property="article:modified_time" content="2026-10-21T02:14:24.672Z">
 <meta property="article:author" content="iopasd">
 <meta property="article:tag" content="graphql">
 <meta name="twitter:card" content="summary_large_image">
@@ -299,7 +299,6 @@
 <td>已发布</td>
 </tr>
 </tbody></table>
-<hr>
 <h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p>GraphQL 把「返回哪些字段」的决定权从服务端交给客户端，代价是 HTTP 缓存、错误语义、限流这些 REST 里免费的东西，全部要自己补回来。</p>
 <h2 id="一、GraphQL-与-REST-的本质差异"><a href="#一、GraphQL-与-REST-的本质差异" class="headerlink" title="一、GraphQL 与 REST 的本质差异"></a>一、GraphQL 与 REST 的本质差异</h2><table>
 <thead>

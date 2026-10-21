@@ -27,7 +27,7 @@
 <meta property="og:description" content="每日技术博客 · 2026-09-30 · 第 011 篇 HTTP 系列第二篇。跨域为什么被拦、Cookie 那些属性各自防什么、以及几个几乎零成本的安全响应头。  📚 HTTP 系列目录   章节 主题 状态    一 状态码与缓存 已发布   二 CORS、Cookie 与安全响应头 本篇   三 HTTP&#x2F;2、HTTP&#x2F;3 与连接管理 已发布   四 REST 与">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-09-30T07:20:00.000Z">
-<meta property="article:modified_time" content="2026-10-21T01:57:24.581Z">
+<meta property="article:modified_time" content="2026-10-21T02:14:24.648Z">
 <meta property="article:author" content="iopasd">
 <meta property="article:tag" content="http">
 <meta name="twitter:card" content="summary_large_image">
@@ -324,7 +324,6 @@
 <td>已发布</td>
 </tr>
 </tbody></table>
-<hr>
 <h2 id="开场：同源策略是浏览器的，不是服务器的"><a href="#开场：同源策略是浏览器的，不是服务器的" class="headerlink" title="开场：同源策略是浏览器的，不是服务器的"></a>开场：同源策略是浏览器的，不是服务器的</h2><p>跨域报错时，<strong>请求往往已经发出去了、服务器也处理了</strong>，只是浏览器不把响应交给 JS。</p>
 <p>所以：<strong>CORS 是浏览器行为，用 curl &#x2F; Postman 测永远测不出跨域问题。</strong></p>
 <h2 id="一、什么是「同源」"><a href="#一、什么是「同源」" class="headerlink" title="一、什么是「同源」"></a>一、什么是「同源」</h2><p><strong>协议 + 域名 + 端口，三者完全相同</strong>才算同源。</p>

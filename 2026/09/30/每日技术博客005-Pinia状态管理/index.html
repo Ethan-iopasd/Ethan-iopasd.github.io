@@ -27,7 +27,7 @@
 <meta property="og:description" content="每日技术博客 · 2026-09-30 · 第 005 篇 Vue 3 系列第四篇。store 的定义、改数据的三种方式、storeToRefs 解构，以及选项式与组合式两种写法的取舍。  📚 Vue 3 系列目录   章节 主题 状态    一 模板语法、响应式与组合式 API 已发布   二 组件、Props &#x2F; Emits &#x2F; 插槽与双向绑定 已发布   三 Vue">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-09-30T05:20:00.000Z">
-<meta property="article:modified_time" content="2026-10-21T01:57:24.570Z">
+<meta property="article:modified_time" content="2026-10-21T02:14:24.636Z">
 <meta property="article:author" content="iopasd">
 <meta property="article:tag" content="vue3">
 <meta name="twitter:card" content="summary_large_image">
@@ -349,7 +349,6 @@
 <td>已发布</td>
 </tr>
 </tbody></table>
-<hr>
 <h2 id="开场：Pinia-就是「组件外的一份响应式数据」"><a href="#开场：Pinia-就是「组件外的一份响应式数据」" class="headerlink" title="开场：Pinia 就是「组件外的一份响应式数据」"></a>开场：Pinia 就是「组件外的一份响应式数据」</h2><p><code>props</code> 一层层往下传太痛苦时，把共享数据放进全局仓库。<code>state</code> 对应 <code>data</code>，<code>getters</code> 对应 <code>computed</code>，<code>actions</code> 对应 <code>methods</code>。</p>
 <h2 id="一、安装与挂载"><a href="#一、安装与挂载" class="headerlink" title="一、安装与挂载"></a>一、安装与挂载</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">npm i pinia<br></code></pre></td></tr></table></figure>
 

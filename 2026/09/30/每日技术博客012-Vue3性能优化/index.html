@@ -27,7 +27,7 @@
 <meta property="og:description" content="每日技术博客 · 2026-09-30 · 第 012 篇 Vue 3 系列第五篇。响应式层面的性能陷阱、组件渲染优化，以及生产构建产物该怎么看。  📚 Vue 3 系列目录   章节 主题 状态    一 模板语法、响应式与组合式 API 已发布   二 组件、Props &#x2F; Emits &#x2F; 插槽与双向绑定 已发布   三 Vue Router 路由 已发布   四 Pi">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-09-30T07:40:00.000Z">
-<meta property="article:modified_time" content="2026-10-21T01:57:24.571Z">
+<meta property="article:modified_time" content="2026-10-21T02:14:24.636Z">
 <meta property="article:author" content="iopasd">
 <meta property="article:tag" content="vue3">
 <meta name="twitter:card" content="summary_large_image">
@@ -349,7 +349,6 @@
 <td>已发布</td>
 </tr>
 </tbody></table>
-<hr>
 <h2 id="开场：先量再优化"><a href="#开场：先量再优化" class="headerlink" title="开场：先量再优化"></a>开场：先量再优化</h2><p>Vue 3 本身已经很快。<strong>绝大多数「卡」不是框架问题，是数据量、渲染次数或打包体积的问题。</strong></p>
 <p>优化顺序永远是：<strong>测量 → 定位 → 改 → 再测量</strong>。凭感觉改是浪费。</p>
 <h2 id="一、响应式层面的陷阱"><a href="#一、响应式层面的陷阱" class="headerlink" title="一、响应式层面的陷阱"></a>一、响应式层面的陷阱</h2><h3 id="1-大对象用深层响应式"><a href="#1-大对象用深层响应式" class="headerlink" title="1. 大对象用深层响应式"></a>1. 大对象用深层响应式</h3><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-comment">// ❌ 上万行的表格数据，每行每个字段都被代理</span><br><span class="hljs-keyword">const</span> rows = <span class="hljs-title function_">reactive</span>(bigArray)<br><br><span class="hljs-comment">// ✅ 只读展示用 shallowRef，不做深层代理</span><br><span class="hljs-keyword">const</span> rows = <span class="hljs-title function_">shallowRef</span>(bigArray)<br><br><span class="hljs-comment">// ✅ 或者冻结，Vue 会跳过代理</span><br><span class="hljs-keyword">const</span> rows = <span class="hljs-title function_">reactive</span>(<span class="hljs-title class_">Object</span>.<span class="hljs-title function_">freeze</span>(bigArray))<br></code></pre></td></tr></table></figure>

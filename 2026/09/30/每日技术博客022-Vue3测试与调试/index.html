@@ -27,7 +27,7 @@
 <meta property="og:description" content="每日技术博客 · 2026-09-30 · 第 022 篇 Vitest + @vue&#x2F;test-utils 跑组件测试，以及 Vue DevTools 定位响应式问题 —— 断言失败时先怀疑没等更新，再怀疑没 mock。  📚 Vue 3 系列目录   章节 主题 状态    一 模板语法、响应式与组合式 API 已发布   二 组件、Props &#x2F; Emits &#x2F; 插槽">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-09-30T11:00:00.000Z">
-<meta property="article:modified_time" content="2026-10-21T01:57:24.571Z">
+<meta property="article:modified_time" content="2026-10-21T02:14:24.636Z">
 <meta property="article:author" content="iopasd">
 <meta property="article:tag" content="vue3">
 <meta name="twitter:card" content="summary_large_image">
@@ -349,7 +349,6 @@
 <td>已发布</td>
 </tr>
 </tbody></table>
-<hr>
 <h2 id="开场：组件测试只有三件事"><a href="#开场：组件测试只有三件事" class="headerlink" title="开场：组件测试只有三件事"></a>开场：组件测试只有三件事</h2><p><strong>挂载、交互、断言。</strong> 90% 的失败不是断言写错，而是<strong>没有等 DOM 更新</strong>或<strong>没有 mock 外部依赖</strong>。</p>
 <p>Vitest 是 Vue 官方文档推荐的测试运行器（基于 Vite，原生处理 <code>.vue</code> 文件）。</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">npm i -D vitest @vue/test-utils jsdom @vitest/coverage-v8<br></code></pre></td></tr></table></figure>

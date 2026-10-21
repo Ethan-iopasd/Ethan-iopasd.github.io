@@ -27,7 +27,7 @@
 <meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 099 篇 Python 系列第八篇。这一篇全是「平时不写，一出事就是生产事故」的细节：编码、时区、CSV 换行、JSON 转义、正则语义 —— 每条都附官方语义。  📚 Python 系列目录   章节 主题 状态    一 依赖管理与虚拟环境 已发布   二 类型注解与静态检查 已发布   三 异步编程 asyncio 已发布   四 GIL">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-10-08T07:25:00.000Z">
-<meta property="article:modified_time" content="2026-10-21T01:57:24.574Z">
+<meta property="article:modified_time" content="2026-10-21T02:14:24.641Z">
 <meta property="article:author" content="iopasd">
 <meta property="article:tag" content="python">
 <meta name="twitter:card" content="summary_large_image">
@@ -349,7 +349,6 @@
 <td>已发布</td>
 </tr>
 </tbody></table>
-<hr>
 <h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>用 <code>pathlib</code> 代替 <code>os.path</code>，用 <code>encoding=&#39;utf-8&#39;</code> 显式替代默认编码，用 <code>timezone-aware</code> 替代 <code>utcnow()</code>，用 <code>decimal</code> 替代 <code>float</code> 算钱</strong> —— 这四条能挡掉 Python 数据处理里绝大多数线上事故。</p>
 <h2 id="一、pathlib-取代-os-path"><a href="#一、pathlib-取代-os-path" class="headerlink" title="一、pathlib 取代 os.path"></a>一、pathlib 取代 os.path</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">from</span> pathlib <span class="hljs-keyword">import</span> Path<br><br>p = Path(<span class="hljs-string">&quot;data&quot;</span>) / <span class="hljs-string">&quot;raw&quot;</span> / <span class="hljs-string">&quot;2026-10.csv&quot;</span>   <span class="hljs-comment"># / 运算符拼接，自动处理分隔符</span><br>p.name        <span class="hljs-comment"># &#x27;2026-10.csv&#x27;</span><br>p.stem        <span class="hljs-comment"># &#x27;2026-10&#x27;</span><br>p.suffix      <span class="hljs-comment"># &#x27;.csv&#x27;</span><br>p.parent      <span class="hljs-comment"># PosixPath(&#x27;data/raw&#x27;)</span><br>p.with_suffix(<span class="hljs-string">&quot;.json&quot;</span>)   <span class="hljs-comment"># data/raw/2026-10.json</span><br></code></pre></td></tr></table></figure>
 

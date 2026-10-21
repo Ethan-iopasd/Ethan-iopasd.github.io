@@ -1,0 +1,1111 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-21 · 第 139 篇 Kafka 系列第三篇。Kafka 快的根本原因不是「磁盘顺序写」这么简单，而是分段日志 + 零拷贝 + 批量压缩三者叠加。理解了分段与索引，ISR 和 Leader 选举的代价就清楚了。  📚 Kafka 系列目录   章节 主题 状态    一 架构、Topic &#x2F; Partition 与消费者组 已发布   二 可靠性">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 139 · Kafka（三）：分区、副本与存储机制">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/21/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2139-Kafka%E5%88%86%E5%8C%BA%E5%89%AF%E6%9C%AC%E4%B8%8E%E5%AD%98%E5%82%A8%E6%9C%BA%E5%88%B6/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-21 · 第 139 篇 Kafka 系列第三篇。Kafka 快的根本原因不是「磁盘顺序写」这么简单，而是分段日志 + 零拷贝 + 批量压缩三者叠加。理解了分段与索引，ISR 和 Leader 选举的代价就清楚了。  📚 Kafka 系列目录   章节 主题 状态    一 架构、Topic &#x2F; Partition 与消费者组 已发布   二 可靠性">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-21T04:15:00.000Z">
+<meta property="article:modified_time" content="2026-10-21T02:14:24.669Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="kafka">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 139 · Kafka（三）：分区、副本与存储机制 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 139 · Kafka（三）：分区、副本与存储机制"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-21 12:15" pubdate>
+          2026年10月21日 中午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          17 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 139 · Kafka（三）：分区、副本与存储机制</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-21 · 第 139 篇</p>
+<p>Kafka 系列第三篇。Kafka 快的根本原因不是「磁盘顺序写」这么简单，而是<strong>分段日志 + 零拷贝 + 批量压缩</strong>三者叠加。理解了分段与索引，ISR 和 Leader 选举的代价就清楚了。</p>
+</blockquote>
+<h2 id="📚-Kafka-系列目录"><a href="#📚-Kafka-系列目录" class="headerlink" title="📚 Kafka 系列目录"></a>📚 Kafka 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td><a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2073-Kafka%E6%9E%B6%E6%9E%84%E4%B8%8E%E6%B6%88%E8%B4%B9%E8%80%85%E7%BB%84/">架构、Topic &#x2F; Partition 与消费者组</a></td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td><a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2074-Kafka%E5%8F%AF%E9%9D%A0%E6%80%A7%E8%B0%83%E4%BC%98%E4%B8%8EExactlyOnce/">可靠性、幂等生产者与性能调优</a></td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>分区、副本与存储机制</td>
+<td><strong>本篇</strong></td>
+</tr>
+<tr>
+<td>四</td>
+<td><a href="/2026/10/21/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2140-Kafka%E7%9B%91%E6%8E%A7%E8%BF%90%E7%BB%B4%E4%B8%8E%E6%95%85%E9%9A%9C%E6%81%A2%E5%A4%8D/">监控、运维与故障恢复</a></td>
+<td>已发布</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>Topic 只是逻辑名字，真正落盘的是 Partition；每个 Partition 是一条只追加的分段日志。</strong> 副本、ISR、Leader 选举，全都是在维护「这条日志有几份、谁说了算」。</p>
+<h2 id="一、Topic-Partition-Replica-三层关系"><a href="#一、Topic-Partition-Replica-三层关系" class="headerlink" title="一、Topic &#x2F; Partition &#x2F; Replica 三层关系"></a>一、Topic &#x2F; Partition &#x2F; Replica 三层关系</h2><table>
+<thead>
+<tr>
+<th>层级</th>
+<th>是什么</th>
+<th>数量关系</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Topic</td>
+<td>逻辑分类</td>
+<td>业务决定</td>
+</tr>
+<tr>
+<td>Partition</td>
+<td>物理分片，<strong>并行度单位</strong></td>
+<td>每 Topic 几十~几百</td>
+</tr>
+<tr>
+<td>Replica</td>
+<td>每个 Partition 的副本</td>
+<td>通常 3</td>
+</tr>
+<tr>
+<td>Segment</td>
+<td>Partition 内的文件分段</td>
+<td>每个 Partition 多个</td>
+</tr>
+</tbody></table>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs text">orders (topic)<br>├── partition-0  → leader: broker-1, replicas: [1,2,3], isr: [1,2,3]<br>├── partition-1  → leader: broker-2, replicas: [2,3,1], isr: [2,3]<br>└── partition-2  → leader: broker-3, replicas: [3,1,2], isr: [3,1,2]<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>含义</th>
+<th>关键点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Leader</td>
+<td>处理读写的副本</td>
+<td>每个分区只有一个</td>
+</tr>
+<tr>
+<td>Follower</td>
+<td>拉取同步的副本</td>
+<td>不处理客户端请求</td>
+</tr>
+<tr>
+<td>ISR</td>
+<td>与 Leader 保持同步的副本集合</td>
+<td><strong>包含 Leader 自己</strong></td>
+</tr>
+<tr>
+<td>OSR</td>
+<td>落后太多的副本</td>
+<td>被踢出 ISR</td>
+</tr>
+<tr>
+<td>AR</td>
+<td>全部分配副本</td>
+<td><code>replication-factor</code></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>分区数是「最大并行度」，改小不可能，改大不重平衡</strong>。增加分区会让同一个 key 落到不同分区，<strong>顺序性被破坏</strong>。所以分区数要一次性规划够。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>ISR 包含 Leader 自身</strong>。<code>isr=3</code> 意味着 Leader + 2 个 Follower 都同步。判断「能否写入」的是 <code>min.insync.replicas</code>，不是 <code>replication-factor</code>。</p>
+</blockquote>
+<h2 id="二、分区数怎么定"><a href="#二、分区数怎么定" class="headerlink" title="二、分区数怎么定"></a>二、分区数怎么定</h2><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs text">分区数 ≈ max(目标吞吐 / 单分区吞吐, 消费者并行度上限)<br>单分区吞吐经验值：写入 10~50 MB/s，消费 20~100 MB/s<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>考虑</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>吞吐</td>
+<td>目标峰值 &#x2F; 单分区能力，留 2 倍余量</td>
+</tr>
+<tr>
+<td>消费者并行度</td>
+<td>分区数 ≥ 消费者线程数（否则有线程空闲）</td>
+</tr>
+<tr>
+<td>顺序性</td>
+<td>需要严格顺序的 key 必须落在同一分区</td>
+</tr>
+<tr>
+<td>Broker 数量</td>
+<td>分区总数 &#x2F; Broker 数 建议 &lt; 200</td>
+</tr>
+<tr>
+<td>元数据开销</td>
+<td>分区越多，Controller 和 ZK&#x2F;KRaft 压力越大</td>
+</tr>
+</tbody></table>
+<table>
+<thead>
+<tr>
+<th>分区数</th>
+<th>单 Broker 分区数</th>
+<th>影响</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>太少</td>
+<td>——</td>
+<td>并行度不足，消费者闲置</td>
+</tr>
+<tr>
+<td>适中</td>
+<td>&lt; 200</td>
+<td>健康</td>
+</tr>
+<tr>
+<td>过多</td>
+<td>&gt; 2000</td>
+<td>Leader 选举慢、元数据膨胀、故障恢复久</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>分区不是越多越好</strong>。单 Broker 超过 2000 个分区后，Controller 故障切换可能从秒级变成分钟级。<strong>集群总分区数建议控制在几万以内。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>改分区数不迁移已有数据</strong>。老数据仍按旧分区分布，新数据按新规则 —— 这会让基于 key 的顺序保证失效。<strong>能用「新建 Topic + 双写迁移」就别改分区数。</strong></p>
+</blockquote>
+<h2 id="三、分段日志与索引"><a href="#三、分段日志与索引" class="headerlink" title="三、分段日志与索引"></a>三、分段日志与索引</h2><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs text">/data/kafka/orders-0/<br>├── 00000000000000000000.log      # 段文件（消息本体）<br>├── 00000000000000000000.index    # 偏移量索引（稀疏）<br>├── 00000000000000000000.timeindex# 时间戳索引<br>├── 00000000000000123456.log<br>├── 00000000000000123456.index<br>└── 00000000000000123456.timeindex<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>文件</th>
+<th>内容</th>
+<th>查找方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>.log</code></td>
+<td>消息批次（RecordBatch）</td>
+<td>顺序写，追加</td>
+</tr>
+<tr>
+<td><code>.index</code></td>
+<td>offset → 物理位置（稀疏，每 4KB 一条）</td>
+<td>二分找到近似位置后顺序扫</td>
+</tr>
+<tr>
+<td><code>.timeindex</code></td>
+<td>timestamp → offset</td>
+<td>按时间查找</td>
+</tr>
+<tr>
+<td><code>.snapshot</code></td>
+<td>幂等&#x2F;事务状态</td>
+<td>内部使用</td>
+</tr>
+</tbody></table>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>默认</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>log.segment.bytes</code></td>
+<td>1 GB</td>
+<td>单个段文件大小</td>
+</tr>
+<tr>
+<td><code>log.roll.hours</code></td>
+<td>168</td>
+<td>段滚动时间</td>
+</tr>
+<tr>
+<td><code>log.index.interval.bytes</code></td>
+<td>4096</td>
+<td>索引项间隔</td>
+</tr>
+<tr>
+<td><code>log.retention.hours</code></td>
+<td>168</td>
+<td>保留时长</td>
+</tr>
+<tr>
+<td><code>log.retention.bytes</code></td>
+<td>-1</td>
+<td>按大小保留</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>索引是稀疏的</strong>。查 offset 12345 时，先在 <code>.index</code> 里二分找到 ≤12345 的最近一条（比如 12000 的位置），然后从那里<strong>顺序扫描</strong>。所以索引文件很小（约为日志的 1&#x2F;1000）。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>段文件是删除的最小单位</strong>。保留策略只会删整个段，不会删段内部分消息。<strong>段太大 &#x3D; 磁盘释放不及时；段太小 &#x3D; 文件数爆炸、索引开销上升。</strong></p>
+</blockquote>
+<h2 id="四、为什么快：三个叠加因素"><a href="#四、为什么快：三个叠加因素" class="headerlink" title="四、为什么快：三个叠加因素"></a>四、为什么快：三个叠加因素</h2><table>
+<thead>
+<tr>
+<th>因素</th>
+<th>机制</th>
+<th>收益</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>顺序写</td>
+<td>只在段末尾追加，不做随机寻道</td>
+<td>接近磁盘顺序带宽</td>
+</tr>
+<tr>
+<td>页缓存（Page Cache）</td>
+<td>写入先进 OS 缓存，异步刷盘</td>
+<td>写入延迟极低</td>
+</tr>
+<tr>
+<td>零拷贝（sendfile）</td>
+<td>数据从页缓存直接到网卡，不经过用户态</td>
+<td>省两次内存拷贝</td>
+</tr>
+<tr>
+<td>批量 + 压缩</td>
+<td>多条消息合成 RecordBatch 压缩</td>
+<td>网络与磁盘同时省</td>
+</tr>
+</tbody></table>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs text">传统读取：磁盘 → 内核缓冲 → 用户缓冲 → socket 缓冲 → 网卡   （4 次拷贝）<br>零拷贝：  磁盘 → 内核缓冲 ─────────────────────→ 网卡        （2 次拷贝）<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>Kafka 不保证「写入即持久」</strong>。默认 <code>acks=1</code> 只写 Leader 的页缓存，此时宕机仍可能丢数据。要真持久必须 <code>acks=all</code> + <code>min.insync.replicas≥2</code> + <code>unclean.leader.election.enable=false</code>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>零拷贝只对「消费者读取」生效</strong>。生产端写入仍是正常的网络接收 + 追加。别把「零拷贝」理解成整体架构特性。</p>
+</blockquote>
+<h2 id="五、Leader-选举与-ISR"><a href="#五、Leader-选举与-ISR" class="headerlink" title="五、Leader 选举与 ISR"></a>五、Leader 选举与 ISR</h2><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs text">正常：Leader 处理读写，Follower 主动 fetch 同步<br>Leader 挂 → Controller 从 ISR 中选新 Leader → 更新元数据 → 客户端重连<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>行为</th>
+<th>风险</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>ISR 中有存活副本</td>
+<td>从中选新 Leader</td>
+<td>不丢数据</td>
+</tr>
+<tr>
+<td>ISR 全挂但 OSR 有存活</td>
+<td>视 <code>unclean.leader.election.enable</code></td>
+<td><strong>可能丢数据</strong></td>
+</tr>
+<tr>
+<td>全部副本挂</td>
+<td>分区不可用</td>
+<td>需等副本恢复</td>
+</tr>
+</tbody></table>
+<figure class="highlight properties"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs properties"><span class="hljs-comment"># 关键配置</span><br><span class="hljs-attr">unclean.leader.election.enable</span>=<span class="hljs-string">false   # 禁止非 ISR 副本当选（保数据，牺牲可用性）</span><br><span class="hljs-attr">min.insync.replicas</span>=<span class="hljs-string">2                  # 至少 2 个副本确认才算写入成功</span><br><span class="hljs-attr">acks</span>=<span class="hljs-string">all                               # 生产端等待所有 ISR 确认</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>配置组合</th>
+<th>数据安全</th>
+<th>可用性</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>acks=all</code> + <code>min.insync=2</code> + <code>unclean=false</code></td>
+<td><strong>高</strong></td>
+<td>中（2 副本挂就不可写）</td>
+</tr>
+<tr>
+<td><code>acks=1</code> + <code>unclean=true</code></td>
+<td>低</td>
+<td>高</td>
+</tr>
+<tr>
+<td><code>acks=all</code> + <code>min.insync=1</code></td>
+<td>中</td>
+<td>高</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>unclean.leader.election.enable=true</code> 是「可用性优先」的明确取舍</strong>。它允许落后很多的副本当 Leader，代价是丢消息。<strong>金融、订单类场景必须设为 <code>false</code>。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>min.insync.replicas</code> 是 Topic 级配置，不是 Broker 级</strong>。写在 Broker 上只是默认值，Topic 覆盖会生效。<strong>排查「写入失败」时先看 Topic 的实际配置。</strong></p>
+</blockquote>
+<h2 id="六、存储规划"><a href="#六、存储规划" class="headerlink" title="六、存储规划"></a>六、存储规划</h2><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs text">磁盘需求 = 日写入量 × 保留天数 × 副本数 × (1 + 索引与临时开销 10%)<br>例：日 100 GB × 7 天 × 3 副本 × 1.1 ≈ 2.3 TB<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>建议</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>单盘容量</td>
+<td>≤ 4 TB（太大故障恢复慢）</td>
+</tr>
+<tr>
+<td>磁盘类型</td>
+<td>普通 SSD 或大容量 HDD，<strong>不需要高端 NVMe</strong></td>
+</tr>
+<tr>
+<td>RAID</td>
+<td>JBOD 优于 RAID（Kafka 自带副本）</td>
+</tr>
+<tr>
+<td>文件系统</td>
+<td>XFS（推荐）</td>
+</tr>
+<tr>
+<td>预留空间</td>
+<td>≥ 20%</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>Kafka 用 JBOD 而非 RAID</strong>。Kafka 已有副本机制，RAID 是重复冗余且会放大重建时间。<strong>一块盘坏了就让 Kafka 用副本恢复。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>磁盘用满会导致 Kafka 拒绝写入甚至崩溃</strong>。必须监控磁盘使用率，并设置 <code>log.retention.bytes</code> 作为兜底上限。</p>
+</blockquote>
+<h2 id="七、常见运维操作"><a href="#七、常见运维操作" class="headerlink" title="七、常见运维操作"></a>七、常见运维操作</h2><table>
+<thead>
+<tr>
+<th>操作</th>
+<th>命令</th>
+<th>注意</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>查看 Topic</td>
+<td><code>kafka-topics.sh --describe</code></td>
+<td>看 ISR 是否完整</td>
+</tr>
+<tr>
+<td>增加分区</td>
+<td><code>--alter --partitions N</code></td>
+<td><strong>不能减</strong>，破坏 key 顺序</td>
+</tr>
+<tr>
+<td>增加副本</td>
+<td>需生成 reassignment JSON</td>
+<td>会触发大量数据复制</td>
+</tr>
+<tr>
+<td>查看消费进度</td>
+<td><code>kafka-consumer-groups.sh --describe</code></td>
+<td>看 LAG</td>
+</tr>
+<tr>
+<td>迁移分区</td>
+<td><code>kafka-reassign-partitions.sh</code></td>
+<td>限速避免打满带宽</td>
+</tr>
+<tr>
+<td>删除 Topic</td>
+<td><code>--delete</code></td>
+<td>需 <code>delete.topic.enable=true</code></td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 迁移时限速，避免打满网络</span><br>kafka-reassign-partitions.sh --bootstrap-server localhost:9092 \<br>  --reassignment-json-file plan.json \<br>  --throttle 50000000 --execute<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>--throttle</code> 不加会把集群带宽打满</strong>，影响正常读写。生产迁移必须限速，完成后记得 <code>--verify</code> 再清除限速。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 分区数规划太小，消费者线程大量空闲</li>
+<li><input disabled="" type="checkbox"> 中途增加分区，破坏 key 顺序</li>
+<li><input disabled="" type="checkbox"> 单 Broker 分区数超过 2000，故障切换变慢</li>
+<li><input disabled="" type="checkbox"> 以为 ISR 不含 Leader</li>
+<li><input disabled="" type="checkbox"> 只在 Broker 配 <code>min.insync.replicas</code>，Topic 覆盖后失效</li>
+<li><input disabled="" type="checkbox"> <code>unclean.leader.election.enable=true</code> 用在订单场景</li>
+<li><input disabled="" type="checkbox"> 以为 <code>acks=1</code> 就持久了</li>
+<li><input disabled="" type="checkbox"> 段文件设得太大，磁盘释放不及时</li>
+<li><input disabled="" type="checkbox"> 段文件设得太小，文件数爆炸</li>
+<li><input disabled="" type="checkbox"> 磁盘预留不足，写满后拒绝写入</li>
+<li><input disabled="" type="checkbox"> 分区迁移不限速，打满集群带宽</li>
+<li><input disabled="" type="checkbox"> 用 RAID 而非 JBOD，浪费且放大重建</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><ul>
+<li><a target="_blank" rel="noopener" href="https://kafka.apache.org/documentation/#design">Kafka 官方文档 · 设计</a></li>
+<li><a target="_blank" rel="noopener" href="https://kafka.apache.org/documentation/#replication">Kafka 官方文档 · 副本与 ISR</a></li>
+<li><a target="_blank" rel="noopener" href="https://kafka.apache.org/documentation/#log">Kafka 官方文档 · 日志实现</a></li>
+<li><a target="_blank" rel="noopener" href="https://cwiki.apache.org/confluence/display/KAFKA/KIP-500">KIP-500 · 移除 ZooKeeper 依赖（KRaft）</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.confluent.io/blog/how-choose-number-topics-partitions-kafka-cluster/">Confluent · 分区数规划</a></li>
+</ul>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/kafka/" class="category-chain-item">kafka</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/kafka/" class="print-no-link">#kafka</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 139 · Kafka（三）：分区、副本与存储机制</div>
+      <div>https://ethan-iopasd.github.io/2026/10/21/每日技术博客139-Kafka分区副本与存储机制/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月21日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2074-Kafka%E5%8F%AF%E9%9D%A0%E6%80%A7%E8%B0%83%E4%BC%98%E4%B8%8EExactlyOnce/" title="每日技术博客 074 · Kafka（二）：可靠性、幂等生产者与性能调优">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 074 · Kafka（二）：可靠性、幂等生产者与性能调优</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2026/10/21/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2140-Kafka%E7%9B%91%E6%8E%A7%E8%BF%90%E7%BB%B4%E4%B8%8E%E6%95%85%E9%9A%9C%E6%81%A2%E5%A4%8D/" title="每日技术博客 140 · Kafka（四）：监控、运维与故障恢复">
+                        <span class="hidden-mobile">每日技术博客 140 · Kafka（四）：监控、运维与故障恢复</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

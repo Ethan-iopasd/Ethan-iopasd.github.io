@@ -27,7 +27,7 @@
 <meta property="og:description" content="每日技术博客 · 2026-10-13 · 第 117 篇 JavaScript 系列第七篇。V8 的分代堆与三种 GC 停顿、强引用&#x2F;弱引用的边界，以及浏览器和 Node.js 两侧定位泄漏的完整工具链。  📚 JavaScript 系列目录   章节 主题 状态    一 事件循环与异步模型 已发布   二 原型链、this 与闭包 已发布   三 Promise 与 async">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-10-13T01:10:00.000Z">
-<meta property="article:modified_time" content="2026-10-21T01:57:24.589Z">
+<meta property="article:modified_time" content="2026-10-21T02:14:24.656Z">
 <meta property="article:author" content="iopasd">
 <meta property="article:tag" content="javascript">
 <meta name="twitter:card" content="summary_large_image">
@@ -324,7 +324,6 @@
 <td><strong>本篇</strong></td>
 </tr>
 </tbody></table>
-<hr>
 <h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p>内存泄漏不是「忘了 free」——JS 里根本没有 free。泄漏的唯一形态是：<strong>有一条从 GC Root 出发、你以为是断的、其实还连着的强引用链</strong>。所以排查泄漏从来不是找「谁占了内存」，而是找 <strong>retainer（保留者）</strong>：谁还指着它。</p>
 <hr>
 <h2 id="一、V8-的堆不是一个堆"><a href="#一、V8-的堆不是一个堆" class="headerlink" title="一、V8 的堆不是一个堆"></a>一、V8 的堆不是一个堆</h2><p>V8 按<strong>分代假说</strong>（大多数对象死得早）把堆切开，不同区域用不同回收器：</p>

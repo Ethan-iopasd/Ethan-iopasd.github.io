@@ -19,15 +19,15 @@
   <meta name="author" content="iopasd">
   <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
   
-    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 095 篇 GraphQL 系列第二篇。resolver 的执行模型、N+1 与 DataLoader、错误冒泡、字段级鉴权，以及「GraphQL 没有 HTTP 语义」带来的一堆生产问题。  📚 GraphQL 系列目录   章节 主题 状态    一 Schema、类型系统与查询 已发布   二 解析器、N+1 与生产实践 本篇    开场：">
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 095 篇 GraphQL 系列第二篇。resolver 的执行模型、N+1 与 DataLoader、错误冒泡、字段级鉴权，以及「GraphQL 没有 HTTP 语义」带来的一堆生产问题。  📚 GraphQL 系列目录   章节 主题 状态    一 Schema、类型系统与查询 已发布   二 解析器、N+1 与生产实践 本篇   开场：一">
 <meta property="og:type" content="article">
 <meta property="og:title" content="每日技术博客 095 · GraphQL（二）：解析器、N+1 与生产实践">
 <meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2095-GraphQL%E8%A7%A3%E6%9E%90%E5%99%A8%E4%B8%8EN+1%E9%97%AE%E9%A2%98/index.html">
 <meta property="og:site_name" content="Ethan-iopasd">
-<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 095 篇 GraphQL 系列第二篇。resolver 的执行模型、N+1 与 DataLoader、错误冒泡、字段级鉴权，以及「GraphQL 没有 HTTP 语义」带来的一堆生产问题。  📚 GraphQL 系列目录   章节 主题 状态    一 Schema、类型系统与查询 已发布   二 解析器、N+1 与生产实践 本篇    开场：">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 095 篇 GraphQL 系列第二篇。resolver 的执行模型、N+1 与 DataLoader、错误冒泡、字段级鉴权，以及「GraphQL 没有 HTTP 语义」带来的一堆生产问题。  📚 GraphQL 系列目录   章节 主题 状态    一 Schema、类型系统与查询 已发布   二 解析器、N+1 与生产实践 本篇   开场：一">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-10-08T07:05:00.000Z">
-<meta property="article:modified_time" content="2026-10-21T01:57:24.607Z">
+<meta property="article:modified_time" content="2026-10-21T02:14:24.673Z">
 <meta property="article:author" content="iopasd">
 <meta property="article:tag" content="graphql">
 <meta name="twitter:card" content="summary_large_image">
@@ -299,7 +299,6 @@
 <td><strong>本篇</strong></td>
 </tr>
 </tbody></table>
-<hr>
 <h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p>GraphQL 的性能问题九成来自 N+1，安全问题九成来自「字段级授权比端点级复杂」；这两个坑不解决，别上生产。</p>
 <h2 id="一、N-1：GraphQL-的头号性能杀手"><a href="#一、N-1：GraphQL-的头号性能杀手" class="headerlink" title="一、N+1：GraphQL 的头号性能杀手"></a>一、N+1：GraphQL 的头号性能杀手</h2><p>GraphQL 的执行模型是「<strong>每个字段独立调用自己的 resolver</strong>」。父级返回一个列表，列表里每个元素再去查一次关联数据 —— 就是 N+1。</p>
 <figure class="highlight graphql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs graphql"><span class="hljs-keyword">query</span> <span class="hljs-punctuation">&#123;</span> posts<span class="hljs-punctuation">(</span><span class="hljs-symbol">first</span><span class="hljs-punctuation">:</span> <span class="hljs-number">100</span><span class="hljs-punctuation">)</span> <span class="hljs-punctuation">&#123;</span> title author <span class="hljs-punctuation">&#123;</span> name <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span> <span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>

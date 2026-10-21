@@ -27,7 +27,7 @@
 <meta property="og:description" content="每日技术博客 · 2026-10-21 · 第 129 篇 AI 系列第七篇。向量检索的本质是在高维空间里找最近邻，而所有近似算法都在拿召回率换速度。选型前先算清楚：你的数据量到底需不需要 ANN。  📚 AI 系列目录   章节 主题 状态    一 Transformer 与注意力机制 已发布   二 预训练、微调与对齐 已发布   三 RAG 检索增强生成 已发布   四 Agent、工">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-10-21T01:35:00.000Z">
-<meta property="article:modified_time" content="2026-10-21T01:57:24.609Z">
+<meta property="article:modified_time" content="2026-10-21T02:14:24.678Z">
 <meta property="article:author" content="iopasd">
 <meta property="article:tag" content="ai">
 <meta name="twitter:card" content="summary_large_image">
@@ -339,7 +339,6 @@
 <td>已发布</td>
 </tr>
 </tbody></table>
-<hr>
 <h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>十万条以内，别上向量数据库。</strong> numpy 暴力算余弦相似度，10 万 × 768 维一次全量检索在几十毫秒量级，而引入一套向量库要多付运维、一致性、权限三份成本。ANN 的价值只在数据量和并发真的上来之后才成立。</p>
 <h2 id="一、先算清楚：暴力检索有多慢"><a href="#一、先算清楚：暴力检索有多慢" class="headerlink" title="一、先算清楚：暴力检索有多慢"></a>一、先算清楚：暴力检索有多慢</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">import</span> numpy <span class="hljs-keyword">as</span> np<br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">brute_force_search</span>(<span class="hljs-params">vectors, query, k=<span class="hljs-number">10</span></span>):<br>    <span class="hljs-string">&quot;&quot;&quot;vectors: (N, d) 已归一化；query: (d,) 已归一化。&quot;&quot;&quot;</span><br>    scores = vectors @ query          <span class="hljs-comment"># 一次矩阵乘，BLAS 加速</span><br>    idx = np.argpartition(-scores, k)[:k]<br>    <span class="hljs-keyword">return</span> idx[np.argsort(-scores[idx])]<br></code></pre></td></tr></table></figure>
 

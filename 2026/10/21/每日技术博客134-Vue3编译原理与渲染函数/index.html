@@ -27,7 +27,7 @@
 <meta property="og:description" content="每日技术博客 · 2026-10-21 · 第 134 篇 Vue 3 系列第十二篇。模板不是「运行时解释执行」，它在构建时就被编译成了渲染函数。理解了 parse → transform → generate 三个阶段，静态提升、patchFlag、Block Tree 这些优化为什么有效就一目了然。  📚 Vue 3 系列目录   章节 主题 状态    一 模板语法、响应式与组合式 AP">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-10-21T02:55:00.000Z">
-<meta property="article:modified_time" content="2026-10-21T01:58:48.386Z">
+<meta property="article:modified_time" content="2026-10-21T02:14:24.638Z">
 <meta property="article:author" content="iopasd">
 <meta property="article:tag" content="vue3">
 <meta name="twitter:card" content="summary_large_image">
@@ -349,7 +349,6 @@
 <td><strong>本篇</strong></td>
 </tr>
 </tbody></table>
-<hr>
 <h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>Vue 3 的性能优势大半来自编译器：它在编译期就知道「哪个节点是动态的」，于是运行时只需要 diff 那一小块。</strong> 这也是为什么 <code>h()</code> 手写渲染函数反而可能更慢 —— 你丢掉了编译器的静态分析信息。</p>
 <h2 id="一、三个阶段"><a href="#一、三个阶段" class="headerlink" title="一、三个阶段"></a>一、三个阶段</h2><table>
 <thead>

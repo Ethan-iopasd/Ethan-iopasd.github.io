@@ -27,7 +27,7 @@
 <meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 062 篇 Elasticsearch 系列第三篇。BM25 打分、multi_match 三种策略、term &#x2F; match 的分词陷阱、Mapping 设计、字段爆炸与 nested。  📚 Elasticsearch 系列目录   章节 主题 状态    一 倒排索引与查询 DSL 已发布   二 聚合、分页与性能优化 已发布">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-10-08T03:45:00.000Z">
-<meta property="article:modified_time" content="2026-10-21T01:57:24.598Z">
+<meta property="article:modified_time" content="2026-10-21T02:14:24.664Z">
 <meta property="article:author" content="iopasd">
 <meta property="article:tag" content="elasticsearch">
 <meta name="twitter:card" content="summary_large_image">
@@ -309,7 +309,6 @@
 <td>已发布</td>
 </tr>
 </tbody></table>
-<hr>
 <h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><code>_score</code> 由 BM25 算，但<strong>能不能被搜到</strong>完全由 mapping 决定 —— <code>term</code> 查 <code>text</code>、<code>keyword</code> 没配 <code>normalizer</code>、<code>object</code> 数组丢关联，这三个是线上 90% 的「搜不到 &#x2F; 搜错」根因。</p>
 <h2 id="一、BM25-与打分诊断"><a href="#一、BM25-与打分诊断" class="headerlink" title="一、BM25 与打分诊断"></a>一、BM25 与打分诊断</h2><p>BM25 自 ES 5.0 起取代 TF-IDF 成为默认相似度。</p>
 <table>
