@@ -1,0 +1,989 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-21 · 第 147 篇 设计模式系列第三篇。依赖注入不是「上个框架」，它是把「创建」和「使用」分开这个朴素动作。做到了，测试就不需要 mock 框架，也不用改代码。  📚 设计模式 系列目录   章节 主题 状态    一 SOLID 与创建型模式 已发布   二 结构型与行为型模式 已发布   三 依赖注入、组合与可测试性 本篇   四 领域分层与架构边界">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 147 · 设计模式（三）：依赖注入、组合与可测试性">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/21/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2147-%E4%BE%9D%E8%B5%96%E6%B3%A8%E5%85%A5%E7%BB%84%E5%90%88%E4%B8%8E%E5%8F%AF%E6%B5%8B%E8%AF%95%E6%80%A7/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-21 · 第 147 篇 设计模式系列第三篇。依赖注入不是「上个框架」，它是把「创建」和「使用」分开这个朴素动作。做到了，测试就不需要 mock 框架，也不用改代码。  📚 设计模式 系列目录   章节 主题 状态    一 SOLID 与创建型模式 已发布   二 结构型与行为型模式 已发布   三 依赖注入、组合与可测试性 本篇   四 领域分层与架构边界">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-21T08:20:00.000Z">
+<meta property="article:modified_time" content="2026-10-21T07:08:26.356Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="design-pattern">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 147 · 设计模式（三）：依赖注入、组合与可测试性 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 147 · 设计模式（三）：依赖注入、组合与可测试性"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-21 16:20" pubdate>
+          2026年10月21日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          1.8k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          15 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 147 · 设计模式（三）：依赖注入、组合与可测试性</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-21 · 第 147 篇</p>
+<p>设计模式系列第三篇。依赖注入不是「上个框架」，它是<strong>把「创建」和「使用」分开</strong>这个朴素动作。做到了，测试就不需要 mock 框架，也不用改代码。</p>
+</blockquote>
+<h2 id="📚-设计模式-系列目录"><a href="#📚-设计模式-系列目录" class="headerlink" title="📚 设计模式 系列目录"></a>📚 设计模式 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td><a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2075-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F%E5%88%9B%E5%BB%BA%E5%9E%8B%E4%B8%8ESOLID/">SOLID 与创建型模式</a></td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td><a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2076-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F%E7%BB%93%E6%9E%84%E5%9E%8B%E4%B8%8E%E8%A1%8C%E4%B8%BA%E5%9E%8B/">结构型与行为型模式</a></td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>依赖注入、组合与可测试性</td>
+<td><strong>本篇</strong></td>
+</tr>
+<tr>
+<td>四</td>
+<td><a href="/2026/10/21/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2148-%E9%A2%86%E5%9F%9F%E5%88%86%E5%B1%82%E4%B8%8E%E6%9E%B6%E6%9E%84%E8%BE%B9%E7%95%8C/">领域分层与架构边界</a></td>
+<td>已发布</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>依赖注入的收益不在「解耦」这个抽象说法，而在「你能在测试里换掉它」。</strong> 一个类自己 <code>new</code> 数据库连接，你就永远无法在单元测试里验证它的业务逻辑。</p>
+<h2 id="一、依赖注入的三种形态"><a href="#一、依赖注入的三种形态" class="headerlink" title="一、依赖注入的三种形态"></a>一、依赖注入的三种形态</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># 1. 构造注入（推荐）</span><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">OrderService</span>:<br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">__init__</span>(<span class="hljs-params">self, repo: OrderRepo, mailer: Mailer</span>):<br>        <span class="hljs-variable language_">self</span>.repo = repo<br>        <span class="hljs-variable language_">self</span>.mailer = mailer<br><br><span class="hljs-comment"># 2. 参数注入</span><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">send_report</span>(<span class="hljs-params">mailer: Mailer, data</span>):<br>    mailer.send(data)<br><br><span class="hljs-comment"># 3. 属性注入（不推荐，依赖可变）</span><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">OrderService</span>:<br>    repo: OrderRepo = <span class="hljs-literal">None</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>形态</th>
+<th>优点</th>
+<th>缺点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>构造注入</td>
+<td>依赖明确、不可变</td>
+<td>构造函数可能变长</td>
+</tr>
+<tr>
+<td>参数注入</td>
+<td>局部灵活</td>
+<td>调用方要知道依赖</td>
+</tr>
+<tr>
+<td>属性注入</td>
+<td>简单</td>
+<td>状态可变、易漏设</td>
+</tr>
+<tr>
+<td>框架注入（容器）</td>
+<td>自动装配</td>
+<td>隐式、难追踪</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>属性注入会让「忘记设置」变成运行时错误</strong>。<code>self.repo</code> 为 <code>None</code> 时调用才报错，而构造注入在编译&#x2F;实例化时就暴露。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>依赖过多是设计信号，不是注入的问题</strong>。构造函数有 8 个参数，说明这个类承担了太多职责 —— <strong>该拆了，不是该上容器。</strong></p>
+</blockquote>
+<h2 id="二、依赖倒置：面向接口而非实现"><a href="#二、依赖倒置：面向接口而非实现" class="headerlink" title="二、依赖倒置：面向接口而非实现"></a>二、依赖倒置：面向接口而非实现</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">from</span> abc <span class="hljs-keyword">import</span> ABC, abstractmethod<br><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">Notifier</span>(<span class="hljs-title class_ inherited__">ABC</span>):<br><span class="hljs-meta">    @abstractmethod</span><br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">send</span>(<span class="hljs-params">self, user_id: <span class="hljs-built_in">str</span>, msg: <span class="hljs-built_in">str</span></span>) -&gt; <span class="hljs-literal">None</span>: ...<br><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">EmailNotifier</span>(<span class="hljs-title class_ inherited__">Notifier</span>):<br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">send</span>(<span class="hljs-params">self, user_id, msg</span>): ...<br><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">SmsNotifier</span>(<span class="hljs-title class_ inherited__">Notifier</span>):<br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">send</span>(<span class="hljs-params">self, user_id, msg</span>): ...<br><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">OrderService</span>:<br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">__init__</span>(<span class="hljs-params">self, notifier: Notifier</span>):   <span class="hljs-comment"># 依赖抽象</span><br>        <span class="hljs-variable language_">self</span>.notifier = notifier<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>层次</th>
+<th>依赖方向</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>高层（业务）</td>
+<td>依赖抽象</td>
+</tr>
+<tr>
+<td>低层（实现）</td>
+<td>实现抽象</td>
+</tr>
+<tr>
+<td>抽象</td>
+<td>不依赖任何一方</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>接口不要按实现建</strong>。「我要用 Redis，所以建个 <code>RedisClient</code> 接口」，这个接口和实现绑死了。<strong>应该按「业务需要什么能力」建</strong>（<code>CacheStore.get/set</code>）。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>Python 的 ABC 不是必须的</strong>。鸭子类型 + <code>Protocol</code> 也能做静态检查。<strong>接口的目的是约束行为，不是必须继承。</strong></p>
+</blockquote>
+<h2 id="三、组合优于继承"><a href="#三、组合优于继承" class="headerlink" title="三、组合优于继承"></a>三、组合优于继承</h2><table>
+<thead>
+<tr>
+<th>方式</th>
+<th>问题</th>
+<th>替代</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>继承实现复用</td>
+<td>父类改动影响所有子类</td>
+<td>组合 + 委托</td>
+</tr>
+<tr>
+<td>多层继承</td>
+<td>菱形问题、理解成本高</td>
+<td>扁平化 + 组合</td>
+</tr>
+<tr>
+<td>继承只为拿方法</td>
+<td>语义错误（is-a 不成立）</td>
+<td>抽出工具函数或组件</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># ✗ 继承：UserService 不是 Logger</span><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">UserService</span>(<span class="hljs-title class_ inherited__">Logger</span>):<br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">create</span>(<span class="hljs-params">self, data</span>):<br>        <span class="hljs-variable language_">self</span>.log(<span class="hljs-string">&quot;creating&quot;</span>)     <span class="hljs-comment"># 只为用 log 方法</span><br><br><span class="hljs-comment"># ✓ 组合：需要什么注入什么</span><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">UserService</span>:<br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">__init__</span>(<span class="hljs-params">self, logger: Logger</span>):<br>        <span class="hljs-variable language_">self</span>.logger = logger<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>「is-a」不成立就别继承</strong>。<code>UserService</code> 不是 <code>Logger</code>，<code>OrderController</code> 不是 <code>BaseController</code>。<strong>继承表达的是类型关系，不是代码复用手段。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>深层继承链是维护灾难</strong>。改一个父类方法，得检查所有子类的覆写。<strong>超过 2 层就该考虑重构。</strong></p>
+</blockquote>
+<h2 id="四、可测试性：依赖注入的真正回报"><a href="#四、可测试性：依赖注入的真正回报" class="headerlink" title="四、可测试性：依赖注入的真正回报"></a>四、可测试性：依赖注入的真正回报</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># 无法测试：内部创建依赖</span><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">OrderService</span>:<br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">__init__</span>(<span class="hljs-params">self</span>):<br>        <span class="hljs-variable language_">self</span>.repo = OrderRepo(connect_db())      <span class="hljs-comment"># 硬编码</span><br>        <span class="hljs-variable language_">self</span>.mailer = SmtpMailer(<span class="hljs-string">&quot;smtp://...&quot;</span>)<br><br><span class="hljs-comment"># 可测试：依赖从外部传入</span><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">OrderService</span>:<br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">__init__</span>(<span class="hljs-params">self, repo, mailer</span>):<br>        <span class="hljs-variable language_">self</span>.repo, <span class="hljs-variable language_">self</span>.mailer = repo, mailer<br><br><span class="hljs-comment"># 测试时传替身</span><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">test_create_order_sends_mail</span>():<br>    repo, mailer = FakeRepo(), FakeMailer()<br>    svc = OrderService(repo, mailer)<br>    svc.create(&#123;<span class="hljs-string">&quot;amount&quot;</span>: <span class="hljs-number">100</span>&#125;)<br>    <span class="hljs-keyword">assert</span> mailer.sent_count == <span class="hljs-number">1</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>测试障碍</th>
+<th>根因</th>
+<th>注入后的解法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>要连真数据库</td>
+<td>内部 <code>connect()</code></td>
+<td>注入 FakeRepo</td>
+</tr>
+<tr>
+<td>要发真邮件</td>
+<td>内部 <code>SmtpMailer()</code></td>
+<td>注入 FakeMailer</td>
+</tr>
+<tr>
+<td>时间不可控</td>
+<td>内部 <code>datetime.now()</code></td>
+<td>注入 <code>Clock</code></td>
+</tr>
+<tr>
+<td>随机不可控</td>
+<td>内部 <code>random</code></td>
+<td>注入 <code>Random</code></td>
+</tr>
+<tr>
+<td>网络不可控</td>
+<td>内部 <code>requests.get</code></td>
+<td>注入 HTTP client</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>时间、随机、UUID 也要注入</strong>。它们看起来「无害」，但会让测试不可复现。<strong>把 <code>Clock</code> 当依赖传进去，是最容易被忽略的一步。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>不要为了测试而给私有方法加参数</strong>。测试应该通过公开接口驱动，<strong>依赖从构造函数进来，而不是从测试专用参数进来。</strong></p>
+</blockquote>
+<h2 id="五、DI-容器：什么时候值得"><a href="#五、DI-容器：什么时候值得" class="headerlink" title="五、DI 容器：什么时候值得"></a>五、DI 容器：什么时候值得</h2><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>手写装配</th>
+<th>容器</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>依赖 &lt; 20 个</td>
+<td>✅ 够用</td>
+<td>过度设计</td>
+</tr>
+<tr>
+<td>依赖 20~100 个</td>
+<td>⚠️ 开始繁琐</td>
+<td>可以考虑</td>
+</tr>
+<tr>
+<td>依赖 &gt; 100 个、多环境</td>
+<td>❌ 难维护</td>
+<td>✅ 值得</td>
+</tr>
+<tr>
+<td>需要按请求作用域</td>
+<td>❌ 手写复杂</td>
+<td>✅ 容器擅长</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># 手写装配：简单直白，启动时一次</span><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">build_app</span>(<span class="hljs-params">config</span>):<br>    db = create_db(config.db_url)<br>    cache = create_cache(config.redis_url)<br>    repo = OrderRepo(db)<br>    mailer = Mailer(config.smtp)<br>    svc = OrderService(repo, mailer)<br>    <span class="hljs-keyword">return</span> App(svc, cache)<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>容器会隐藏依赖关系</strong>。出问题时你无法从构造函数看出「这个服务到底依赖什么」。<strong>小项目用容器，调试成本大于收益。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>容器不是「自动依赖注入」的魔法</strong>。它只是把「谁 new 谁」从代码挪到了配置里。<strong>配置写错了，报错信息往往很难懂。</strong></p>
+</blockquote>
+<h2 id="六、常见反模式"><a href="#六、常见反模式" class="headerlink" title="六、常见反模式"></a>六、常见反模式</h2><table>
+<thead>
+<tr>
+<th>反模式</th>
+<th>表现</th>
+<th>问题</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Service Locator</td>
+<td><code>container.get(&quot;repo&quot;)</code></td>
+<td>依赖隐式、难测</td>
+</tr>
+<tr>
+<td>全局单例</td>
+<td><code>db = Database()</code> 模块级</td>
+<td>测试间状态污染</td>
+</tr>
+<tr>
+<td>依赖具体实现</td>
+<td><code>def __init__(self, repo: MySQLRepo)</code></td>
+<td>换实现要改代码</td>
+</tr>
+<tr>
+<td>循环依赖</td>
+<td>A 依赖 B，B 依赖 A</td>
+<td>无法实例化</td>
+</tr>
+<tr>
+<td>构造里做 IO</td>
+<td><code>__init__</code> 里连数据库</td>
+<td>无法快速实例化</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># ✗ Service Locator：看不出依赖</span><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">OrderService</span>:<br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">create</span>(<span class="hljs-params">self, data</span>):<br>        repo = container.resolve(<span class="hljs-string">&quot;OrderRepo&quot;</span>)   <span class="hljs-comment"># 隐式依赖</span><br>        repo.save(data)<br><br><span class="hljs-comment"># ✗ 构造函数里做 IO</span><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">Repo</span>:<br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">__init__</span>(<span class="hljs-params">self</span>):<br>        <span class="hljs-variable language_">self</span>.conn = connect()      <span class="hljs-comment"># 实例化即连库，测试无法快速构造</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>构造函数里不要做 IO</strong>。它让对象无法被快速创建，也破坏了「构造 &#x3D; 装配」的语义。<strong>连接放在 <code>start()</code> 或工厂函数里。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>循环依赖通常意味着职责划分有问题</strong>。不要用「延迟注入」「属性注入」绕过去，<strong>先想清楚谁该依赖谁。</strong></p>
+</blockquote>
+<h2 id="七、分层中的依赖方向"><a href="#七、分层中的依赖方向" class="headerlink" title="七、分层中的依赖方向"></a>七、分层中的依赖方向</h2><table>
+<thead>
+<tr>
+<th>层</th>
+<th>可以依赖</th>
+<th>不能依赖</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>领域层（Domain）</td>
+<td>无（纯逻辑）</td>
+<td>框架、DB、HTTP</td>
+</tr>
+<tr>
+<td>应用层（Application）</td>
+<td>领域层</td>
+<td>具体基础设施</td>
+</tr>
+<tr>
+<td>基础设施层（Infra）</td>
+<td>领域接口</td>
+<td>应用层</td>
+</tr>
+<tr>
+<td>接口层（API&#x2F;CLI）</td>
+<td>应用层</td>
+<td>基础设施细节</td>
+</tr>
+</tbody></table>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs text">接口层 → 应用层 → 领域层<br>                 ↑<br>        基础设施层（实现领域接口）<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>领域层引入 ORM 就废了</strong>。领域模型应该是纯数据 + 行为，一旦继承 <code>Model</code>，测试就必须连数据库。<strong>用独立的领域对象 + 映射层。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>依赖方向反了，测试成本会指数上升</strong>。业务逻辑依赖具体 DB 实现，每个测试都要准备数据库。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 类内部 <code>new</code> 数据库连接，无法单元测试</li>
+<li><input disabled="" type="checkbox"> 用属性注入，忘记设置导致运行时 <code>None</code></li>
+<li><input disabled="" type="checkbox"> 构造函数 8 个参数还不拆分职责</li>
+<li><input disabled="" type="checkbox"> 接口按实现命名（<code>RedisClient</code>），与实现绑死</li>
+<li><input disabled="" type="checkbox"> 为了复用代码而继承，<code>is-a</code> 不成立</li>
+<li><input disabled="" type="checkbox"> 继承超过 2 层，改父类要检查所有子类</li>
+<li><input disabled="" type="checkbox"> 时间&#x2F;随机&#x2F;UUID 不注入，测试不可复现</li>
+<li><input disabled="" type="checkbox"> 用 Service Locator，依赖隐式难追踪</li>
+<li><input disabled="" type="checkbox"> 模块级全局单例，测试间状态污染</li>
+<li><input disabled="" type="checkbox"> 构造函数里做 IO，对象无法快速构造</li>
+<li><input disabled="" type="checkbox"> 用延迟注入绕过循环依赖，不解决职责问题</li>
+<li><input disabled="" type="checkbox"> 领域层直接继承 ORM Model</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><ul>
+<li><a target="_blank" rel="noopener" href="https://martinfowler.com/bliki/InversionOfControl.html">Martin Fowler · Inversion of Control</a></li>
+<li><a target="_blank" rel="noopener" href="https://martinfowler.com/articles/injection.html">Martin Fowler · Dependency Injection</a></li>
+<li><a target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/SOLID">SOLID 原则（Robert C. Martin）</a></li>
+<li><a target="_blank" rel="noopener" href="https://docs.python.org/3/library/typing.html#typing.Protocol">Python <code>typing.Protocol</code></a></li>
+<li><a target="_blank" rel="noopener" href="https://www.cosmicpython.com/book/chapter_13_dependency_injection.html">Cosmic Python · 依赖注入</a></li>
+</ul>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/design-pattern/" class="category-chain-item">design-pattern</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/design-pattern/" class="print-no-link">#design-pattern</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 147 · 设计模式（三）：依赖注入、组合与可测试性</div>
+      <div>https://ethan-iopasd.github.io/2026/10/21/每日技术博客147-依赖注入组合与可测试性/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月21日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2076-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F%E7%BB%93%E6%9E%84%E5%9E%8B%E4%B8%8E%E8%A1%8C%E4%B8%BA%E5%9E%8B/" title="每日技术博客 076 · 设计模式（二）：结构型与行为型模式">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 076 · 设计模式（二）：结构型与行为型模式</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2026/10/21/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2148-%E9%A2%86%E5%9F%9F%E5%88%86%E5%B1%82%E4%B8%8E%E6%9E%B6%E6%9E%84%E8%BE%B9%E7%95%8C/" title="每日技术博客 148 · 设计模式（四）：领域分层与架构边界">
+                        <span class="hidden-mobile">每日技术博客 148 · 设计模式（四）：领域分层与架构边界</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

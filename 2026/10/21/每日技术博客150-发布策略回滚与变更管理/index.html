@@ -1,0 +1,993 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-21 · 第 150 篇 CI&#x2F;CD 系列第四篇。回滚能力决定了你敢不敢频繁发布。 不能 5 分钟内回滚的系统，团队自然会选择「攒一批大改一次发」，然后每次都心惊胆战。  📚 CI&#x2F;CD 系列目录   章节 主题 状态    一 流水线设计与制品管理 已发布   二 容器化部署与 GitOps 已发布   三 流水线设计、缓存与并行 已发布">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 150 · CI&#x2F;CD（四）：发布策略、回滚与变更管理">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/21/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2150-%E5%8F%91%E5%B8%83%E7%AD%96%E7%95%A5%E5%9B%9E%E6%BB%9A%E4%B8%8E%E5%8F%98%E6%9B%B4%E7%AE%A1%E7%90%86/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-21 · 第 150 篇 CI&#x2F;CD 系列第四篇。回滚能力决定了你敢不敢频繁发布。 不能 5 分钟内回滚的系统，团队自然会选择「攒一批大改一次发」，然后每次都心惊胆战。  📚 CI&#x2F;CD 系列目录   章节 主题 状态    一 流水线设计与制品管理 已发布   二 容器化部署与 GitOps 已发布   三 流水线设计、缓存与并行 已发布">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-21T09:05:00.000Z">
+<meta property="article:modified_time" content="2026-10-21T07:08:26.355Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="ci-cd">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 150 · CI/CD（四）：发布策略、回滚与变更管理 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 150 · CI/CD（四）：发布策略、回滚与变更管理"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-21 17:05" pubdate>
+          2026年10月21日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          1.7k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          15 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 150 · CI/CD（四）：发布策略、回滚与变更管理</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-21 · 第 150 篇</p>
+<p>CI&#x2F;CD 系列第四篇。<strong>回滚能力决定了你敢不敢频繁发布。</strong> 不能 5 分钟内回滚的系统，团队自然会选择「攒一批大改一次发」，然后每次都心惊胆战。</p>
+</blockquote>
+<h2 id="📚-CI-CD-系列目录"><a href="#📚-CI-CD-系列目录" class="headerlink" title="📚 CI&#x2F;CD 系列目录"></a>📚 CI&#x2F;CD 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td><a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2072-CICD%E6%B5%81%E6%B0%B4%E7%BA%BF%E8%AE%BE%E8%AE%A1/">流水线设计与制品管理</a></td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td><a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2092-CICD%E5%AE%B9%E5%99%A8%E5%8C%96%E9%83%A8%E7%BD%B2%E4%B8%8EGitOps/">容器化部署与 GitOps</a></td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td><a href="/2026/10/21/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2149-CICD%E6%B5%81%E6%B0%B4%E7%BA%BF%E7%BC%93%E5%AD%98%E4%B8%8E%E5%B9%B6%E8%A1%8C/">流水线设计、缓存与并行</a></td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td>发布策略、回滚与变更管理</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>发布和部署是两件事：部署是把新代码放上去，发布是让用户流量切过去。</strong> 把两者解耦，回滚就只是「切回旧版本」，而不是「重新部署」。</p>
+<h2 id="一、四种发布策略"><a href="#一、四种发布策略" class="headerlink" title="一、四种发布策略"></a>一、四种发布策略</h2><table>
+<thead>
+<tr>
+<th>策略</th>
+<th>流量切换</th>
+<th>资源成本</th>
+<th>回滚速度</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>重建（Recreate）</td>
+<td>全停再起</td>
+<td>低</td>
+<td>慢（要重新部署）</td>
+<td>非核心、可停机</td>
+</tr>
+<tr>
+<td>滚动（Rolling）</td>
+<td>逐个替换</td>
+<td>低</td>
+<td>中</td>
+<td>默认选择</td>
+</tr>
+<tr>
+<td>蓝绿（Blue-Green）</td>
+<td>整套切换</td>
+<td><strong>2 倍</strong></td>
+<td><strong>秒级</strong></td>
+<td>核心服务</td>
+</tr>
+<tr>
+<td>金丝雀（Canary）</td>
+<td>按比例放量</td>
+<td>略高</td>
+<td>秒级</td>
+<td>高风险变更</td>
+</tr>
+</tbody></table>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs text">滚动更新：<br>[old][old][old] → [new][old][old] → [new][new][old] → [new][new][new]<br><br>蓝绿：<br>blue  [v1][v1][v1]   ← 当前流量<br>green [v2][v2][v2]   ← 就绪后切 100%<br><br>金丝雀：<br>[v1] 90%  /  [v2] 10%  → 观察指标 → 50% → 100%<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>滚动更新期间新旧版本共存</strong>，接口必须向后兼容。<strong>加字段安全，删字段会让旧实例报错。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>蓝绿的成本是双倍</strong>，但换来秒级回滚。<strong>核心交易链路值得，内部工具不值得。</strong></p>
+</blockquote>
+<h2 id="二、金丝雀的放量逻辑"><a href="#二、金丝雀的放量逻辑" class="headerlink" title="二、金丝雀的放量逻辑"></a>二、金丝雀的放量逻辑</h2><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-comment"># 按指标自动放量的思路</span><br><span class="hljs-attr">steps:</span><br>  <span class="hljs-bullet">-</span> <span class="hljs-attr">setWeight:</span> <span class="hljs-number">5</span><br>  <span class="hljs-bullet">-</span> <span class="hljs-attr">pause:</span> &#123; <span class="hljs-attr">duration:</span> <span class="hljs-string">5m</span> &#125;<br>  <span class="hljs-bullet">-</span> <span class="hljs-attr">analysis:</span><br>      <span class="hljs-attr">metrics:</span><br>        <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">error_rate</span><br>          <span class="hljs-attr">threshold:</span> <span class="hljs-number">1</span><span class="hljs-string">%</span>          <span class="hljs-comment"># 超过就回滚</span><br>        <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">p99_latency</span><br>          <span class="hljs-attr">threshold:</span> <span class="hljs-string">500ms</span><br>  <span class="hljs-bullet">-</span> <span class="hljs-attr">setWeight:</span> <span class="hljs-number">25</span><br>  <span class="hljs-bullet">-</span> <span class="hljs-attr">pause:</span> &#123; <span class="hljs-attr">duration:</span> <span class="hljs-string">10m</span> &#125;<br>  <span class="hljs-bullet">-</span> <span class="hljs-attr">setWeight:</span> <span class="hljs-number">100</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>观察指标</th>
+<th>阈值参考</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>错误率</td>
+<td>不超过基线的 1.2 倍</td>
+<td>相对值比绝对值更可靠</td>
+</tr>
+<tr>
+<td>P99 延迟</td>
+<td>不超过基线 1.2 倍</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>业务指标</td>
+<td>下单成功率等</td>
+<td>最有说服力</td>
+</tr>
+<tr>
+<td>资源使用</td>
+<td>CPU&#x2F;内存不异常</td>
+<td>防泄漏</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>绝对阈值不可靠</strong>。「错误率 &lt; 1%」在新版本错误率 0.8%、旧版本 0.1% 时不会触发，但实际已经恶化 8 倍。<strong>用相对基线的倍数。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>金丝雀要有足够的样本量</strong>。5% 流量跑 1 分钟可能只有几十个请求，指标噪声比信号大。<strong>按请求数而不是时间决定是否推进。</strong></p>
+</blockquote>
+<h2 id="三、回滚：要设计成「一个动作」"><a href="#三、回滚：要设计成「一个动作」" class="headerlink" title="三、回滚：要设计成「一个动作」"></a>三、回滚：要设计成「一个动作」</h2><table>
+<thead>
+<tr>
+<th>回滚对象</th>
+<th>方式</th>
+<th>耗时</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>代码&#x2F;镜像</td>
+<td>切回上一个 tag</td>
+<td>秒级（蓝绿）&#x2F; 分钟级（滚动）</td>
+</tr>
+<tr>
+<td>配置</td>
+<td>回退 ConfigMap &#x2F; 配置中心</td>
+<td>秒级</td>
+</tr>
+<tr>
+<td>数据库 schema</td>
+<td><strong>不能直接回滚</strong></td>
+<td>需前向兼容设计</td>
+</tr>
+<tr>
+<td>数据</td>
+<td>通常不可回滚</td>
+<td>需补偿</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># Kubernetes：一条命令回滚</span><br>kubectl rollout undo deployment/order-svc<br>kubectl rollout status deployment/order-svc<br><br><span class="hljs-comment"># 回滚到指定版本</span><br>kubectl rollout undo deployment/order-svc --to-revision=3<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>数据库 schema 是回滚的死穴</strong>。<code>DROP COLUMN</code> 之后旧代码就废了。<strong>必须做「扩展-收缩」两阶段迁移。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>回滚要演练</strong>。半年没回滚过的系统，真出事时你会发现镜像被清理了、配置对不上、权限没了。</p>
+</blockquote>
+<h2 id="四、数据库变更：扩展-收缩模式"><a href="#四、数据库变更：扩展-收缩模式" class="headerlink" title="四、数据库变更：扩展-收缩模式"></a>四、数据库变更：扩展-收缩模式</h2><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><code class="hljs text">目标：给 users 加 full_name 替代 name，且任何时候都能回滚<br><br>阶段 1（扩展）：<br>  - 加新列 full_name（可空）<br>  - 双写：代码同时写 name 和 full_name<br>  - 回滚安全：旧代码只读 name，不受影响<br><br>阶段 2（回填）：<br>  - 后台任务把 name 回填到 full_name<br>  - 校验一致性<br><br>阶段 3（切换读）：<br>  - 代码改为读 full_name<br>  - 保留 name 的写入（为了能回滚）<br><br>阶段 4（收缩）：<br>  - 确认稳定后，停止写 name<br>  - 删列（单独一次发布）<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>变更</th>
+<th>安全做法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>加列</td>
+<td>必须可空或有默认值</td>
+</tr>
+<tr>
+<td>删列</td>
+<td>先停用，下个版本再删</td>
+</tr>
+<tr>
+<td>改类型</td>
+<td>加新列 + 双写 + 切换</td>
+</tr>
+<tr>
+<td>加索引</td>
+<td>在线 DDL 或 <code>CONCURRENTLY</code></td>
+</tr>
+<tr>
+<td>重命名</td>
+<td>视为「加新 + 删旧」</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>「加列必须可空」是铁律</strong>。给已有百万行的表加 <code>NOT NULL</code> 列，要么锁表，要么旧代码写入失败。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>删列至少间隔一个发布周期</strong>。同一个版本里既停用又删除，回滚时旧代码会找不到列。</p>
+</blockquote>
+<h2 id="五、功能开关（Feature-Flag）"><a href="#五、功能开关（Feature-Flag）" class="headerlink" title="五、功能开关（Feature Flag）"></a>五、功能开关（Feature Flag）</h2><table>
+<thead>
+<tr>
+<th>类型</th>
+<th>生命周期</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>发布开关</td>
+<td>短（天~周）</td>
+<td>代码已部署但功能未上线</td>
+</tr>
+<tr>
+<td>实验开关</td>
+<td>中（周~月）</td>
+<td>A&#x2F;B 测试</td>
+</tr>
+<tr>
+<td>运维开关</td>
+<td>长（永久）</td>
+<td>降级、熔断</td>
+</tr>
+<tr>
+<td>权限开关</td>
+<td>长</td>
+<td>按用户&#x2F;租户开放</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">if</span> flags.is_enabled(<span class="hljs-string">&quot;new_checkout_flow&quot;</span>, user_id=uid, default=<span class="hljs-literal">False</span>):<br>    <span class="hljs-keyword">return</span> new_checkout(order)<br><span class="hljs-keyword">return</span> old_checkout(order)<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>开关必须有清理机制</strong>。上线三个月后还留着的开关，代码里就是一堆死分支。<strong>每个开关要登记负责人和过期时间。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>开关不要嵌套太深</strong>。<code>if a: if b: if c:</code> 的组合爆炸，测试无法覆盖。<strong>超过两层就该重新设计。</strong></p>
+</blockquote>
+<h2 id="六、变更管理：让发布可追溯"><a href="#六、变更管理：让发布可追溯" class="headerlink" title="六、变更管理：让发布可追溯"></a>六、变更管理：让发布可追溯</h2><table>
+<thead>
+<tr>
+<th>记录项</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>变更内容</td>
+<td>改了什么、影响哪些服务</td>
+</tr>
+<tr>
+<td>变更人</td>
+<td>谁提交、谁审批</td>
+</tr>
+<tr>
+<td>时间窗口</td>
+<td>何时发布、避开什么时段</td>
+</tr>
+<tr>
+<td>回滚方案</td>
+<td>怎么回、多久</td>
+</tr>
+<tr>
+<td>验证方式</td>
+<td>看哪些指标确认成功</td>
+</tr>
+</tbody></table>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs text">发布检查清单：<br>□ 变更已 review 并合并<br>□ 有回滚方案且演练过<br>□ 数据库变更已评估兼容性<br>□ 监控看板已就绪<br>□ 值班人已知晓<br>□ 避开业务高峰与月末结算<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>「周五下午不发布」是有道理的</strong>。出问题时人手不足、第三方支持响应慢。<strong>高风险变更放在工作日早段。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>变更记录要能反查</strong>。出故障时第一个问题是「最近改了什么」，答不上来就只能靠猜。</p>
+</blockquote>
+<h2 id="七、度量：DORA-四指标"><a href="#七、度量：DORA-四指标" class="headerlink" title="七、度量：DORA 四指标"></a>七、度量：DORA 四指标</h2><table>
+<thead>
+<tr>
+<th>指标</th>
+<th>含义</th>
+<th>优秀参考</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>部署频率</td>
+<td>多久发一次</td>
+<td>每天多次</td>
+</tr>
+<tr>
+<td>变更前置时间</td>
+<td>提交到上线</td>
+<td>&lt; 1 天</td>
+</tr>
+<tr>
+<td>变更失败率</td>
+<td>导致回滚&#x2F;故障的比例</td>
+<td>&lt; 15%</td>
+</tr>
+<tr>
+<td>恢复时间（MTTR）</td>
+<td>故障到恢复</td>
+<td>&lt; 1 小时</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>不要单独追求部署频率</strong>。频率高但失败率也高，等于在制造故障。<strong>四个指标要一起看。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>MTTR 比 MTBF 更值得优化</strong>。故障不可避免，<strong>缩短恢复时间比追求「永不故障」现实得多。</strong></p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 滚动更新时新旧版本共存，接口不兼容</li>
+<li><input disabled="" type="checkbox"> 金丝雀用绝对阈值，恶化 8 倍也不触发</li>
+<li><input disabled="" type="checkbox"> 金丝雀样本量不足就推进</li>
+<li><input disabled="" type="checkbox"> 直接 <code>DROP COLUMN</code>，旧版本代码崩溃</li>
+<li><input disabled="" type="checkbox"> 加 <code>NOT NULL</code> 列不带默认值，锁表或写入失败</li>
+<li><input disabled="" type="checkbox"> 同一版本既停用又删除字段，回滚失败</li>
+<li><input disabled="" type="checkbox"> 回滚从未演练，真出事发现镜像已被清理</li>
+<li><input disabled="" type="checkbox"> 功能开关无清理机制，代码里全是死分支</li>
+<li><input disabled="" type="checkbox"> 开关嵌套超过两层，测试无法覆盖</li>
+<li><input disabled="" type="checkbox"> 变更无记录，故障时无法反查</li>
+<li><input disabled="" type="checkbox"> 高风险变更放在周五下午</li>
+<li><input disabled="" type="checkbox"> 只追部署频率，不看变更失败率</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><ul>
+<li><a target="_blank" rel="noopener" href="https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#rolling-back-a-deployment">Kubernetes · 滚动更新与回滚</a></li>
+<li><a target="_blank" rel="noopener" href="https://martinfowler.com/bliki/CanaryRelease.html">Martin Fowler · CanaryRelease</a></li>
+<li><a target="_blank" rel="noopener" href="https://martinfowler.com/articles/feature-toggles.html">Martin Fowler · Feature Toggles</a></li>
+<li><a target="_blank" rel="noopener" href="https://martinfowler.com/bliki/ParallelChange.html">Martin Fowler · ParallelChange（扩展-收缩）</a></li>
+<li><a target="_blank" rel="noopener" href="https://dora.dev/guides/dora-metrics-four-keys/">DORA · 四项关键指标</a></li>
+</ul>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/ci-cd/" class="category-chain-item">ci-cd</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/ci-cd/" class="print-no-link">#ci-cd</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 150 · CI/CD（四）：发布策略、回滚与变更管理</div>
+      <div>https://ethan-iopasd.github.io/2026/10/21/每日技术博客150-发布策略回滚与变更管理/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月21日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/21/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2149-CICD%E6%B5%81%E6%B0%B4%E7%BA%BF%E7%BC%93%E5%AD%98%E4%B8%8E%E5%B9%B6%E8%A1%8C/" title="每日技术博客 149 · CI/CD（三）：流水线设计、缓存与并行">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 149 · CI/CD（三）：流水线设计、缓存与并行</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

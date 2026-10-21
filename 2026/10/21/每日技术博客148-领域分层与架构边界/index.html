@@ -1,0 +1,957 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-21 · 第 148 篇 设计模式系列第四篇。架构分层的目的不是「看起来整齐」，而是把变化隔离在边界内。改数据库不动业务逻辑，换框架不动领域模型 —— 这才是分层的回报。  📚 设计模式 系列目录   章节 主题 状态    一 SOLID 与创建型模式 已发布   二 结构型与行为型模式 已发布   三 依赖注入、组合与可测试性 已发布   四 领域分层与架">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 148 · 设计模式（四）：领域分层与架构边界">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/21/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2148-%E9%A2%86%E5%9F%9F%E5%88%86%E5%B1%82%E4%B8%8E%E6%9E%B6%E6%9E%84%E8%BE%B9%E7%95%8C/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-21 · 第 148 篇 设计模式系列第四篇。架构分层的目的不是「看起来整齐」，而是把变化隔离在边界内。改数据库不动业务逻辑，换框架不动领域模型 —— 这才是分层的回报。  📚 设计模式 系列目录   章节 主题 状态    一 SOLID 与创建型模式 已发布   二 结构型与行为型模式 已发布   三 依赖注入、组合与可测试性 已发布   四 领域分层与架">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-21T08:35:00.000Z">
+<meta property="article:modified_time" content="2026-10-21T07:08:26.356Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="design-pattern">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 148 · 设计模式（四）：领域分层与架构边界 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 148 · 设计模式（四）：领域分层与架构边界"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-21 16:35" pubdate>
+          2026年10月21日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          1.8k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          16 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 148 · 设计模式（四）：领域分层与架构边界</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-21 · 第 148 篇</p>
+<p>设计模式系列第四篇。架构分层的目的不是「看起来整齐」，而是<strong>把变化隔离在边界内</strong>。改数据库不动业务逻辑，换框架不动领域模型 —— 这才是分层的回报。</p>
+</blockquote>
+<h2 id="📚-设计模式-系列目录"><a href="#📚-设计模式-系列目录" class="headerlink" title="📚 设计模式 系列目录"></a>📚 设计模式 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td><a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2075-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F%E5%88%9B%E5%BB%BA%E5%9E%8B%E4%B8%8ESOLID/">SOLID 与创建型模式</a></td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td><a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2076-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F%E7%BB%93%E6%9E%84%E5%9E%8B%E4%B8%8E%E8%A1%8C%E4%B8%BA%E5%9E%8B/">结构型与行为型模式</a></td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td><a href="/2026/10/21/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2147-%E4%BE%9D%E8%B5%96%E6%B3%A8%E5%85%A5%E7%BB%84%E5%90%88%E4%B8%8E%E5%8F%AF%E6%B5%8B%E8%AF%95%E6%80%A7/">依赖注入、组合与可测试性</a></td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td>领域分层与架构边界</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>分层的价值 &#x3D; 变更的影响半径。</strong> 如果改一个字段要动 controller、service、DAO、DTO 四层，那不是分层，那是把重复代码摊开摆了四份。</p>
+<h2 id="一、经典三层-vs-整洁架构"><a href="#一、经典三层-vs-整洁架构" class="headerlink" title="一、经典三层 vs 整洁架构"></a>一、经典三层 vs 整洁架构</h2><table>
+<thead>
+<tr>
+<th>架构</th>
+<th>层次</th>
+<th>特点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>三层（Controller-Service-DAO）</td>
+<td>3 层</td>
+<td>简单、适合 CRUD</td>
+</tr>
+<tr>
+<td>整洁架构（Clean）</td>
+<td>4+ 层，依赖向内</td>
+<td>领域独立、可测试</td>
+</tr>
+<tr>
+<td>六边形（Hexagonal）</td>
+<td>内部 + 端口适配器</td>
+<td>强调边界</td>
+</tr>
+<tr>
+<td>洋葱架构</td>
+<td>同心圆</td>
+<td>与整洁架构类似</td>
+</tr>
+</tbody></table>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs text">整洁架构依赖方向（只能向内）：<br><br>    接口层（HTTP/gRPC/CLI）<br>         ↓<br>    应用层（用例编排）<br>         ↓<br>    领域层（实体、值对象、领域服务）<br>         ↑<br>    基础设施层（DB、消息、外部 API）—— 实现领域定义的接口<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>依赖只能向内</strong>。基础设施层依赖领域层（实现其接口），而不是反过来。<strong>一旦领域层 <code>import</code> 了 ORM，边界就破了。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>三层架构不是错的</strong>。CRUD 为主的系统用三层完全够，强行上整洁架构只会增加无意义的映射代码。<strong>架构复杂度要匹配业务复杂度。</strong></p>
+</blockquote>
+<h2 id="二、各层该放什么"><a href="#二、各层该放什么" class="headerlink" title="二、各层该放什么"></a>二、各层该放什么</h2><table>
+<thead>
+<tr>
+<th>层</th>
+<th>放什么</th>
+<th>不放什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>接口层</td>
+<td>参数校验、协议转换、鉴权</td>
+<td>业务规则</td>
+</tr>
+<tr>
+<td>应用层</td>
+<td>用例编排、事务边界</td>
+<td>领域逻辑、SQL</td>
+</tr>
+<tr>
+<td>领域层</td>
+<td>实体、值对象、不变量、领域服务</td>
+<td>框架、IO</td>
+</tr>
+<tr>
+<td>基础设施层</td>
+<td>仓储实现、消息发送、外部调用</td>
+<td>业务判断</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># 领域层：纯逻辑，不依赖任何框架</span><br><span class="hljs-meta">@dataclass(<span class="hljs-params">frozen=<span class="hljs-literal">True</span></span>)</span><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">Money</span>:<br>    amount: Decimal<br>    currency: <span class="hljs-built_in">str</span><br><br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">__post_init__</span>(<span class="hljs-params">self</span>):<br>        <span class="hljs-keyword">if</span> <span class="hljs-variable language_">self</span>.amount &lt; <span class="hljs-number">0</span>:<br>            <span class="hljs-keyword">raise</span> ValueError(<span class="hljs-string">&quot;金额不能为负&quot;</span>)<br><br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">add</span>(<span class="hljs-params">self, other: <span class="hljs-string">&quot;Money&quot;</span></span>) -&gt; <span class="hljs-string">&quot;Money&quot;</span>:<br>        <span class="hljs-keyword">if</span> <span class="hljs-variable language_">self</span>.currency != other.currency:<br>            <span class="hljs-keyword">raise</span> ValueError(<span class="hljs-string">&quot;币种不一致&quot;</span>)<br>        <span class="hljs-keyword">return</span> Money(<span class="hljs-variable language_">self</span>.amount + other.amount, <span class="hljs-variable language_">self</span>.currency)<br><br><span class="hljs-comment"># 应用层：编排用例，不含业务规则</span><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">PlaceOrder</span>:<br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">__init__</span>(<span class="hljs-params">self, orders: OrderRepo, payments: PaymentGateway</span>):<br>        <span class="hljs-variable language_">self</span>.orders, <span class="hljs-variable language_">self</span>.payments = orders, payments<br><br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">execute</span>(<span class="hljs-params">self, cmd: PlaceOrderCommand</span>) -&gt; <span class="hljs-built_in">str</span>:<br>        order = Order.create(cmd.items, cmd.address)   <span class="hljs-comment"># 领域层负责规则</span><br>        <span class="hljs-variable language_">self</span>.payments.charge(order.total)<br>        <span class="hljs-variable language_">self</span>.orders.save(order)<br>        <span class="hljs-keyword">return</span> order.<span class="hljs-built_in">id</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>业务规则放在领域层，不是 Service 层</strong>。<code>Service</code> 里堆满 <code>if</code> 判断，就退化成了「事务脚本」，领域模型成了贫血模型。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>应用层不要写 SQL</strong>。它只负责「按顺序调用」，具体存取由仓储实现。</p>
+</blockquote>
+<h2 id="三、贫血模型-vs-充血模型"><a href="#三、贫血模型-vs-充血模型" class="headerlink" title="三、贫血模型 vs 充血模型"></a>三、贫血模型 vs 充血模型</h2><table>
+<thead>
+<tr>
+<th>模型</th>
+<th>特点</th>
+<th>问题</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>贫血</td>
+<td>实体只有 getter&#x2F;setter，逻辑在 Service</td>
+<td>规则分散、易遗漏</td>
+</tr>
+<tr>
+<td>充血</td>
+<td>实体自带行为与不变量</td>
+<td>需要设计功力</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># 贫血：规则散落在各处</span><br>order.status = <span class="hljs-string">&quot;paid&quot;</span>        <span class="hljs-comment"># 谁都能改，没人校验</span><br><br><span class="hljs-comment"># 充血：状态变化必须过方法</span><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">Order</span>:<br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">pay</span>(<span class="hljs-params">self, amount: Money</span>):<br>        <span class="hljs-keyword">if</span> <span class="hljs-variable language_">self</span>.status != OrderStatus.CREATED:<br>            <span class="hljs-keyword">raise</span> InvalidTransition(<span class="hljs-string">f&quot;当前状态 <span class="hljs-subst">&#123;self.status&#125;</span> 不能支付&quot;</span>)<br>        <span class="hljs-keyword">if</span> amount != <span class="hljs-variable language_">self</span>.total:<br>            <span class="hljs-keyword">raise</span> ValueError(<span class="hljs-string">&quot;金额不符&quot;</span>)<br>        <span class="hljs-variable language_">self</span>.status = OrderStatus.PAID<br>        <span class="hljs-variable language_">self</span>.paid_at = utcnow()<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>贫血模型 + 到处 setter 是最危险组合</strong>。任何地方都能改状态，规则无法保证。<strong>至少把状态变更收敛到方法里。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>充血模型不等于「把 Service 逻辑搬进实体」</strong>。实体只负责自身不变量，跨实体的编排仍留在应用层。</p>
+</blockquote>
+<h2 id="四、仓储（Repository）的边界"><a href="#四、仓储（Repository）的边界" class="headerlink" title="四、仓储（Repository）的边界"></a>四、仓储（Repository）的边界</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># 领域层定义接口</span><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">OrderRepo</span>(<span class="hljs-title class_ inherited__">Protocol</span>):<br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">save</span>(<span class="hljs-params">self, order: Order</span>) -&gt; <span class="hljs-literal">None</span>: ...<br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">find</span>(<span class="hljs-params">self, order_id: <span class="hljs-built_in">str</span></span>) -&gt; Order | <span class="hljs-literal">None</span>: ...<br><br><span class="hljs-comment"># 基础设施层实现</span><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">SqlOrderRepo</span>:<br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">__init__</span>(<span class="hljs-params">self, session</span>):<br>        <span class="hljs-variable language_">self</span>.session = session<br><br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">save</span>(<span class="hljs-params">self, order</span>):<br>        <span class="hljs-variable language_">self</span>.session.merge(to_row(order))<br><br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">find</span>(<span class="hljs-params">self, order_id</span>):<br>        row = <span class="hljs-variable language_">self</span>.session.get(OrderRow, order_id)<br>        <span class="hljs-keyword">return</span> to_domain(row) <span class="hljs-keyword">if</span> row <span class="hljs-keyword">else</span> <span class="hljs-literal">None</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>常见错误</th>
+<th>后果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>仓储返回 ORM 对象</td>
+<td>领域层被迫依赖 ORM</td>
+</tr>
+<tr>
+<td>仓储暴露 <code>query()</code></td>
+<td>业务逻辑泄漏到 SQL</td>
+</tr>
+<tr>
+<td>一个仓储管多个聚合</td>
+<td>边界模糊、事务混乱</td>
+</tr>
+<tr>
+<td>仓储里写业务判断</td>
+<td>规则分散</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>仓储是「集合的抽象」，不是「DAO 的别名」</strong>。它应该像操作内存集合一样，不暴露查询构建器。<strong>需要复杂查询就新建读模型（CQRS 的读侧）。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>一个仓储对应一个聚合根</strong>。<code>OrderRepo</code> 管订单，<code>ProductRepo</code> 管商品，不要在 <code>OrderRepo</code> 里查商品。</p>
+</blockquote>
+<h2 id="五、DTO-与映射成本"><a href="#五、DTO-与映射成本" class="headerlink" title="五、DTO 与映射成本"></a>五、DTO 与映射成本</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># 接口层 DTO → 应用层 Command → 领域对象 → 持久化 Row</span><br>OrderRow ← to_row() ← Order ← Order.create() ← PlaceOrderCommand ← HTTP body<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>代码量</th>
+<th>收益</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>直接复用 ORM 对象</td>
+<td>最少</td>
+<td>层间耦合，改表就改全链路</td>
+</tr>
+<tr>
+<td>DTO + 手写映射</td>
+<td>多</td>
+<td>边界清晰，可独立演进</td>
+</tr>
+<tr>
+<td>自动映射（MapStruct &#x2F; pydantic）</td>
+<td>中</td>
+<td>减少样板</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>不要为了「架构正确」写四份一样的类</strong>。字段完全相同的 DTO 是纯噪音。<strong>边界只有在「确实需要独立演进」时才值得。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>映射成本要算进决策</strong>。如果业务只有 10 个字段、3 个接口，四层映射的维护成本远大于收益。<strong>先简单，遇到痛点再分层。</strong></p>
+</blockquote>
+<h2 id="六、模块化单体：被低估的选项"><a href="#六、模块化单体：被低估的选项" class="headerlink" title="六、模块化单体：被低估的选项"></a>六、模块化单体：被低估的选项</h2><table>
+<thead>
+<tr>
+<th>方案</th>
+<th>复杂度</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>单体（分层）</td>
+<td>低</td>
+<td>小团队、早期</td>
+</tr>
+<tr>
+<td>模块化单体</td>
+<td>中</td>
+<td><strong>大多数业务系统</strong></td>
+</tr>
+<tr>
+<td>微服务</td>
+<td>高</td>
+<td>多团队、独立伸缩</td>
+</tr>
+</tbody></table>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs text">模块化单体：<br>app/<br>├── orders/          # 边界内：自己的领域、应用、基础设施<br>│   ├── domain/<br>│   ├── application/<br>│   └── infra/<br>├── payments/<br>└── shared/          # 只放真正共享的基础设施<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>微服务不是「架构升级」的默认答案</strong>。分布式事务、链路追踪、服务发现、部署复杂度都是成本。<strong>模块化单体保留边界，但没有分布式代价。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>模块间不要直接访问对方的数据表</strong>。只能通过对方的应用层接口。<strong>这是模块化单体能否拆成微服务的关键。</strong></p>
+</blockquote>
+<h2 id="七、架构决策记录（ADR）"><a href="#七、架构决策记录（ADR）" class="headerlink" title="七、架构决策记录（ADR）"></a>七、架构决策记录（ADR）</h2><table>
+<thead>
+<tr>
+<th>内容</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>背景</td>
+<td>面临什么问题</td>
+</tr>
+<tr>
+<td>选项</td>
+<td>考虑过哪些方案</td>
+</tr>
+<tr>
+<td>决策</td>
+<td>选了什么</td>
+</tr>
+<tr>
+<td>后果</td>
+<td>带来什么代价</td>
+</tr>
+</tbody></table>
+<figure class="highlight markdown"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><code class="hljs markdown"><span class="hljs-section"># ADR-003：订单模块采用仓储模式</span><br><br><span class="hljs-section">## 背景</span><br>订单逻辑复杂，需要在不连数据库的情况下做单元测试。<br><br><span class="hljs-section">## 选项</span><br><span class="hljs-bullet">1.</span> 直接使用 ORM（快，但测试必须连库）<br><span class="hljs-bullet">2.</span> 仓储模式（多一层映射，但可测试）<br><br><span class="hljs-section">## 决策</span><br>采用仓储模式，领域层定义 Protocol，基础设施层实现。<br><br><span class="hljs-section">## 后果</span><br><span class="hljs-bullet">-</span> 好处：领域逻辑可纯内存测试<br><span class="hljs-bullet">-</span> 代价：多一层映射代码，查询复杂时需引入读模型<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>不记录决策，半年后没人知道为什么这么分层</strong>。新人会按「看起来更现代」的方式重构，把边界拆掉。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>ADR 要写「代价」</strong>。只写优点的决策记录没有价值。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 领域层 <code>import</code> ORM，边界已破</li>
+<li><input disabled="" type="checkbox"> Service 层堆满业务规则，贫血模型</li>
+<li><input disabled="" type="checkbox"> 实体到处 setter，状态不受控</li>
+<li><input disabled="" type="checkbox"> 仓储返回 ORM 对象，领域层被迫依赖</li>
+<li><input disabled="" type="checkbox"> 仓储暴露 <code>query()</code>，业务逻辑泄漏进 SQL</li>
+<li><input disabled="" type="checkbox"> 一个仓储管多个聚合，事务混乱</li>
+<li><input disabled="" type="checkbox"> 四层写四份相同 DTO，纯噪音</li>
+<li><input disabled="" type="checkbox"> 简单 CRUD 强上整洁架构，映射成本远超收益</li>
+<li><input disabled="" type="checkbox"> 模块间直接访问对方数据表</li>
+<li><input disabled="" type="checkbox"> 小团队一上来就拆微服务</li>
+<li><input disabled="" type="checkbox"> 没有 ADR，决策原因丢失</li>
+<li><input disabled="" type="checkbox"> 依赖方向反了（基础设施被领域层依赖）</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><ul>
+<li><a target="_blank" rel="noopener" href="https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html">Robert C. Martin · Clean Architecture</a></li>
+<li><a target="_blank" rel="noopener" href="https://alistair.cockburn.us/hexagonal-architecture/">Alistair Cockburn · Hexagonal Architecture</a></li>
+<li><a target="_blank" rel="noopener" href="https://martinfowler.com/eaaCatalog/repository.html">Martin Fowler · Repository</a></li>
+<li><a target="_blank" rel="noopener" href="https://martinfowler.com/bliki/AnemicDomainModel.html">Martin Fowler · AnemicDomainModel</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.cosmicpython.com/book/preface.html">Cosmic Python · 架构模式</a></li>
+</ul>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/design-pattern/" class="category-chain-item">design-pattern</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/design-pattern/" class="print-no-link">#design-pattern</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 148 · 设计模式（四）：领域分层与架构边界</div>
+      <div>https://ethan-iopasd.github.io/2026/10/21/每日技术博客148-领域分层与架构边界/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月21日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/21/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2147-%E4%BE%9D%E8%B5%96%E6%B3%A8%E5%85%A5%E7%BB%84%E5%90%88%E4%B8%8E%E5%8F%AF%E6%B5%8B%E8%AF%95%E6%80%A7/" title="每日技术博客 147 · 设计模式（三）：依赖注入、组合与可测试性">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 147 · 设计模式（三）：依赖注入、组合与可测试性</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

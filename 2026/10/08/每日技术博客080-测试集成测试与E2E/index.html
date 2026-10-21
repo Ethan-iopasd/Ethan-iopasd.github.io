@@ -19,15 +19,15 @@
   <meta name="author" content="iopasd">
   <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
   
-    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 080 篇 测试系列第二篇。集成测试的真实依赖、Testcontainers、契约测试、E2E 工具选型与 flaky 治理、性能测试，以及 CI 里怎么分层组织测试阶段。  📚 测试 系列目录   章节 主题 状态    一 单元测试与测试替身 已发布   二 集成测试、E2E 与测试策略 本篇   开场：一句话结论单元测试验证逻辑，集成测试验">
+    <meta name="description" content="每日技术博客 · 2026-10-08 · 第 080 篇 测试系列第二篇。集成测试的真实依赖、Testcontainers、契约测试、E2E 工具选型与 flaky 治理、性能测试，以及 CI 里怎么分层组织测试阶段。  📚 测试 系列目录   章节 主题 状态    一 单元测试与测试替身 已发布   二 集成测试、E2E 与测试策略 本篇   三 测试金字塔与测试策略的取舍 已发布">
 <meta property="og:type" content="article">
 <meta property="og:title" content="每日技术博客 080 · 测试（二）：集成测试、E2E 与测试策略">
 <meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2080-%E6%B5%8B%E8%AF%95%E9%9B%86%E6%88%90%E6%B5%8B%E8%AF%95%E4%B8%8EE2E/index.html">
 <meta property="og:site_name" content="Ethan-iopasd">
-<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 080 篇 测试系列第二篇。集成测试的真实依赖、Testcontainers、契约测试、E2E 工具选型与 flaky 治理、性能测试，以及 CI 里怎么分层组织测试阶段。  📚 测试 系列目录   章节 主题 状态    一 单元测试与测试替身 已发布   二 集成测试、E2E 与测试策略 本篇   开场：一句话结论单元测试验证逻辑，集成测试验">
+<meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 080 篇 测试系列第二篇。集成测试的真实依赖、Testcontainers、契约测试、E2E 工具选型与 flaky 治理、性能测试，以及 CI 里怎么分层组织测试阶段。  📚 测试 系列目录   章节 主题 状态    一 单元测试与测试替身 已发布   二 集成测试、E2E 与测试策略 本篇   三 测试金字塔与测试策略的取舍 已发布">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-10-08T05:35:00.000Z">
-<meta property="article:modified_time" content="2026-10-21T02:14:24.671Z">
+<meta property="article:modified_time" content="2026-10-21T07:08:26.357Z">
 <meta property="article:author" content="iopasd">
 <meta property="article:tag" content="testing">
 <meta name="twitter:card" content="summary_large_image">
@@ -223,7 +223,7 @@
       <span class="post-meta mr-2">
         <i class="iconfont icon-chart"></i>
         
-          2.6k 字
+          2.7k 字
         
       </span>
     
@@ -297,6 +297,16 @@
 <td>二</td>
 <td>集成测试、E2E 与测试策略</td>
 <td><strong>本篇</strong></td>
+</tr>
+<tr>
+<td>三</td>
+<td><a href="/2026/10/21/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2143-%E6%B5%8B%E8%AF%95%E9%87%91%E5%AD%97%E5%A1%94%E4%B8%8E%E6%B5%8B%E8%AF%95%E7%AD%96%E7%95%A5%E5%8F%96%E8%88%8D/">测试金字塔与测试策略的取舍</a></td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td><a href="/2026/10/21/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2144-%E6%B5%8B%E8%AF%95%E6%95%B0%E6%8D%AEFixture%E4%B8%8E%E4%B8%8D%E7%A8%B3%E5%AE%9A%E6%B5%8B%E8%AF%95%E6%B2%BB%E7%90%86/">测试数据、Fixture 与不稳定测试治理</a></td>
+<td>已发布</td>
 </tr>
 </tbody></table>
 <h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p>单元测试验证逻辑，集成测试验证<strong>接线</strong>，E2E 验证<strong>用户旅程</strong> —— 越往上越贵越脆，所以只测<strong>关键路径</strong>。</p>
@@ -882,6 +892,12 @@
                   </article>
                   <article class="post-next col-6">
                     
+                    
+                      <a href="/2026/10/21/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2143-%E6%B5%8B%E8%AF%95%E9%87%91%E5%AD%97%E5%A1%94%E4%B8%8E%E6%B5%8B%E8%AF%95%E7%AD%96%E7%95%A5%E5%8F%96%E8%88%8D/" title="每日技术博客 143 · 测试（三）：测试金字塔与测试策略的取舍">
+                        <span class="hidden-mobile">每日技术博客 143 · 测试（三）：测试金字塔与测试策略的取舍</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
                     
                   </article>
                 </div>

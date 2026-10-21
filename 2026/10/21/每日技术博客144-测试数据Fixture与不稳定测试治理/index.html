@@ -1,0 +1,1025 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-21 · 第 144 篇 测试系列第四篇。让测试变脆的三个元凶：共享可变状态、时间与随机性、外部依赖。Fixture 的作用不是「复用代码」，是隔离状态。  📚 测试 系列目录   章节 主题 状态    一 单元测试与测试替身 已发布   二 集成测试、E2E 与测试策略 已发布   三 测试金字塔与测试策略的取舍 已发布   四 测试数据、Fixture">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 144 · 测试（四）：测试数据、Fixture 与不稳定测试治理">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/21/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2144-%E6%B5%8B%E8%AF%95%E6%95%B0%E6%8D%AEFixture%E4%B8%8E%E4%B8%8D%E7%A8%B3%E5%AE%9A%E6%B5%8B%E8%AF%95%E6%B2%BB%E7%90%86/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-21 · 第 144 篇 测试系列第四篇。让测试变脆的三个元凶：共享可变状态、时间与随机性、外部依赖。Fixture 的作用不是「复用代码」，是隔离状态。  📚 测试 系列目录   章节 主题 状态    一 单元测试与测试替身 已发布   二 集成测试、E2E 与测试策略 已发布   三 测试金字塔与测试策略的取舍 已发布   四 测试数据、Fixture">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-21T07:35:00.000Z">
+<meta property="article:modified_time" content="2026-10-21T07:06:24.556Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="testing">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 144 · 测试（四）：测试数据、Fixture 与不稳定测试治理 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 144 · 测试（四）：测试数据、Fixture 与不稳定测试治理"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-21 15:35" pubdate>
+          2026年10月21日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          1.9k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          16 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 144 · 测试（四）：测试数据、Fixture 与不稳定测试治理</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-21 · 第 144 篇</p>
+<p>测试系列第四篇。让测试变脆的三个元凶：<strong>共享可变状态、时间与随机性、外部依赖</strong>。Fixture 的作用不是「复用代码」，是<strong>隔离状态</strong>。</p>
+</blockquote>
+<h2 id="📚-测试-系列目录"><a href="#📚-测试-系列目录" class="headerlink" title="📚 测试 系列目录"></a>📚 测试 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td><a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2079-%E6%B5%8B%E8%AF%95%E5%8D%95%E5%85%83%E6%B5%8B%E8%AF%95%E4%B8%8E%E6%B5%8B%E8%AF%95%E6%9B%BF%E8%BA%AB/">单元测试与测试替身</a></td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td><a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2080-%E6%B5%8B%E8%AF%95%E9%9B%86%E6%88%90%E6%B5%8B%E8%AF%95%E4%B8%8EE2E/">集成测试、E2E 与测试策略</a></td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td><a href="/2026/10/21/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2143-%E6%B5%8B%E8%AF%95%E9%87%91%E5%AD%97%E5%A1%94%E4%B8%8E%E6%B5%8B%E8%AF%95%E7%AD%96%E7%95%A5%E5%8F%96%E8%88%8D/">测试金字塔与测试策略的取舍</a></td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td>测试数据、Fixture 与不稳定测试治理</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>绝大多数 flaky test 都不是「玄学」，而是三个可枚举的来源：状态没隔离、时间&#x2F;随机不可控、外部依赖不稳定。</strong> 按这三类去查，比反复重跑有效得多。</p>
+<h2 id="一、Fixture-的作用域与生命周期"><a href="#一、Fixture-的作用域与生命周期" class="headerlink" title="一、Fixture 的作用域与生命周期"></a>一、Fixture 的作用域与生命周期</h2><table>
+<thead>
+<tr>
+<th>作用域</th>
+<th>创建次数</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>function</code>（默认）</td>
+<td>每个测试函数一次</td>
+<td><strong>首选</strong>，隔离最彻底</td>
+</tr>
+<tr>
+<td><code>class</code></td>
+<td>每个测试类一次</td>
+<td>类内共享只读资源</td>
+</tr>
+<tr>
+<td><code>module</code></td>
+<td>每个模块一次</td>
+<td>启动开销大的只读资源</td>
+</tr>
+<tr>
+<td><code>session</code></td>
+<td>整个会话一次</td>
+<td>DB 容器、浏览器实例</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">import</span> pytest<br><br><span class="hljs-meta">@pytest.fixture(<span class="hljs-params">scope=<span class="hljs-string">&quot;session&quot;</span></span>)</span><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">db_engine</span>():<br>    <span class="hljs-string">&quot;&quot;&quot;整个会话共用一个数据库容器（启动贵，但只读结构）。&quot;&quot;&quot;</span><br>    engine = create_engine(TEST_DB_URL)<br>    <span class="hljs-keyword">yield</span> engine<br>    engine.dispose()<br><br><span class="hljs-meta">@pytest.fixture(<span class="hljs-params">scope=<span class="hljs-string">&quot;function&quot;</span></span>)</span><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">db_session</span>(<span class="hljs-params">db_engine</span>):<br>    <span class="hljs-string">&quot;&quot;&quot;每个测试一个事务，结束回滚 —— 保证隔离。&quot;&quot;&quot;</span><br>    conn = db_engine.connect()<br>    tx = conn.begin()<br>    session = Session(bind=conn)<br>    <span class="hljs-keyword">yield</span> session<br>    session.close()<br>    tx.rollback()          <span class="hljs-comment"># 关键：回滚而非提交</span><br>    conn.close()<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>scope</code> 越大越危险</strong>。<code>module</code> 级 fixture 里的可变对象会被多个测试共享，一个测试改了它，后续测试全受影响。<strong>默认用 <code>function</code>，只在确实只读时才放大。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>用「事务 + 回滚」而不是「每次清表」</strong>。清表慢且容易漏（外键、自增 ID 重置）。事务回滚是 O(1)，且天然隔离。</p>
+</blockquote>
+<h2 id="二、测试数据的三种来源"><a href="#二、测试数据的三种来源" class="headerlink" title="二、测试数据的三种来源"></a>二、测试数据的三种来源</h2><table>
+<thead>
+<tr>
+<th>方式</th>
+<th>优点</th>
+<th>缺点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>固定 fixture（JSON&#x2F;YAML）</td>
+<td>可读、可 review</td>
+<td>数据漂移后难维护</td>
+</tr>
+<tr>
+<td>工厂函数（factory）</td>
+<td>灵活、按需生成</td>
+<td>需要维护工厂</td>
+</tr>
+<tr>
+<td>生产数据脱敏</td>
+<td>最真实</td>
+<td>隐私与合规风险</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># 工厂函数：默认值合理，按需覆盖</span><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">make_order</span>(<span class="hljs-params">**overrides</span>):<br>    base = <span class="hljs-built_in">dict</span>(<br>        <span class="hljs-built_in">id</span>=uuid4().<span class="hljs-built_in">hex</span>,<br>        user_id=<span class="hljs-string">&quot;u-1&quot;</span>,<br>        amount=<span class="hljs-number">100</span>,<br>        status=<span class="hljs-string">&quot;created&quot;</span>,<br>        created_at=datetime(<span class="hljs-number">2026</span>, <span class="hljs-number">1</span>, <span class="hljs-number">1</span>, tzinfo=timezone.utc),<br>    )<br>    <span class="hljs-keyword">return</span> Order(**&#123;**base, **overrides&#125;)<br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">test_refund_requires_paid_order</span>():<br>    order = make_order(status=<span class="hljs-string">&quot;created&quot;</span>)<br>    <span class="hljs-keyword">with</span> pytest.raises(InvalidState):<br>        refund(order)<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>原则</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>每个测试自建数据</td>
+<td>不依赖其他测试的产物</td>
+</tr>
+<tr>
+<td>时间固定</td>
+<td>显式传入，不用 <code>now()</code></td>
+</tr>
+<tr>
+<td>ID 唯一但可预测</td>
+<td><code>uuid4()</code> 或递增，避免冲突</td>
+</tr>
+<tr>
+<td>只构造用到的字段</td>
+<td>其余走默认值</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>绝对不要让测试依赖执行顺序</strong>。<code>test_a</code> 建的数据被 <code>test_b</code> 使用，一旦并行执行或单独运行就崩。<strong>这是 flaky 的第一大来源。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>固定 fixture 会「腐烂」</strong>。表结构加了非空字段，几十个 JSON fixture 全部失效。<strong>用工厂函数，默认值集中一处改。</strong></p>
+</blockquote>
+<h2 id="三、时间、随机与并发：三大不确定性源"><a href="#三、时间、随机与并发：三大不确定性源" class="headerlink" title="三、时间、随机与并发：三大不确定性源"></a>三、时间、随机与并发：三大不确定性源</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># ✗ 不可控</span><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">test_token_expired</span>():<br>    token = create_token(ttl_seconds=<span class="hljs-number">1</span>)<br>    time.sleep(<span class="hljs-number">1.1</span>)              <span class="hljs-comment"># 慢且不稳</span><br>    <span class="hljs-keyword">assert</span> is_expired(token)<br><br><span class="hljs-comment"># ✓ 注入时间</span><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">test_token_expired</span>(<span class="hljs-params">freezer</span>):<br>    freezer.move_to(<span class="hljs-string">&quot;2026-01-01T00:00:00Z&quot;</span>)<br>    token = create_token(ttl_seconds=<span class="hljs-number">60</span>)<br>    freezer.move_to(<span class="hljs-string">&quot;2026-01-01T00:02:00Z&quot;</span>)<br>    <span class="hljs-keyword">assert</span> is_expired(token)<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>不确定性源</th>
+<th>症状</th>
+<th>治理</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>时间</td>
+<td>月初&#x2F;月末、闰年、时区失败</td>
+<td><code>freezegun</code> &#x2F; 注入 clock</td>
+</tr>
+<tr>
+<td>随机</td>
+<td>偶发断言失败</td>
+<td>固定 seed</td>
+</tr>
+<tr>
+<td>并发</td>
+<td>只在 CI 并行时失败</td>
+<td>隔离状态、避免共享文件</td>
+</tr>
+<tr>
+<td>网络</td>
+<td>偶发超时</td>
+<td>用 mock &#x2F; 本地容器</td>
+</tr>
+<tr>
+<td>时区</td>
+<td>本地过 CI 挂</td>
+<td>统一 UTC</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">import</span> random<br>random.seed(<span class="hljs-number">42</span>)          <span class="hljs-comment"># 固定随机</span><br><span class="hljs-comment"># 或用注入的 Random 实例，避免污染全局</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>time.sleep</code> 在测试里几乎总是错的</strong>。它既慢又不稳（CI 机器负载高时不够）。<strong>用假时钟推进时间，或用事件&#x2F;轮询等待条件。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>random.seed()</code> 是全局副作用</strong>。它会污染同进程的其他测试。<strong>优先注入 <code>Random</code> 实例，而不是改全局。</strong></p>
+</blockquote>
+<h2 id="四、Flaky-Test-的诊断流程"><a href="#四、Flaky-Test-的诊断流程" class="headerlink" title="四、Flaky Test 的诊断流程"></a>四、Flaky Test 的诊断流程</h2><table>
+<thead>
+<tr>
+<th>步骤</th>
+<th>做什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>单独跑 100 次，看失败率</td>
+</tr>
+<tr>
+<td>2</td>
+<td>加 <code>-p no:randomly</code> 排除顺序影响</td>
+</tr>
+<tr>
+<td>3</td>
+<td>并行跑，看是否只在并发时失败</td>
+</tr>
+<tr>
+<td>4</td>
+<td>查共享状态（DB、文件、全局变量、缓存）</td>
+</tr>
+<tr>
+<td>5</td>
+<td>查时间与随机</td>
+</tr>
+<tr>
+<td>6</td>
+<td>查外部依赖（网络、端口、临时目录）</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 重复跑找不稳定</span><br>pytest tests/test_order.py --count=100 -x<br><br><span class="hljs-comment"># 强制随机顺序，暴露顺序依赖</span><br>pytest -p randomly --randomly-seed=random<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>「重跑就过」不是解决方案</strong>。它只是把问题藏起来。<strong>每个 flaky 用例都要么修掉，要么标记隔离并限期处理。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>CI 上失败、本地通过，先怀疑并发与资源</strong>。端口冲突、临时目录共享、数据库连接池耗尽，都是典型原因。</p>
+</blockquote>
+<h2 id="五、并行执行的坑"><a href="#五、并行执行的坑" class="headerlink" title="五、并行执行的坑"></a>五、并行执行的坑</h2><table>
+<thead>
+<tr>
+<th>问题</th>
+<th>原因</th>
+<th>解法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>端口冲突</td>
+<td>多个 worker 抢同一端口</td>
+<td>用随机端口或端口池</td>
+</tr>
+<tr>
+<td>数据库冲突</td>
+<td>共用同一个库</td>
+<td>每 worker 一个 schema</td>
+</tr>
+<tr>
+<td>临时文件冲突</td>
+<td>固定路径</td>
+<td><code>tmp_path</code> fixture</td>
+</tr>
+<tr>
+<td>全局状态污染</td>
+<td>模块级变量</td>
+<td>避免全局可变状态</td>
+</tr>
+<tr>
+<td>随机顺序失败</td>
+<td>测试间有依赖</td>
+<td>每个测试自建数据</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># 每个测试独立的临时目录</span><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">test_export_csv</span>(<span class="hljs-params">tmp_path</span>):<br>    out = tmp_path / <span class="hljs-string">&quot;orders.csv&quot;</span><br>    export_orders([], out)<br>    <span class="hljs-keyword">assert</span> out.read_text().startswith(<span class="hljs-string">&quot;id,&quot;</span>)<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>pytest-xdist</code> 默认按文件分发</strong>。同一文件的测试在同一 worker 顺序执行，跨文件并行。<strong>如果测试依赖跨文件状态，并行必炸。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>数据库按 worker 分 schema 是标准做法</strong>。<code>--dist loadscope</code> + 每 worker 独立 schema，能解决 90% 的并行冲突。</p>
+</blockquote>
+<h2 id="六、测试可维护性"><a href="#六、测试可维护性" class="headerlink" title="六、测试可维护性"></a>六、测试可维护性</h2><table>
+<thead>
+<tr>
+<th>反模式</th>
+<th>问题</th>
+<th>改进</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一个测试断言 20 件事</td>
+<td>失败时不知道哪坏了</td>
+<td>一个测试一个关注点</td>
+</tr>
+<tr>
+<td>测试名 <code>test_1</code></td>
+<td>失败时看不出意图</td>
+<td><code>test_refund_fails_when_not_paid</code></td>
+</tr>
+<tr>
+<td>大量重复 setup</td>
+<td>改一处要改十处</td>
+<td>抽 fixture &#x2F; 工厂</td>
+</tr>
+<tr>
+<td>断言整个 JSON</td>
+<td>加字段就红</td>
+<td>只断言关心的字段</td>
+</tr>
+<tr>
+<td>测试私有方法</td>
+<td>耦合实现</td>
+<td>测公开行为</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># ✗ 断言整个响应体</span><br><span class="hljs-keyword">assert</span> resp.json() == &#123;<span class="hljs-string">&quot;id&quot;</span>: <span class="hljs-string">&quot;o1&quot;</span>, <span class="hljs-string">&quot;amount&quot;</span>: <span class="hljs-number">100</span>, <span class="hljs-string">&quot;status&quot;</span>: <span class="hljs-string">&quot;created&quot;</span>, <span class="hljs-string">&quot;created_at&quot;</span>: <span class="hljs-string">&quot;...&quot;</span>&#125;<br><br><span class="hljs-comment"># ✓ 只断言关心的</span><br>body = resp.json()<br><span class="hljs-keyword">assert</span> body[<span class="hljs-string">&quot;status&quot;</span>] == <span class="hljs-string">&quot;created&quot;</span><br><span class="hljs-keyword">assert</span> body[<span class="hljs-string">&quot;amount&quot;</span>] == <span class="hljs-number">100</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>「一个测试只断言一个概念」不是教条</strong>。同一个操作的多条相关断言放一起是合理的，关键是<strong>失败时能立刻定位</strong>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>测试名要能当文档读</strong>。<code>test_refund_fails_when_not_paid</code> 比 <code>test_refund_2</code> 有价值一个量级。</p>
+</blockquote>
+<h2 id="七、CI-上的测试稳定性"><a href="#七、CI-上的测试稳定性" class="headerlink" title="七、CI 上的测试稳定性"></a>七、CI 上的测试稳定性</h2><table>
+<thead>
+<tr>
+<th>措施</th>
+<th>效果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>失败自动重试 1 次并标记</td>
+<td>区分真失败与 flaky</td>
+</tr>
+<tr>
+<td>记录 flaky 率</td>
+<td>数据驱动治理</td>
+</tr>
+<tr>
+<td>超时保护</td>
+<td>防止挂死</td>
+</tr>
+<tr>
+<td>失败保留日志&#x2F;截图</td>
+<td>事后可查</td>
+</tr>
+<tr>
+<td>隔离不稳定用例</td>
+<td>不阻塞主流程</td>
+</tr>
+</tbody></table>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-comment"># GitHub Actions 示例</span><br><span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">Test</span><br>  <span class="hljs-attr">run:</span> <span class="hljs-string">pytest</span> <span class="hljs-string">-x</span> <span class="hljs-string">--timeout=300</span> <span class="hljs-string">--reruns</span> <span class="hljs-number">1</span> <span class="hljs-string">--reruns-delay</span> <span class="hljs-number">2</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>自动重试是止痛药，不是解药</strong>。它能让 CI 变绿，但会掩盖真实问题。<strong>重试必须记录并统计，定期清理。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>必须有超时保护</strong>。一个死锁的测试会挂住整个 CI，浪费几十分钟。<code>pytest-timeout</code> 是必备插件。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> fixture 用 <code>module</code>&#x2F;<code>session</code> 作用域，测试间共享可变状态</li>
+<li><input disabled="" type="checkbox"> 测试依赖执行顺序，单独跑就失败</li>
+<li><input disabled="" type="checkbox"> 用「每次清表」而不是事务回滚</li>
+<li><input disabled="" type="checkbox"> 测试里 <code>time.sleep</code> 等待</li>
+<li><input disabled="" type="checkbox"> 全局 <code>random.seed()</code> 污染其他测试</li>
+<li><input disabled="" type="checkbox"> 时间用 <code>now()</code> 而非注入固定时钟</li>
+<li><input disabled="" type="checkbox"> 时区不统一，本地过 CI 挂</li>
+<li><input disabled="" type="checkbox"> 并行执行端口&#x2F;临时目录冲突</li>
+<li><input disabled="" type="checkbox"> 断言整个 JSON，加字段就红</li>
+<li><input disabled="" type="checkbox"> 测试名无意义，失败看不出意图</li>
+<li><input disabled="" type="checkbox"> flaky 用例「重跑就过」不了了之</li>
+<li><input disabled="" type="checkbox"> CI 没有超时保护，死锁挂住流水线</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><ul>
+<li><a target="_blank" rel="noopener" href="https://docs.pytest.org/en/stable/how-to/fixtures.html">Pytest · Fixtures</a></li>
+<li><a target="_blank" rel="noopener" href="https://docs.pytest.org/en/stable/how-to/tmp_path.html">Pytest · <code>tmp_path</code></a></li>
+<li><a target="_blank" rel="noopener" href="https://pytest-xdist.readthedocs.io/">pytest-xdist · 并行执行</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/spulec/freezegun">freezegun</a></li>
+<li><a target="_blank" rel="noopener" href="https://testing.googleblog.com/2016/05/flaky-tests-at-google-and-how-we.html">Google Testing Blog · Flaky Tests</a></li>
+</ul>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/testing/" class="category-chain-item">testing</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/testing/" class="print-no-link">#testing</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 144 · 测试（四）：测试数据、Fixture 与不稳定测试治理</div>
+      <div>https://ethan-iopasd.github.io/2026/10/21/每日技术博客144-测试数据Fixture与不稳定测试治理/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月21日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/21/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2143-%E6%B5%8B%E8%AF%95%E9%87%91%E5%AD%97%E5%A1%94%E4%B8%8E%E6%B5%8B%E8%AF%95%E7%AD%96%E7%95%A5%E5%8F%96%E8%88%8D/" title="每日技术博客 143 · 测试（三）：测试金字塔与测试策略的取舍">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 143 · 测试（三）：测试金字塔与测试策略的取舍</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
