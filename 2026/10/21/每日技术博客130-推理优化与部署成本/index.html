@@ -1,0 +1,1158 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-21 · 第 130 篇 AI 系列第八篇。LLM 推理的瓶颈不是算力，是显存带宽：每生成一个 token 都要把全部权重从显存读一遍。理解了这一点，量化、KV cache、批处理、投机解码为什么有效就全都清楚了。  📚 AI 系列目录   章节 主题 状态    一 Transformer 与注意力机制 已发布   二 预训练、微调与对齐 已发布   三 R">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 130 · AI（八）：推理优化与部署成本">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/21/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2130-%E6%8E%A8%E7%90%86%E4%BC%98%E5%8C%96%E4%B8%8E%E9%83%A8%E7%BD%B2%E6%88%90%E6%9C%AC/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-21 · 第 130 篇 AI 系列第八篇。LLM 推理的瓶颈不是算力，是显存带宽：每生成一个 token 都要把全部权重从显存读一遍。理解了这一点，量化、KV cache、批处理、投机解码为什么有效就全都清楚了。  📚 AI 系列目录   章节 主题 状态    一 Transformer 与注意力机制 已发布   二 预训练、微调与对齐 已发布   三 R">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-21T01:50:00.000Z">
+<meta property="article:modified_time" content="2026-10-21T01:32:27.575Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="ai">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 130 · AI（八）：推理优化与部署成本 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 130 · AI（八）：推理优化与部署成本"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-21 09:50" pubdate>
+          2026年10月21日 上午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.3k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          20 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 130 · AI（八）：推理优化与部署成本</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-21 · 第 130 篇</p>
+<p>AI 系列第八篇。LLM 推理的瓶颈不是算力，是<strong>显存带宽</strong>：每生成一个 token 都要把全部权重从显存读一遍。理解了这一点，量化、KV cache、批处理、投机解码为什么有效就全都清楚了。</p>
+</blockquote>
+<h2 id="📚-AI-系列目录"><a href="#📚-AI-系列目录" class="headerlink" title="📚 AI 系列目录"></a>📚 AI 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>Transformer 与注意力机制</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>预训练、微调与对齐</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>RAG 检索增强生成</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td>Agent、工具调用与上下文工程</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>五</td>
+<td>提示工程与结构化输出</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>六</td>
+<td>模型评估与 LLM-as-Judge</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>七</td>
+<td>向量数据库与检索索引</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>八</td>
+<td>推理优化与部署成本</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>Prefill 是算力密集，Decode 是带宽密集 —— 这是两件完全不同的事。</strong> 首 token 延迟看 Prefill（受算力和 prompt 长度支配），生成速度看 Decode（受显存带宽支配），而吞吐看批处理。优化前先确认你被哪个卡住。</p>
+<h2 id="一、两阶段：Prefill-与-Decode"><a href="#一、两阶段：Prefill-与-Decode" class="headerlink" title="一、两阶段：Prefill 与 Decode"></a>一、两阶段：Prefill 与 Decode</h2><table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>做什么</th>
+<th>瓶颈</th>
+<th>指标</th>
+<th>优化方向</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Prefill</td>
+<td>一次并行处理整个 prompt</td>
+<td><strong>算力</strong>（GPU FLOPS）</td>
+<td>TTFT（首 token 延迟）</td>
+<td>减少 prompt、chunked prefill</td>
+</tr>
+<tr>
+<td>Decode</td>
+<td>逐 token 自回归生成</td>
+<td><strong>显存带宽</strong></td>
+<td>TPOT（每 token 时间）</td>
+<td>量化、批处理、投机解码</td>
+</tr>
+</tbody></table>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs text">总延迟 = TTFT + (输出 token 数 - 1) × TPOT<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>模型规模</th>
+<th>权重（FP16）</th>
+<th>Decode 理论下限（单 token）</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>7B</td>
+<td>14 GB</td>
+<td>~14 GB &#x2F; 带宽</td>
+<td>单请求必然带宽受限</td>
+</tr>
+<tr>
+<td>70B</td>
+<td>140 GB</td>
+<td>~140 GB &#x2F; 带宽</td>
+<td>必须多卡并行</td>
+</tr>
+</tbody></table>
+<p>以 H100（约 3.3 TB&#x2F;s）为例，7B FP16 单 token 的权重读取理论上限约 <strong>4.2 ms</strong>，即约 240 token&#x2F;s。<strong>这就是单请求的天花板</strong>，任何算法优化都突破不了它 —— 除非批处理把多个请求合在一起摊薄。</p>
+<blockquote>
+<p>⚠️ <strong>单请求的 Decode 速度由「权重字节数 &#x2F; 带宽」决定，与算力几乎无关</strong>。这解释了一个反直觉现象：把 GPU 从 A100 换成算力翻倍的 H100，单请求生成速度提升有限（带宽只提升约 1.6 倍）。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>量化能提速，正是因为它减少了要读的字节数</strong>。FP16 → INT8 让权重体积减半，Decode 速度理论上翻倍。这也是量化在推理侧比训练侧更立竿见影的原因。</p>
+</blockquote>
+<h2 id="二、批处理：吞吐的唯一来源"><a href="#二、批处理：吞吐的唯一来源" class="headerlink" title="二、批处理：吞吐的唯一来源"></a>二、批处理：吞吐的唯一来源</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># 静态批处理：等齐一批再跑，短请求要等长请求</span><br><span class="hljs-comment"># 连续批处理（continuous batching）：每步动态换入换出，业界标准</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>批处理方式</th>
+<th>机制</th>
+<th>吞吐</th>
+<th>延迟</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>无批处理</td>
+<td>一次一个请求</td>
+<td>最低</td>
+<td>最好</td>
+</tr>
+<tr>
+<td>静态批处理</td>
+<td>攒够 N 个一起跑</td>
+<td>高</td>
+<td>长请求拖累整批</td>
+</tr>
+<tr>
+<td>连续批处理</td>
+<td>每个 decode step 重新组批</td>
+<td><strong>最高</strong></td>
+<td>较好</td>
+</tr>
+<tr>
+<td>PagedAttention</td>
+<td>KV cache 分页管理，避免碎片</td>
+<td>高</td>
+<td>好</td>
+</tr>
+</tbody></table>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs text">显存预算 = 权重 + KV cache + 激活值 + 框架开销<br>批大小上限 ≈ (显存 - 权重 - 开销) / 每请求 KV cache 大小<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>KV cache 才是批大小的真正限制</strong>。7B 模型权重 14 GB，一张 80 GB 卡看似能跑 5 个副本，但 8K 上下文 + 每请求约 1 GB 的 KV cache，实际能并发的请求数远低于想象。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>连续批处理下「吞吐」和「延迟」是权衡关系</strong>。批越大，单请求的 TPOT 越慢（要等整批算完），但整体吞吐越高。<strong>在线服务要限制最大批大小，别为了吞吐牺牲交互体验。</strong></p>
+</blockquote>
+<h2 id="三、KV-cache：显存的大头"><a href="#三、KV-cache：显存的大头" class="headerlink" title="三、KV cache：显存的大头"></a>三、KV cache：显存的大头</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># KV cache 大小估算</span><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">kv_cache_bytes</span>(<span class="hljs-params">layers, kv_heads, head_dim, seq_len, batch, dtype_bytes=<span class="hljs-number">2</span></span>):<br>    <span class="hljs-comment"># 每层每 token 存 K 和 V 各一份</span><br>    <span class="hljs-keyword">return</span> <span class="hljs-number">2</span> * layers * kv_heads * head_dim * seq_len * batch * dtype_bytes<br></code></pre></td></tr></table></figure>
+
+<p>以 LLaMA-2 7B（32 层，32 个 KV 头，head_dim 128）为例，8K 上下文、单请求：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs text">2 × 32 × 32 × 128 × 8192 × 2 字节 ≈ 4.3 GB<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>优化</th>
+<th>做法</th>
+<th>效果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>GQA</td>
+<td>多个 Q 头共享 KV 头（如 32→8）</td>
+<td>KV cache 降 4 倍</td>
+</tr>
+<tr>
+<td>MQA</td>
+<td>所有 Q 头共享 1 组 KV</td>
+<td>降 32 倍，质量有损</td>
+</tr>
+<tr>
+<td>KV 量化</td>
+<td>KV cache 存 INT8</td>
+<td>降 2 倍</td>
+</tr>
+<tr>
+<td>PagedAttention</td>
+<td>按块分配，按需增长</td>
+<td>消除碎片，利用率可达 95%+</td>
+</tr>
+<tr>
+<td>Prefix cache</td>
+<td>相同前缀复用 KV</td>
+<td>多轮对话省大量重算</td>
+</tr>
+<tr>
+<td>滑动窗口</td>
+<td>只保留最近 N 个 token 的 KV</td>
+<td>长对话内存恒定</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>前缀缓存对「固定系统提示词 + 多轮对话」收益极大</strong>。同一段 2000 token 的系统提示，缓存后每轮省掉整个 Prefill。多数推理框架（vLLM、SGLang）默认开启，但要求<strong>前缀完全一致</strong> —— 提示词里带时间戳会直接击穿缓存。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>KV cache 不能跨请求共享（除前缀外）</strong>。每来一个新请求就要新分配，这是并发能力的硬约束。<strong>并发数上不去时，先看 KV cache 占了多少显存。</strong></p>
+</blockquote>
+<h2 id="四、量化：精度与速度的权衡"><a href="#四、量化：精度与速度的权衡" class="headerlink" title="四、量化：精度与速度的权衡"></a>四、量化：精度与速度的权衡</h2><table>
+<thead>
+<tr>
+<th>方案</th>
+<th>权重精度</th>
+<th>显存</th>
+<th>质量损失</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>FP16 &#x2F; BF16</td>
+<td>16 bit</td>
+<td>基准</td>
+<td>无</td>
+<td>训练、高精度推理</td>
+</tr>
+<tr>
+<td>INT8（W8A8）</td>
+<td>8 bit</td>
+<td>1&#x2F;2</td>
+<td>很小</td>
+<td>生产默认</td>
+</tr>
+<tr>
+<td>INT4（GPTQ &#x2F; AWQ）</td>
+<td>4 bit</td>
+<td>1&#x2F;4</td>
+<td>小</td>
+<td>单卡跑大模型</td>
+</tr>
+<tr>
+<td>FP8</td>
+<td>8 bit</td>
+<td>1&#x2F;2</td>
+<td>极小</td>
+<td>H100 等新卡</td>
+</tr>
+<tr>
+<td>1.58 bit（BitNet 类）</td>
+<td>三值</td>
+<td>1&#x2F;10</td>
+<td>明显</td>
+<td>研究阶段</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># vLLM 加载 AWQ 量化模型</span><br><span class="hljs-keyword">from</span> vllm <span class="hljs-keyword">import</span> LLM<br><br>llm = LLM(<br>    model=<span class="hljs-string">&quot;Qwen/Qwen2.5-7B-Instruct-AWQ&quot;</span>,<br>    quantization=<span class="hljs-string">&quot;awq&quot;</span>,<br>    dtype=<span class="hljs-string">&quot;float16&quot;</span>,<br>    gpu_memory_utilization=<span class="hljs-number">0.90</span>,<br>    max_model_len=<span class="hljs-number">8192</span>,<br>)<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>INT4 的提速不是 4 倍</strong>。权重读取量降到 1&#x2F;4，但反量化有额外开销，实际 Decode 提速通常 1.5~2.5 倍。<strong>宣传的「4 倍加速」多为特定条件下的峰值。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>量化对长上下文和推理任务损伤更大</strong>。短问答几乎无损，但数学推理、代码生成这类需要精细数值的任务，INT4 会明显掉点。<strong>上量化前必须跑自己的评估集。</strong></p>
+</blockquote>
+<h2 id="五、投机解码：用便宜模型带贵模型"><a href="#五、投机解码：用便宜模型带贵模型" class="headerlink" title="五、投机解码：用便宜模型带贵模型"></a>五、投机解码：用便宜模型带贵模型</h2><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs text">1. 小模型（draft）连续猜 k 个 token<br>2. 大模型（target）一次前向并行验证这 k 个<br>3. 接受匹配的前缀，第一个不匹配处由大模型给出正确 token<br>4. 保证输出分布与大模型完全一致（无损）<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>变体</th>
+<th>思路</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Draft model</td>
+<td>小模型猜，大模型验</td>
+<td>通用，需额外模型</td>
+</tr>
+<tr>
+<td>Medusa</td>
+<td>多个解码头并行猜</td>
+<td>无需额外模型</td>
+</tr>
+<tr>
+<td>EAGLE</td>
+<td>特征层预测</td>
+<td>接受率高</td>
+</tr>
+<tr>
+<td>N-gram &#x2F; 提示查找</td>
+<td>从 prompt 里抄候选</td>
+<td>摘要、改写类任务</td>
+</tr>
+</tbody></table>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>含义</th>
+<th>典型值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>接受率（acceptance rate）</td>
+<td>猜中的比例</td>
+<td>60%~85%</td>
+</tr>
+<tr>
+<td>加速比</td>
+<td>实际提速</td>
+<td>1.5~3×</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>投机解码是带宽受限场景的优化</strong>。批很大时 GPU 已经算力饱和，投机解码反而增加开销。<strong>低并发、低延迟场景才划算。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>接受率决定一切</strong>。draft 模型与 target 模型分布差太远时，接受率低到 30%，反而比不投机更慢（多了一次前向）。<strong>draft 模型要和 target 同家族、同分词器。</strong></p>
+</blockquote>
+<h2 id="六、部署形态与成本"><a href="#六、部署形态与成本" class="headerlink" title="六、部署形态与成本"></a>六、部署形态与成本</h2><table>
+<thead>
+<tr>
+<th>形态</th>
+<th>特点</th>
+<th>成本</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>自建 GPU</td>
+<td>一次性投入 + 电费运维</td>
+<td>中高（固定）</td>
+<td>稳定高负载</td>
+</tr>
+<tr>
+<td>按 token 计费 API</td>
+<td>零运维，弹性</td>
+<td>高（按量）</td>
+<td>波动负载、快速验证</td>
+</tr>
+<tr>
+<td>按小时租 GPU</td>
+<td>弹性，需自己部署</td>
+<td>中</td>
+<td>中负载、可容忍冷启动</td>
+</tr>
+<tr>
+<td>Serverless 推理</td>
+<td>自动伸缩，冷启动慢</td>
+<td>中</td>
+<td>低频、突发</td>
+</tr>
+<tr>
+<td>边缘&#x2F;端侧</td>
+<td>无网络依赖，隐私好</td>
+<td>低</td>
+<td>小模型、隐私敏感</td>
+</tr>
+</tbody></table>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs text">自建盈亏平衡点 ≈ 单卡月成本 / (API 单价 × 月 token 量)<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>成本项</th>
+<th>容易被忽略的部分</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>显存</td>
+<td>KV cache 占用导致并发上不去</td>
+</tr>
+<tr>
+<td>冷启动</td>
+<td>模型加载 7B 需数十秒，serverless 场景很致命</td>
+</tr>
+<tr>
+<td>空闲成本</td>
+<td>低峰期 GPU 空转，按小时计费也一样付钱</td>
+</tr>
+<tr>
+<td>带宽</td>
+<td>多卡张量并行的通信开销</td>
+</tr>
+<tr>
+<td>运维</td>
+<td>框架升级、模型更新、故障排查</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>算成本时要把「空闲」算进去</strong>。24 小时租一张卡，夜间利用率 5%，实际单 token 成本是满负载的 20 倍。<strong>低峰期缩容或切到 API 是更优解。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>冷启动对 serverless 是硬伤</strong>。7B 模型从磁盘加载 + 初始化 CUDA 上下文通常 20~60 秒。有状态服务要预热池，否则第一个请求必然超时。</p>
+</blockquote>
+<h2 id="七、优化顺序：别做无用功"><a href="#七、优化顺序：别做无用功" class="headerlink" title="七、优化顺序：别做无用功"></a>七、优化顺序：别做无用功</h2><table>
+<thead>
+<tr>
+<th>顺序</th>
+<th>优化项</th>
+<th>收益</th>
+<th>成本</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>减少 prompt 长度（去冗余、压缩 RAG 上下文）</td>
+<td>高</td>
+<td>低</td>
+</tr>
+<tr>
+<td>2</td>
+<td>开启前缀缓存</td>
+<td>高（多轮场景）</td>
+<td>低</td>
+</tr>
+<tr>
+<td>3</td>
+<td>连续批处理 + PagedAttention</td>
+<td>高（吞吐）</td>
+<td>低（框架默认）</td>
+</tr>
+<tr>
+<td>4</td>
+<td>限制 <code>max_tokens</code></td>
+<td>中</td>
+<td>低</td>
+</tr>
+<tr>
+<td>5</td>
+<td>INT8 量化</td>
+<td>中</td>
+<td>低</td>
+</tr>
+<tr>
+<td>6</td>
+<td>换 GQA 模型</td>
+<td>中（并发）</td>
+<td>中（换模型）</td>
+</tr>
+<tr>
+<td>7</td>
+<td>投机解码</td>
+<td>中（低延迟）</td>
+<td>中</td>
+</tr>
+<tr>
+<td>8</td>
+<td>INT4 量化</td>
+<td>中</td>
+<td>中（需评估）</td>
+</tr>
+<tr>
+<td>9</td>
+<td>多卡张量并行</td>
+<td>高（大模型）</td>
+<td>高</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>先做 1~4 再考虑量化</strong>。把 4000 token 的 RAG 上下文压到 1500，比任何量化都直接。很多团队上来就折腾量化，却留着大段冗余 prompt。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>max_tokens</code> 不设上限是成本失控的头号原因</strong>。模型偶尔会输出几千 token 的重复内容，没有上限就一直烧钱。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 把单请求 Decode 慢归因于算力不足，实际是带宽受限</li>
+<li><input disabled="" type="checkbox"> 换更强算力的卡，期待生成速度线性提升</li>
+<li><input disabled="" type="checkbox"> 只算权重显存，漏算 KV cache 导致 OOM</li>
+<li><input disabled="" type="checkbox"> 批大小调到显存上限，忽略 KV cache 随上下文增长</li>
+<li><input disabled="" type="checkbox"> 系统提示词里带时间戳，前缀缓存全击穿</li>
+<li><input disabled="" type="checkbox"> 以为 INT4 能提速 4 倍</li>
+<li><input disabled="" type="checkbox"> 量化后不跑自己的评估集，推理任务掉点没发现</li>
+<li><input disabled="" type="checkbox"> draft 模型与 target 不同分词器，接受率极低</li>
+<li><input disabled="" type="checkbox"> 高并发场景上投机解码，反而变慢</li>
+<li><input disabled="" type="checkbox"> serverless 部署不预热，首请求必然超时</li>
+<li><input disabled="" type="checkbox"> 算成本忽略空闲时间，实际单 token 成本远超预期</li>
+<li><input disabled="" type="checkbox"> 不设 <code>max_tokens</code> 上限</li>
+<li><input disabled="" type="checkbox"> 上来就量化，却留着几千 token 的冗余 prompt</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><ul>
+<li><a target="_blank" rel="noopener" href="https://arxiv.org/abs/2309.06180">Efficient Memory Management for LLM Serving with PagedAttention (vLLM)</a></li>
+<li><a target="_blank" rel="noopener" href="https://arxiv.org/abs/2211.17192">Fast Inference from Transformers via Speculative Decoding</a></li>
+<li><a target="_blank" rel="noopener" href="https://arxiv.org/abs/2401.10774">Medusa: Simple LLM Inference Acceleration Framework</a></li>
+<li><a target="_blank" rel="noopener" href="https://arxiv.org/abs/2401.15077">EAGLE: Speculative Sampling Requires Rethinking Feature Uncertainty</a></li>
+<li><a target="_blank" rel="noopener" href="https://arxiv.org/abs/2210.17323">GPTQ: Accurate Post-Training Quantization for GPT</a></li>
+<li><a target="_blank" rel="noopener" href="https://arxiv.org/abs/2306.00978">AWQ: Activation-aware Weight Quantization</a></li>
+<li><a target="_blank" rel="noopener" href="https://docs.vllm.ai/">vLLM 文档</a></li>
+<li><a target="_blank" rel="noopener" href="https://docs.sglang.ai/">SGLang 文档</a></li>
+</ul>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/ai/" class="category-chain-item">ai</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/ai/" class="print-no-link">#ai</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 130 · AI（八）：推理优化与部署成本</div>
+      <div>https://ethan-iopasd.github.io/2026/10/21/每日技术博客130-推理优化与部署成本/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月21日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/21/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2129-%E5%90%91%E9%87%8F%E6%95%B0%E6%8D%AE%E5%BA%93%E4%B8%8E%E6%A3%80%E7%B4%A2%E7%B4%A2%E5%BC%95/" title="每日技术博客 129 · AI（七）：向量数据库与检索索引">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 129 · AI（七）：向量数据库与检索索引</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

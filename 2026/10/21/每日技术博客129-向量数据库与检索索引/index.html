@@ -1,0 +1,1118 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-21 · 第 129 篇 AI 系列第七篇。向量检索的本质是在高维空间里找最近邻，而所有近似算法都在拿召回率换速度。选型前先算清楚：你的数据量到底需不需要 ANN。  📚 AI 系列目录   章节 主题 状态    一 Transformer 与注意力机制 已发布   二 预训练、微调与对齐 已发布   三 RAG 检索增强生成 已发布   四 Agent、工">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 129 · AI（七）：向量数据库与检索索引">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/21/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2129-%E5%90%91%E9%87%8F%E6%95%B0%E6%8D%AE%E5%BA%93%E4%B8%8E%E6%A3%80%E7%B4%A2%E7%B4%A2%E5%BC%95/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-21 · 第 129 篇 AI 系列第七篇。向量检索的本质是在高维空间里找最近邻，而所有近似算法都在拿召回率换速度。选型前先算清楚：你的数据量到底需不需要 ANN。  📚 AI 系列目录   章节 主题 状态    一 Transformer 与注意力机制 已发布   二 预训练、微调与对齐 已发布   三 RAG 检索增强生成 已发布   四 Agent、工">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-21T01:35:00.000Z">
+<meta property="article:modified_time" content="2026-10-21T01:32:10.142Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="ai">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 129 · AI（七）：向量数据库与检索索引 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 129 · AI（七）：向量数据库与检索索引"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-21 09:35" pubdate>
+          2026年10月21日 上午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.4k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          20 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 129 · AI（七）：向量数据库与检索索引</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-21 · 第 129 篇</p>
+<p>AI 系列第七篇。向量检索的本质是<strong>在高维空间里找最近邻</strong>，而所有近似算法都在拿召回率换速度。选型前先算清楚：你的数据量到底需不需要 ANN。</p>
+</blockquote>
+<h2 id="📚-AI-系列目录"><a href="#📚-AI-系列目录" class="headerlink" title="📚 AI 系列目录"></a>📚 AI 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>Transformer 与注意力机制</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>预训练、微调与对齐</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>RAG 检索增强生成</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td>Agent、工具调用与上下文工程</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>五</td>
+<td>提示工程与结构化输出</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>六</td>
+<td>模型评估与 LLM-as-Judge</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>七</td>
+<td>向量数据库与检索索引</td>
+<td><strong>本篇</strong></td>
+</tr>
+<tr>
+<td>八</td>
+<td>推理优化与部署成本</td>
+<td>已发布</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>十万条以内，别上向量数据库。</strong> numpy 暴力算余弦相似度，10 万 × 768 维一次全量检索在几十毫秒量级，而引入一套向量库要多付运维、一致性、权限三份成本。ANN 的价值只在数据量和并发真的上来之后才成立。</p>
+<h2 id="一、先算清楚：暴力检索有多慢"><a href="#一、先算清楚：暴力检索有多慢" class="headerlink" title="一、先算清楚：暴力检索有多慢"></a>一、先算清楚：暴力检索有多慢</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">import</span> numpy <span class="hljs-keyword">as</span> np<br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">brute_force_search</span>(<span class="hljs-params">vectors, query, k=<span class="hljs-number">10</span></span>):<br>    <span class="hljs-string">&quot;&quot;&quot;vectors: (N, d) 已归一化；query: (d,) 已归一化。&quot;&quot;&quot;</span><br>    scores = vectors @ query          <span class="hljs-comment"># 一次矩阵乘，BLAS 加速</span><br>    idx = np.argpartition(-scores, k)[:k]<br>    <span class="hljs-keyword">return</span> idx[np.argsort(-scores[idx])]<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>数据量 N</th>
+<th>维度 d</th>
+<th>单次检索（单核，粗估）</th>
+<th>显存&#x2F;内存</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1 万</td>
+<td>768</td>
+<td>&lt; 1 ms</td>
+<td>30 MB</td>
+</tr>
+<tr>
+<td>10 万</td>
+<td>768</td>
+<td>5~20 ms</td>
+<td>300 MB</td>
+</tr>
+<tr>
+<td>100 万</td>
+<td>768</td>
+<td>100~300 ms</td>
+<td>3 GB</td>
+</tr>
+<tr>
+<td>1000 万</td>
+<td>768</td>
+<td>秒级，不可接受</td>
+<td>30 GB</td>
+</tr>
+</tbody></table>
+<p>结论很清楚：<strong>百万级以内，暴力检索完全可用</strong>，配上批量化和多线程还能再快几倍。</p>
+<blockquote>
+<p>⚠️ <strong>矩阵乘的复杂度是 O(N·d)<strong>，与 N 线性。真正让它变慢的不是算法，是</strong>内存带宽</strong>：1000 万 × 768 × 4 字节 &#x3D; 30 GB，每次检索都要把所有向量过一遍内存，这才是瓶颈。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ **<code>np.argpartition</code> 是 O(N)，<code>np.argsort</code> 是 O(N log N)**。取 Top-K 用前者再对 K 个结果排序，比直接全排序快得多。</p>
+</blockquote>
+<h2 id="二、ANN-索引：三种主流结构"><a href="#二、ANN-索引：三种主流结构" class="headerlink" title="二、ANN 索引：三种主流结构"></a>二、ANN 索引：三种主流结构</h2><table>
+<thead>
+<tr>
+<th>结构</th>
+<th>原理</th>
+<th>召回率</th>
+<th>构建成本</th>
+<th>内存</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>IVF（倒排文件）</td>
+<td>先聚类成 nlist 个簇，查询时只搜最近的 nprobe 个</td>
+<td>中，可调</td>
+<td>低</td>
+<td>中</td>
+</tr>
+<tr>
+<td>HNSW</td>
+<td>多层可导航小世界图，逐层下降</td>
+<td>高</td>
+<td>高</td>
+<td>高（图结构）</td>
+</tr>
+<tr>
+<td>PQ（乘积量化）</td>
+<td>把向量切段量化成码本 ID</td>
+<td>中，可调</td>
+<td>中</td>
+<td><strong>极低（压缩 10~100 倍）</strong></td>
+</tr>
+<tr>
+<td>IVF-PQ</td>
+<td>IVF 定位 + PQ 压缩</td>
+<td>中</td>
+<td>中</td>
+<td>低</td>
+</tr>
+<tr>
+<td>DiskANN</td>
+<td>图索引落盘，内存只放压缩版</td>
+<td>高</td>
+<td>高</td>
+<td>低</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">import</span> faiss<br><span class="hljs-keyword">import</span> numpy <span class="hljs-keyword">as</span> np<br><br>d, nlist, m = <span class="hljs-number">768</span>, <span class="hljs-number">4096</span>, <span class="hljs-number">96</span><br><br><span class="hljs-comment"># IVF：先训练聚类中心，再添加向量</span><br>quantizer = faiss.IndexFlatIP(d)<br>index = faiss.IndexIVFFlat(quantizer, d, nlist, faiss.METRIC_INNER_PRODUCT)<br>index.train(vectors)              <span class="hljs-comment"># 必须先训练</span><br>index.add(vectors)<br>index.nprobe = <span class="hljs-number">16</span>                 <span class="hljs-comment"># 查询时搜 16 个簇，越大越准越慢</span><br><br><span class="hljs-comment"># HNSW：图索引，召回更高但更吃内存</span><br>hnsw = faiss.IndexHNSWFlat(d, <span class="hljs-number">32</span>)   <span class="hljs-comment"># M=32 是每层连接数</span><br>hnsw.hnsw.efConstruction = <span class="hljs-number">200</span><br>hnsw.add(vectors)<br>hnsw.hnsw.efSearch = <span class="hljs-number">64</span>            <span class="hljs-comment"># 查询时候选池大小</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>作用</th>
+<th>调大</th>
+<th>调小</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>nlist</code></td>
+<td>IVF 簇数</td>
+<td>单簇更小，查询更快但需更大 <code>nprobe</code></td>
+<td>簇大，<code>nprobe</code> 小也够</td>
+</tr>
+<tr>
+<td><code>nprobe</code></td>
+<td>查询时搜几个簇</td>
+<td>召回↑ 延迟↑</td>
+<td>召回↓ 延迟↓</td>
+</tr>
+<tr>
+<td><code>M</code>（HNSW）</td>
+<td>每节点连接数</td>
+<td>召回↑ 内存↑</td>
+<td>反之</td>
+</tr>
+<tr>
+<td><code>efConstruction</code></td>
+<td>建图时候选池</td>
+<td>索引质量↑ 构建慢</td>
+<td>反之</td>
+</tr>
+<tr>
+<td><code>efSearch</code></td>
+<td>查询时候选池</td>
+<td>召回↑ 延迟↑</td>
+<td>反之</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ **IVF 必须先 <code>train()</code>**。直接 <code>add()</code> 会报错或结果全错。训练样本要足够多（建议 ≥ <code>nlist × 39</code>），否则聚类中心质量差，召回率会莫名其妙地低。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>HNSW 不支持删除</strong>（或删除代价极高）。很多实现只是打个墓碑标记，实际内存不释放，图结构也逐渐退化。<strong>频繁增删的场景优先 IVF 系或支持增量更新的库。</strong></p>
+</blockquote>
+<h2 id="三、量化：用精度换内存"><a href="#三、量化：用精度换内存" class="headerlink" title="三、量化：用精度换内存"></a>三、量化：用精度换内存</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># 标量量化：float32 -&gt; int8，内存降到 1/4</span><br>sq = faiss.IndexScalarQuantizer(d, faiss.ScalarQuantizer.QT_8bit, faiss.METRIC_INNER_PRODUCT)<br><br><span class="hljs-comment"># 乘积量化：把 768 维切成 96 段，每段用 256 个码字表示</span><br>pq = faiss.IndexPQ(d, <span class="hljs-number">96</span>, <span class="hljs-number">8</span>)      <span class="hljs-comment"># m=96 段，每段 8 bit</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>方式</th>
+<th>压缩比</th>
+<th>召回损失</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>float32 → int8</td>
+<td>4×</td>
+<td>极小</td>
+<td>最安全，几乎无损</td>
+</tr>
+<tr>
+<td>PQ（m&#x3D;96, 8bit）</td>
+<td>~32×</td>
+<td>中等</td>
+<td>需训练码本</td>
+</tr>
+<tr>
+<td>二值化（1 bit）</td>
+<td>32×（对 float32）</td>
+<td>大</td>
+<td>适合粗筛 + 精排</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>PQ 的 <code>m</code> 必须能整除维度</strong>（768 &#x2F; 96 &#x3D; 8）。不整除直接报错。而且 <code>m</code> 越大压缩比越低但精度越高，这是纯权衡。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>量化索引通常只做粗筛</strong>。用 PQ 检索出 Top-100，再用原始向量重排 Top-10，这个「粗筛 + 精排」组合能在保持精度的同时把内存压到 1&#x2F;30。</p>
+</blockquote>
+<h2 id="四、选型：看这四个维度"><a href="#四、选型：看这四个维度" class="headerlink" title="四、选型：看这四个维度"></a>四、选型：看这四个维度</h2><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>问题</th>
+<th>影响</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>数据量</td>
+<td>10 万 &#x2F; 100 万 &#x2F; 1 亿？</td>
+<td>决定要不要 ANN</td>
+</tr>
+<tr>
+<td>写入模式</td>
+<td>只读 &#x2F; 频繁增删 &#x2F; 实时写入？</td>
+<td>HNSW 不适合频繁删</td>
+</tr>
+<tr>
+<td>过滤条件</td>
+<td>是否要按租户&#x2F;权限&#x2F;时间过滤？</td>
+<td>决定是否需要原生过滤</td>
+</tr>
+<tr>
+<td>一致性</td>
+<td>写入后多久必须可查？</td>
+<td>影响架构复杂度</td>
+</tr>
+</tbody></table>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>适合</th>
+<th>不适合</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>numpy &#x2F; faiss 内存索引</td>
+<td>&lt; 100 万，单机，离线</td>
+<td>多副本、持久化</td>
+</tr>
+<tr>
+<td>pgvector</td>
+<td>已有 Postgres，要事务与 JOIN</td>
+<td>上亿级、极致 QPS</td>
+</tr>
+<tr>
+<td>Milvus</td>
+<td>亿级，分布式，多索引类型</td>
+<td>小规模（运维成本过高）</td>
+</tr>
+<tr>
+<td>Qdrant</td>
+<td>强过滤、Rust 性能好</td>
+<td>生态相对小</td>
+</tr>
+<tr>
+<td>Weaviate</td>
+<td>内置混合检索与模块</td>
+<td>资源占用偏高</td>
+</tr>
+<tr>
+<td>Elasticsearch &#x2F; OpenSearch</td>
+<td>已有 ES 集群，要 BM25 + 向量混合</td>
+<td>纯向量性能不如专用库</td>
+</tr>
+<tr>
+<td>Redis（RediSearch）</td>
+<td>已有 Redis，低延迟小规模</td>
+<td>大规模内存成本高</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>「过滤 + 向量」是选型的分水岭</strong>。很多库的过滤是「先 ANN 再过滤」，过滤掉一半后结果可能只剩 2 条。<strong>需要精确的 Top-K 且带强过滤条件时，要选支持 pre-filter 的实现</strong>（Qdrant、pgvector 的 <code>WHERE</code> 配合迭代扫描）。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>别为了「以后可能变大」提前上分布式</strong>。Milvus 集群版的最小资源占用不低，小团队维护它的人力成本远超收益。<strong>从 pgvector 或 faiss 起步，撞到瓶颈再换</strong>。</p>
+</blockquote>
+<h2 id="五、pgvector：最容易被低估的选项"><a href="#五、pgvector：最容易被低估的选项" class="headerlink" title="五、pgvector：最容易被低估的选项"></a>五、pgvector：最容易被低估的选项</h2><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><code class="hljs sql"><span class="hljs-keyword">CREATE</span> EXTENSION vector;<br><br><span class="hljs-keyword">CREATE TABLE</span> docs (<br>    id        bigserial <span class="hljs-keyword">PRIMARY KEY</span>,<br>    tenant_id text <span class="hljs-keyword">NOT NULL</span>,<br>    content   text <span class="hljs-keyword">NOT NULL</span>,<br>    embedding vector(<span class="hljs-number">768</span>)<br>);<br><br><span class="hljs-comment">-- HNSW 索引；余弦距离用 vector_cosine_ops</span><br><span class="hljs-keyword">CREATE</span> INDEX <span class="hljs-keyword">ON</span> docs <span class="hljs-keyword">USING</span> hnsw (embedding vector_cosine_ops)<br>    <span class="hljs-keyword">WITH</span> (m <span class="hljs-operator">=</span> <span class="hljs-number">16</span>, ef_construction <span class="hljs-operator">=</span> <span class="hljs-number">64</span>);<br><br><span class="hljs-comment">-- 带过滤的检索：注意 ORDER BY 必须走索引</span><br><span class="hljs-keyword">SET</span> hnsw.ef_search <span class="hljs-operator">=</span> <span class="hljs-number">100</span>;<br><span class="hljs-keyword">SELECT</span> id, content, <span class="hljs-number">1</span> <span class="hljs-operator">-</span> (embedding <span class="hljs-operator">&lt;=&gt;</span> $<span class="hljs-number">1</span>) <span class="hljs-keyword">AS</span> score<br><span class="hljs-keyword">FROM</span> docs<br><span class="hljs-keyword">WHERE</span> tenant_id <span class="hljs-operator">=</span> $<span class="hljs-number">2</span><br><span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> embedding <span class="hljs-operator">&lt;=&gt;</span> $<span class="hljs-number">1</span><br>LIMIT <span class="hljs-number">10</span>;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>要点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>距离算子</td>
+<td><code>&lt;-&gt;</code> L2、<code>&lt;=&gt;</code> 余弦、<code>&lt;#&gt;</code> 内积（负值）</td>
+</tr>
+<tr>
+<td>索引类型</td>
+<td><code>ivfflat</code>（需 <code>lists</code> 参数）、<code>hnsw</code>（推荐）</td>
+</tr>
+<tr>
+<td>维度上限</td>
+<td><code>vector</code> 类型 2000 维；<code>halfvec</code> 可到 4000</td>
+</tr>
+<tr>
+<td>过滤性能</td>
+<td>过滤后行数少时，可能退化为顺序扫描</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>pgvector 的过滤会破坏索引效果</strong>。<code>WHERE tenant_id = X</code> 选择性很高时，规划器可能放弃 HNSW 改走全表扫描。解决办法是<strong>分区表</strong>（按 tenant 分区）或接受这个代价。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>ivfflat</code> 必须在有数据之后建索引</strong>，空表建的索引没有聚类中心。而 <code>hnsw</code> 可以在空表上建，边写边构建，更适合增量场景。</p>
+</blockquote>
+<h2 id="六、索引参数调优的实证方法"><a href="#六、索引参数调优的实证方法" class="headerlink" title="六、索引参数调优的实证方法"></a>六、索引参数调优的实证方法</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">def</span> <span class="hljs-title function_">measure_recall</span>(<span class="hljs-params">index, vectors, queries, k=<span class="hljs-number">10</span>, ground_truth=<span class="hljs-literal">None</span></span>):<br>    <span class="hljs-string">&quot;&quot;&quot;用暴力检索当 ground truth，量 ANN 的真实召回率。&quot;&quot;&quot;</span><br>    <span class="hljs-keyword">if</span> ground_truth <span class="hljs-keyword">is</span> <span class="hljs-literal">None</span>:<br>        scores = queries @ vectors.T<br>        ground_truth = np.argsort(-scores, axis=<span class="hljs-number">1</span>)[:, :k]<br><br>    _, ann_idx = index.search(queries, k)<br>    hit = <span class="hljs-built_in">sum</span>(<span class="hljs-built_in">len</span>(<span class="hljs-built_in">set</span>(ann_idx[i]) &amp; <span class="hljs-built_in">set</span>(ground_truth[i])) <span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(<span class="hljs-built_in">len</span>(queries)))<br>    <span class="hljs-keyword">return</span> hit / (<span class="hljs-built_in">len</span>(queries) * k)<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>调优步骤</th>
+<th>做法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1. 建基线</td>
+<td>暴力检索当 ground truth</td>
+</tr>
+<tr>
+<td>2. 扫参数</td>
+<td><code>nprobe</code> &#x2F; <code>efSearch</code> 从低到高扫</td>
+</tr>
+<tr>
+<td>3. 画曲线</td>
+<td>召回率 vs P95 延迟</td>
+</tr>
+<tr>
+<td>4. 定阈值</td>
+<td>取满足业务召回要求的最小参数</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>不要凭经验设 <code>nprobe=16</code><strong>。不同数据分布下最优值差很多，必须用你自己的数据扫一遍。</strong>召回率 0.9 和 0.98 对应的延迟可能差 3 倍</strong>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>评估召回要用「真实查询」而不是「随机向量」</strong>。随机向量的分布与实际 query 差很远，测出来的召回率没有参考价值。</p>
+</blockquote>
+<h2 id="七、生产环境的几个硬问题"><a href="#七、生产环境的几个硬问题" class="headerlink" title="七、生产环境的几个硬问题"></a>七、生产环境的几个硬问题</h2><table>
+<thead>
+<tr>
+<th>问题</th>
+<th>表现</th>
+<th>解法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>索引重建</td>
+<td>全量重建时无法服务</td>
+<td>双索引 + 别名切换</td>
+</tr>
+<tr>
+<td>数据一致性</td>
+<td>向量库与业务库不同步</td>
+<td>写入走同一事务或 outbox 模式</td>
+</tr>
+<tr>
+<td>多租户隔离</td>
+<td>跨租户串数据</td>
+<td>物理分区 + 强制过滤</td>
+</tr>
+<tr>
+<td>冷启动</td>
+<td>索引加载慢</td>
+<td>预热 + 常驻内存</td>
+</tr>
+<tr>
+<td>备份</td>
+<td>索引丢失需重建</td>
+<td>定期快照或可重建原始数据</td>
+</tr>
+<tr>
+<td>版本升级</td>
+<td>索引格式不兼容</td>
+<td>保留原始向量，随时可重建</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>原始向量必须持久化</strong>。索引是可再生的派生物，一旦索引损坏或库升级，你得能从原始向量重建。只存索引不存原文，等于把数据交给了一个可能不兼容的版本。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>别名切换是零停机重建的标准做法</strong>：新建 <code>docs_v2</code> 索引 → 灌数据 → 原子地把 <code>docs</code> 别名指向 <code>v2</code> → 删 <code>v1</code>。Milvus、Elasticsearch、Qdrant 都支持。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 十万条数据就上分布式向量库，运维成本远超收益</li>
+<li><input disabled="" type="checkbox"> IVF 索引没 <code>train()</code> 直接 <code>add()</code>，结果全错</li>
+<li><input disabled="" type="checkbox"> 训练样本太少，聚类中心质量差，召回莫名偏低</li>
+<li><input disabled="" type="checkbox"> HNSW 频繁删除，内存不释放、图退化</li>
+<li><input disabled="" type="checkbox"> PQ 的 <code>m</code> 不整除维度，直接报错</li>
+<li><input disabled="" type="checkbox"> 量化后不做精排，精度掉得厉害</li>
+<li><input disabled="" type="checkbox"> 「先 ANN 再过滤」，强过滤下结果不足 K 条</li>
+<li><input disabled="" type="checkbox"> 用随机向量评估召回率，结果没有参考价值</li>
+<li><input disabled="" type="checkbox"> 凭经验设 <code>nprobe</code>，不按自己的数据扫曲线</li>
+<li><input disabled="" type="checkbox"> 只存索引不存原始向量，升级后无法重建</li>
+<li><input disabled="" type="checkbox"> pgvector 高选择性过滤导致退化为全表扫描</li>
+<li><input disabled="" type="checkbox"> 空表上建 <code>ivfflat</code> 索引，没有聚类中心</li>
+<li><input disabled="" type="checkbox"> 索引重建期间停服，没有别名切换方案</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><ul>
+<li><a target="_blank" rel="noopener" href="https://github.com/facebookresearch/faiss/wiki">FAISS 文档与 Wiki</a></li>
+<li><a target="_blank" rel="noopener" href="https://arxiv.org/abs/1702.08734">Billion-scale similarity search with GPUs (Faiss 论文)</a></li>
+<li><a target="_blank" rel="noopener" href="https://arxiv.org/abs/1603.09320">HNSW 论文：Efficient and robust approximate nearest neighbor search</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/pgvector/pgvector">pgvector</a></li>
+<li><a target="_blank" rel="noopener" href="https://milvus.io/docs">Milvus 文档</a></li>
+<li><a target="_blank" rel="noopener" href="https://qdrant.tech/documentation/">Qdrant 文档</a></li>
+<li><a target="_blank" rel="noopener" href="https://ieeexplore.ieee.org/document/5432202">Product Quantization for Nearest Neighbor Search</a></li>
+</ul>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/ai/" class="category-chain-item">ai</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/ai/" class="print-no-link">#ai</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 129 · AI（七）：向量数据库与检索索引</div>
+      <div>https://ethan-iopasd.github.io/2026/10/21/每日技术博客129-向量数据库与检索索引/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月21日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/20/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2128-%E6%A8%A1%E5%9E%8B%E8%AF%84%E4%BC%B0%E4%B8%8ELLM%E8%A3%81%E5%88%A4/" title="每日技术博客 128 · AI（六）：模型评估与 LLM-as-Judge">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 128 · AI（六）：模型评估与 LLM-as-Judge</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2026/10/21/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2130-%E6%8E%A8%E7%90%86%E4%BC%98%E5%8C%96%E4%B8%8E%E9%83%A8%E7%BD%B2%E6%88%90%E6%9C%AC/" title="每日技术博客 130 · AI（八）：推理优化与部署成本">
+                        <span class="hidden-mobile">每日技术博客 130 · AI（八）：推理优化与部署成本</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
