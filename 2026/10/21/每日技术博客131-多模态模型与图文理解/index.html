@@ -1,0 +1,1065 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-21 · 第 131 篇 AI 系列第九篇。多模态不是「给文本模型加个眼睛」，而是把图像也变成 token 序列塞进同一个注意力里。理解了 patch 化与视觉编码器，图像分辨率、token 成本和细粒度识别的关系就都通了。  📚 AI 系列目录   章节 主题 状态    一 Transformer 与注意力机制 已发布   二 预训练、微调与对齐 已发布">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 131 · AI（九）：多模态模型与图文理解">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/21/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2131-%E5%A4%9A%E6%A8%A1%E6%80%81%E6%A8%A1%E5%9E%8B%E4%B8%8E%E5%9B%BE%E6%96%87%E7%90%86%E8%A7%A3/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-21 · 第 131 篇 AI 系列第九篇。多模态不是「给文本模型加个眼睛」，而是把图像也变成 token 序列塞进同一个注意力里。理解了 patch 化与视觉编码器，图像分辨率、token 成本和细粒度识别的关系就都通了。  📚 AI 系列目录   章节 主题 状态    一 Transformer 与注意力机制 已发布   二 预训练、微调与对齐 已发布">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-21T02:10:00.000Z">
+<meta property="article:modified_time" content="2026-10-21T01:47:34.157Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="ai">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 131 · AI（九）：多模态模型与图文理解 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 131 · AI（九）：多模态模型与图文理解"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-21 10:10" pubdate>
+          2026年10月21日 上午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          17 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 131 · AI（九）：多模态模型与图文理解</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-21 · 第 131 篇</p>
+<p>AI 系列第九篇。多模态不是「给文本模型加个眼睛」，而是把图像也变成 token 序列塞进同一个注意力里。理解了 patch 化与视觉编码器，图像分辨率、token 成本和细粒度识别的关系就都通了。</p>
+</blockquote>
+<h2 id="📚-AI-系列目录"><a href="#📚-AI-系列目录" class="headerlink" title="📚 AI 系列目录"></a>📚 AI 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>Transformer 与注意力机制</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>预训练、微调与对齐</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>RAG 检索增强生成</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td>Agent、工具调用与上下文工程</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>五</td>
+<td>提示工程与结构化输出</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>六</td>
+<td>模型评估与 LLM-as-Judge</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>七</td>
+<td>向量数据库与检索索引</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>八</td>
+<td>推理优化与部署成本</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>九</td>
+<td>多模态模型与图文理解</td>
+<td><strong>本篇</strong></td>
+</tr>
+<tr>
+<td>十</td>
+<td>模型安全与越狱防护</td>
+<td>已发布</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>图像进入模型的方式是「切成 patch、编码成向量、当成 token」。</strong> 所以分辨率越高、切得越细，token 越多、成本越高；而「看不清小字」不是模型笨，是那些像素压根没被编码成独立的 token。</p>
+<h2 id="一、视觉编码器：把图变成向量"><a href="#一、视觉编码器：把图变成向量" class="headerlink" title="一、视觉编码器：把图变成向量"></a>一、视觉编码器：把图变成向量</h2><table>
+<thead>
+<tr>
+<th>组件</th>
+<th>作用</th>
+<th>典型实现</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>图像分块（patchify）</td>
+<td>把图切成 14×14 或 16×16 的小块</td>
+<td>固定切分，不重叠</td>
+</tr>
+<tr>
+<td>视觉编码器</td>
+<td>每块编码成一个向量</td>
+<td>ViT &#x2F; SigLIP &#x2F; CLIP</td>
+</tr>
+<tr>
+<td>投影层（projector）</td>
+<td>把视觉向量映射到语言模型维度</td>
+<td>MLP 或 Q-Former</td>
+</tr>
+<tr>
+<td>融合</td>
+<td>视觉 token 与文本 token 拼成一条序列</td>
+<td>早期融合 &#x2F; 交叉注意力</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">import</span> torch<br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">patchify</span>(<span class="hljs-params">img, patch=<span class="hljs-number">14</span></span>):<br>    <span class="hljs-string">&quot;&quot;&quot;img: (B, 3, H, W) -&gt; (B, N, 3*patch*patch)，N = (H/patch)*(W/patch)&quot;&quot;&quot;</span><br>    B, C, H, W = img.shape<br>    <span class="hljs-keyword">assert</span> H % patch == <span class="hljs-number">0</span> <span class="hljs-keyword">and</span> W % patch == <span class="hljs-number">0</span><br>    x = img.reshape(B, C, H // patch, patch, W // patch, patch)<br>    x = x.permute(<span class="hljs-number">0</span>, <span class="hljs-number">2</span>, <span class="hljs-number">4</span>, <span class="hljs-number">1</span>, <span class="hljs-number">3</span>, <span class="hljs-number">5</span>).reshape(B, -<span class="hljs-number">1</span>, C * patch * patch)<br>    <span class="hljs-keyword">return</span> x<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>模型</th>
+<th>视觉编码器</th>
+<th>特点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>CLIP</td>
+<td>ViT + 文本塔对比学习</td>
+<td>图文对齐强，细粒度弱</td>
+</tr>
+<tr>
+<td>SigLIP</td>
+<td>Sigmoid 损失替代 softmax</td>
+<td>训练更稳，小 batch 也能学</td>
+</tr>
+<tr>
+<td>原生多模态</td>
+<td>无独立编码器，统一 token</td>
+<td>视频、音频可统一处理</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>投影层决定了「视觉信息能保留多少」</strong>。简单的线性投影便宜但信息损失大，Q-Former 用一组可学习 query 压缩视觉 token（能大幅降低 token 数），但也丢细节。<strong>需要细粒度识别（读小字、看表格）时，压缩率越低越好。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>patch 大小是硬性权衡</strong>。14×14 的 patch 在 1024×1024 图上产生约 5300 个 token；patch 翻倍到 28×28，token 数降到 1&#x2F;4，但小目标就识别不了了。</p>
+</blockquote>
+<h2 id="二、token-成本：分辨率直接换算成钱"><a href="#二、token-成本：分辨率直接换算成钱" class="headerlink" title="二、token 成本：分辨率直接换算成钱"></a>二、token 成本：分辨率直接换算成钱</h2><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs text">视觉 token 数 ≈ (H / patch) × (W / patch)<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>分辨率</th>
+<th>patch&#x3D;14</th>
+<th>patch&#x3D;16</th>
+<th>约合文本 token（按 4 字符&#x2F;token 粗比）</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>512×512</td>
+<td>1369</td>
+<td>1024</td>
+<td>~5K 字符</td>
+</tr>
+<tr>
+<td>1024×1024</td>
+<td>5476</td>
+<td>4096</td>
+<td>~20K 字符</td>
+</tr>
+<tr>
+<td>2048×2048</td>
+<td>21904</td>
+<td>16384</td>
+<td>~80K 字符</td>
+</tr>
+</tbody></table>
+<table>
+<thead>
+<tr>
+<th>优化手段</th>
+<th>做法</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>降分辨率</td>
+<td>长边缩到 1024</td>
+<td>小字丢失</td>
+</tr>
+<tr>
+<td>动态分辨率</td>
+<td>按内容裁剪 &#x2F; 切块</td>
+<td>实现复杂</td>
+</tr>
+<tr>
+<td>token 压缩</td>
+<td>Q-Former &#x2F; 池化</td>
+<td>细节损失</td>
+</tr>
+<tr>
+<td>只送关键区域</td>
+<td>先检测再裁剪</td>
+<td>需要额外模型</td>
+</tr>
+<tr>
+<td>图片转文字</td>
+<td>先 OCR 再送文本</td>
+<td>丢失版面信息</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>一张 4K 截图可能比一篇长文还贵</strong>。批量处理图片任务前，先算清楚 token 账单。很多团队以为图片便宜，实际按 1024×1024 &#x3D; 4000+ token 计，一次 100 张就是 40 万 token。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>降分辨率是最容易踩的坑</strong>。把截图缩到 512 宽，里面的 8 号字直接糊成一团。<strong>读文档、读表格的场景必须保持原始分辨率或做切块。</strong></p>
+</blockquote>
+<h2 id="三、图文任务的实际能力边界"><a href="#三、图文任务的实际能力边界" class="headerlink" title="三、图文任务的实际能力边界"></a>三、图文任务的实际能力边界</h2><table>
+<thead>
+<tr>
+<th>任务</th>
+<th>表现</th>
+<th>注意</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>整体场景描述</td>
+<td>好</td>
+<td>容易漏细节</td>
+</tr>
+<tr>
+<td>物体计数</td>
+<td>差（&gt;5 个就不准）</td>
+<td>别依赖</td>
+</tr>
+<tr>
+<td>小字 OCR</td>
+<td>中等，取决于分辨率</td>
+<td>重要场景配专用 OCR</td>
+</tr>
+<tr>
+<td>表格结构还原</td>
+<td>中等</td>
+<td>复杂合并单元格易错</td>
+</tr>
+<tr>
+<td>图表读数</td>
+<td>差</td>
+<td>数值常有偏差</td>
+</tr>
+<tr>
+<td>空间关系（左&#x2F;右）</td>
+<td>中等偏差</td>
+<td>方位词易混</td>
+</tr>
+<tr>
+<td>手写识别</td>
+<td>差</td>
+<td>别用于正式场景</td>
+</tr>
+<tr>
+<td>多图对比</td>
+<td>中等</td>
+<td>图越多越容易串</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>计数和读数是最不可靠的两类任务</strong>。模型是在「描述」，不是在「测量」。需要精确数值时，用 OCR + 规则解析，或者让它输出结构化字段后再校验。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>模型可能「看到」训练集里的相似图片</strong>。给一张常见图表，它可能凭记忆报出错误的具体数值，且语气非常自信。<strong>涉及数字的场景一律要求给出依据位置，或者干脆不信任。</strong></p>
+</blockquote>
+<h2 id="四、多图与视频"><a href="#四、多图与视频" class="headerlink" title="四、多图与视频"></a>四、多图与视频</h2><table>
+<thead>
+<tr>
+<th>输入形态</th>
+<th>处理方式</th>
+<th>token 量</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>单图</td>
+<td>直接编码</td>
+<td>1×</td>
+</tr>
+<tr>
+<td>多图</td>
+<td>各自编码后拼接</td>
+<td>线性叠加</td>
+</tr>
+<tr>
+<td>视频</td>
+<td>按帧采样</td>
+<td>帧数 × 单帧 token</td>
+</tr>
+<tr>
+<td>长视频</td>
+<td>关键帧 + 音频转写</td>
+<td>取决于采样策略</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># 多图输入的常见结构：每张图用标记分隔，并编号</span><br>messages = [&#123;<br>    <span class="hljs-string">&quot;role&quot;</span>: <span class="hljs-string">&quot;user&quot;</span>,<br>    <span class="hljs-string">&quot;content&quot;</span>: [<br>        &#123;<span class="hljs-string">&quot;type&quot;</span>: <span class="hljs-string">&quot;text&quot;</span>, <span class="hljs-string">&quot;text&quot;</span>: <span class="hljs-string">&quot;对比图 1 和图 2 的差异：&quot;</span>&#125;,<br>        &#123;<span class="hljs-string">&quot;type&quot;</span>: <span class="hljs-string">&quot;text&quot;</span>, <span class="hljs-string">&quot;text&quot;</span>: <span class="hljs-string">&quot;[图 1]&quot;</span>&#125;,<br>        &#123;<span class="hljs-string">&quot;type&quot;</span>: <span class="hljs-string">&quot;image_url&quot;</span>, <span class="hljs-string">&quot;image_url&quot;</span>: &#123;<span class="hljs-string">&quot;url&quot;</span>: img1&#125;&#125;,<br>        &#123;<span class="hljs-string">&quot;type&quot;</span>: <span class="hljs-string">&quot;text&quot;</span>, <span class="hljs-string">&quot;text&quot;</span>: <span class="hljs-string">&quot;[图 2]&quot;</span>&#125;,<br>        &#123;<span class="hljs-string">&quot;type&quot;</span>: <span class="hljs-string">&quot;image_url&quot;</span>, <span class="hljs-string">&quot;image_url&quot;</span>: &#123;<span class="hljs-string">&quot;url&quot;</span>: img2&#125;&#125;,<br>    ],<br>&#125;]<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>多图必须显式编号</strong>，否则模型分不清「第一张」「第二张」，对比类任务会答非所问。用 <code>[图 1]</code> 这类标记比「第一张图片」自然语言描述更可靠。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>视频按固定帧率采样会漏掉关键瞬间</strong>。常见做法是场景切换检测 + 均匀采样混合，音频轨单独转写成文本一起送。<strong>纯视觉采样对「说了什么」几乎无效。</strong></p>
+</blockquote>
+<h2 id="五、工程落地要点"><a href="#五、工程落地要点" class="headerlink" title="五、工程落地要点"></a>五、工程落地要点</h2><table>
+<thead>
+<tr>
+<th>关注点</th>
+<th>做法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>图片预处理</td>
+<td>统一转 JPEG&#x2F;PNG，控制长边，剥离 EXIF</td>
+</tr>
+<tr>
+<td>缓存</td>
+<td>相同图片哈希 → 复用编码结果</td>
+</tr>
+<tr>
+<td>并发</td>
+<td>图片下载与编码都是 IO&#x2F;GPU 密集，分开池化</td>
+</tr>
+<tr>
+<td>失败降级</td>
+<td>图片解析失败时回退到纯文本</td>
+</tr>
+<tr>
+<td>隐私</td>
+<td>图片可能含人脸、证件，需脱敏与合规审查</td>
+</tr>
+<tr>
+<td>可观测</td>
+<td>记录分辨率、token 数、耗时</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">import</span> hashlib, base64<br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">image_cache_key</span>(<span class="hljs-params">data: <span class="hljs-built_in">bytes</span></span>) -&gt; <span class="hljs-built_in">str</span>:<br>    <span class="hljs-keyword">return</span> hashlib.sha256(data).hexdigest()<br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">to_data_url</span>(<span class="hljs-params">path: <span class="hljs-built_in">str</span></span>) -&gt; <span class="hljs-built_in">str</span>:<br>    <span class="hljs-keyword">with</span> <span class="hljs-built_in">open</span>(path, <span class="hljs-string">&quot;rb&quot;</span>) <span class="hljs-keyword">as</span> f:<br>        b = f.read()<br>    <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;data:image/jpeg;base64,&quot;</span> + base64.b64encode(b).decode()<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ **base64 内联会让请求体膨胀 33%**。大图优先用 URL 引用，只有内网或需要签名时才内联。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>EXIF 里可能带 GPS 和拍摄设备信息</strong>。对外发送前务必剥离，这是真实的隐私泄露路径。</p>
+</blockquote>
+<h2 id="六、什么时候该用专用模型"><a href="#六、什么时候该用专用模型" class="headerlink" title="六、什么时候该用专用模型"></a>六、什么时候该用专用模型</h2><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>通用多模态</th>
+<th>专用方案</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>文档版面还原</td>
+<td>一般</td>
+<td>版面分析模型 + OCR</td>
+</tr>
+<tr>
+<td>发票&#x2F;证件识别</td>
+<td>一般</td>
+<td>专用抽取模型</td>
+</tr>
+<tr>
+<td>工业质检</td>
+<td>差</td>
+<td>专用视觉模型</td>
+</tr>
+<tr>
+<td>图表数值提取</td>
+<td>差</td>
+<td>图表解析库</td>
+</tr>
+<tr>
+<td>通用问答、描述</td>
+<td><strong>好</strong></td>
+<td>不必要</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>通用多模态模型是「通用」不是「全能」</strong>。结构化文档、质检、医学影像这类高精度场景，专用小模型往往更准、更便宜、更快。<strong>先问：这个任务需要理解语义，还是只需要精确提取？</strong></p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 截图降分辨率后小字全糊，却以为是模型能力问题</li>
+<li><input disabled="" type="checkbox"> 不算图片 token 成本，批量处理账单爆炸</li>
+<li><input disabled="" type="checkbox"> 依赖模型做物体计数（超过 5 个就不准）</li>
+<li><input disabled="" type="checkbox"> 从图表里读数值并直接采信</li>
+<li><input disabled="" type="checkbox"> 多图不编号，对比任务答非所问</li>
+<li><input disabled="" type="checkbox"> 视频按固定帧率采样，漏掉关键帧</li>
+<li><input disabled="" type="checkbox"> 期望多模态模型做高精度 OCR &#x2F; 版面还原</li>
+<li><input disabled="" type="checkbox"> 图片 base64 内联导致请求体膨胀</li>
+<li><input disabled="" type="checkbox"> 不剥离 EXIF，泄露 GPS 信息</li>
+<li><input disabled="" type="checkbox"> 不缓存相同图片，重复编码浪费算力</li>
+<li><input disabled="" type="checkbox"> 图片解析失败没有纯文本降级路径</li>
+<li><input disabled="" type="checkbox"> 以为通用多模态能替代专用视觉模型</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><ul>
+<li><a target="_blank" rel="noopener" href="https://arxiv.org/abs/2010.11929">An Image is Worth 16x16 Words (ViT)</a></li>
+<li><a target="_blank" rel="noopener" href="https://arxiv.org/abs/2103.00020">CLIP: Learning Transferable Visual Models From Natural Language Supervision</a></li>
+<li><a target="_blank" rel="noopener" href="https://arxiv.org/abs/2303.15343">Sigmoid Loss for Language Image Pre-Training (SigLIP)</a></li>
+<li><a target="_blank" rel="noopener" href="https://arxiv.org/abs/2301.12597">BLIP-2: Bootstrapping Language-Image Pre-training with Q-Former</a></li>
+<li><a target="_blank" rel="noopener" href="https://arxiv.org/abs/2304.08485">LLaVA: Visual Instruction Tuning</a></li>
+<li><a target="_blank" rel="noopener" href="https://platform.openai.com/docs/guides/vision">OpenAI · Vision 指南</a></li>
+</ul>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/ai/" class="category-chain-item">ai</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/ai/" class="print-no-link">#ai</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 131 · AI（九）：多模态模型与图文理解</div>
+      <div>https://ethan-iopasd.github.io/2026/10/21/每日技术博客131-多模态模型与图文理解/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月21日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/21/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2130-%E6%8E%A8%E7%90%86%E4%BC%98%E5%8C%96%E4%B8%8E%E9%83%A8%E7%BD%B2%E6%88%90%E6%9C%AC/" title="每日技术博客 130 · AI（八）：推理优化与部署成本">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 130 · AI（八）：推理优化与部署成本</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2026/10/21/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2132-%E6%A8%A1%E5%9E%8B%E5%AE%89%E5%85%A8%E4%B8%8E%E8%B6%8A%E7%8B%B1%E9%98%B2%E6%8A%A4/" title="每日技术博客 132 · AI（十）：模型安全与越狱防护">
+                        <span class="hidden-mobile">每日技术博客 132 · AI（十）：模型安全与越狱防护</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

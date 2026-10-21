@@ -1,0 +1,1028 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-21 · 第 136 篇 Python 系列第十二篇。except Exception: pass 是技术债的头号来源，而 raise X from Y 是把「为什么失败」保留到线上的唯一手段。日志不是打印，它是一套结构化的事件流。  📚 Python 系列目录   章节 主题 状态    一 依赖管理与虚拟环境 已发布   二 类型注解与静态检查 已发布">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 136 · Python（十二）：异常链、日志与可观测性">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/21/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2136-Python%E5%BC%82%E5%B8%B8%E9%93%BE%E6%97%A5%E5%BF%97%E4%B8%8E%E5%8F%AF%E8%A7%82%E6%B5%8B%E6%80%A7/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-21 · 第 136 篇 Python 系列第十二篇。except Exception: pass 是技术债的头号来源，而 raise X from Y 是把「为什么失败」保留到线上的唯一手段。日志不是打印，它是一套结构化的事件流。  📚 Python 系列目录   章节 主题 状态    一 依赖管理与虚拟环境 已发布   二 类型注解与静态检查 已发布">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-21T03:25:00.000Z">
+<meta property="article:modified_time" content="2026-10-21T01:48:52.734Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="python">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 136 · Python（十二）：异常链、日志与可观测性 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 136 · Python（十二）：异常链、日志与可观测性"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-21 11:25" pubdate>
+          2026年10月21日 上午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          17 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 136 · Python（十二）：异常链、日志与可观测性</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-21 · 第 136 篇</p>
+<p>Python 系列第十二篇。<code>except Exception: pass</code> 是技术债的头号来源，而 <code>raise X from Y</code> 是把「为什么失败」保留到线上的唯一手段。日志不是打印，它是一套结构化的事件流。</p>
+</blockquote>
+<h2 id="📚-Python-系列目录"><a href="#📚-Python-系列目录" class="headerlink" title="📚 Python 系列目录"></a>📚 Python 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>依赖管理与虚拟环境</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>类型注解与静态检查</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>异步编程 asyncio</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td>GIL、线程与进程</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>五</td>
+<td>性能剖析与优化</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>六</td>
+<td>装饰器、元编程与描述符</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>七</td>
+<td>打包、发布与项目工程化</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>八</td>
+<td>文件、路径与数据处理</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>九</td>
+<td>WSGI、ASGI 与 Web 服务请求生命周期</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>十</td>
+<td>标准库、缓存与性能实战</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>十一</td>
+<td>上下文管理器与资源生命周期</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>十二</td>
+<td>异常链、日志与可观测性</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>异常链回答「为什么会这样」，日志回答「当时发生了什么」，指标回答「现在有多糟」。</strong> 三者缺一，线上排障就只能靠猜。而这三样里最便宜、最常被省略的，恰恰是 <code>raise ... from ...</code>。</p>
+<h2 id="一、异常链：from-与隐式链"><a href="#一、异常链：from-与隐式链" class="headerlink" title="一、异常链：from 与隐式链"></a>一、异常链：<code>from</code> 与隐式链</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># 显式链：保留因果关系</span><br><span class="hljs-keyword">try</span>:<br>    cfg = json.loads(raw)<br><span class="hljs-keyword">except</span> json.JSONDecodeError <span class="hljs-keyword">as</span> e:<br>    <span class="hljs-keyword">raise</span> ConfigError(<span class="hljs-string">&quot;配置文件格式错误&quot;</span>) <span class="hljs-keyword">from</span> e<br><br><span class="hljs-comment"># 隐式链：在 except 块里直接 raise 新异常，自动产生 __context__</span><br><span class="hljs-keyword">try</span>:<br>    do_something()<br><span class="hljs-keyword">except</span> KeyError:<br>    <span class="hljs-keyword">raise</span> ValueError(<span class="hljs-string">&quot;缺少字段&quot;</span>)      <span class="hljs-comment"># 会带上 &quot;During handling of the above exception...&quot;</span><br><br><span class="hljs-comment"># 切断链：明确表示「不相关」</span><br><span class="hljs-keyword">raise</span> ConfigError(<span class="hljs-string">&quot;...&quot;</span>) <span class="hljs-keyword">from</span> <span class="hljs-literal">None</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>写法</th>
+<th>效果</th>
+<th><code>__cause__</code></th>
+<th><code>__context__</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>raise B from A</code></td>
+<td>显式因果</td>
+<td>A</td>
+<td>A</td>
+</tr>
+<tr>
+<td><code>except ...: raise B</code></td>
+<td>隐式链</td>
+<td><code>None</code></td>
+<td>原异常</td>
+</tr>
+<tr>
+<td><code>raise B from None</code></td>
+<td>切断链</td>
+<td><code>None</code></td>
+<td><code>None</code>（抑制显示）</td>
+</tr>
+<tr>
+<td><code>raise</code>（裸）</td>
+<td>重新抛出，保留原栈</td>
+<td>不变</td>
+<td>不变</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>raise ... from None</code> 会隐藏真实原因</strong>。只在「底层异常确实无关且会干扰阅读」时用，比如把 <code>KeyError</code> 转成「配置缺失」时。<strong>排查困难时第一件事就是看有没有被 <code>from None</code> 切断。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>except</code> 块里必须用裸 <code>raise</code> 重新抛出</strong>。写 <code>raise e</code> 会重置堆栈起点，丢失原始行号，日志里看到的全是 <code>raise e</code> 那一行。</p>
+</blockquote>
+<h2 id="二、自定义异常体系"><a href="#二、自定义异常体系" class="headerlink" title="二、自定义异常体系"></a>二、自定义异常体系</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">class</span> <span class="hljs-title class_">AppError</span>(<span class="hljs-title class_ inherited__">Exception</span>):<br>    <span class="hljs-string">&quot;&quot;&quot;所有业务异常的基类。&quot;&quot;&quot;</span><br>    code = <span class="hljs-string">&quot;internal_error&quot;</span><br>    http_status = <span class="hljs-number">500</span><br><br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">__init__</span>(<span class="hljs-params">self, message: <span class="hljs-built_in">str</span>, *, detail: <span class="hljs-built_in">dict</span> | <span class="hljs-literal">None</span> = <span class="hljs-literal">None</span></span>):<br>        <span class="hljs-built_in">super</span>().__init__(message)<br>        <span class="hljs-variable language_">self</span>.message = message<br>        <span class="hljs-variable language_">self</span>.detail = detail <span class="hljs-keyword">or</span> &#123;&#125;<br><br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">to_dict</span>(<span class="hljs-params">self</span>):<br>        <span class="hljs-keyword">return</span> &#123;<span class="hljs-string">&quot;code&quot;</span>: <span class="hljs-variable language_">self</span>.code, <span class="hljs-string">&quot;message&quot;</span>: <span class="hljs-variable language_">self</span>.message, <span class="hljs-string">&quot;detail&quot;</span>: <span class="hljs-variable language_">self</span>.detail&#125;<br><br><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">NotFound</span>(<span class="hljs-title class_ inherited__">AppError</span>):<br>    code = <span class="hljs-string">&quot;not_found&quot;</span><br>    http_status = <span class="hljs-number">404</span><br><br><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">ValidationFailed</span>(<span class="hljs-title class_ inherited__">AppError</span>):<br>    code = <span class="hljs-string">&quot;validation_failed&quot;</span><br>    http_status = <span class="hljs-number">422</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>设计要点</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>单一基类</td>
+<td>上层可以用 <code>except AppError</code> 统一处理</td>
+</tr>
+<tr>
+<td>携带结构化字段</td>
+<td><code>code</code>、<code>http_status</code>、<code>detail</code></td>
+</tr>
+<tr>
+<td>不继承 <code>BaseException</code></td>
+<td>只继承 <code>Exception</code></td>
+</tr>
+<tr>
+<td>消息面向人类，字段面向程序</td>
+<td>别让程序去正则解析消息</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>不要从 <code>BaseException</code> 派生业务异常</strong>。<code>BaseException</code> 是给 <code>SystemExit</code>、<code>KeyboardInterrupt</code>、<code>GeneratorExit</code> 这类「必须终止」的异常用的，继承它会导致 <code>except Exception</code> 捕不到你的异常。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>业务异常的 <code>message</code> 不要拼接敏感信息</strong>。它经常被直接返回给前端或写进日志，把 SQL、内部 URL、堆栈塞进去就是泄露。</p>
+</blockquote>
+<h2 id="三、异常处理的四个层次"><a href="#三、异常处理的四个层次" class="headerlink" title="三、异常处理的四个层次"></a>三、异常处理的四个层次</h2><table>
+<thead>
+<tr>
+<th>层次</th>
+<th>该做什么</th>
+<th>不该做什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>最内层（库函数）</td>
+<td>抛具体异常，带上下文</td>
+<td>不吞异常、不打日志</td>
+</tr>
+<tr>
+<td>业务层</td>
+<td>转换成领域异常，<code>from</code> 保留原因</td>
+<td>不吞异常</td>
+</tr>
+<tr>
+<td>边界层（API&#x2F;任务）</td>
+<td>统一转成响应&#x2F;记录日志</td>
+<td>不抛裸异常给用户</td>
+</tr>
+<tr>
+<td>顶层</td>
+<td>兜底日志 + 优雅退出</td>
+<td>不静默忽略</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># 边界层：统一出口</span><br><span class="hljs-meta">@app.exception_handler(<span class="hljs-params">AppError</span>)</span><br><span class="hljs-keyword">async</span> <span class="hljs-keyword">def</span> <span class="hljs-title function_">handle_app_error</span>(<span class="hljs-params">request, exc: AppError</span>):<br>    logger.warning(<span class="hljs-string">&quot;业务异常&quot;</span>, extra=&#123;<span class="hljs-string">&quot;code&quot;</span>: exc.code, <span class="hljs-string">&quot;path&quot;</span>: request.url.path,<br>                                   <span class="hljs-string">&quot;detail&quot;</span>: exc.detail&#125;)<br>    <span class="hljs-keyword">return</span> JSONResponse(exc.to_dict(), status_code=exc.http_status)<br><br><span class="hljs-meta">@app.exception_handler(<span class="hljs-params">Exception</span>)</span><br><span class="hljs-keyword">async</span> <span class="hljs-keyword">def</span> <span class="hljs-title function_">handle_unexpected</span>(<span class="hljs-params">request, exc: Exception</span>):<br>    logger.exception(<span class="hljs-string">&quot;未处理异常&quot;</span>, extra=&#123;<span class="hljs-string">&quot;path&quot;</span>: request.url.path&#125;)<br>    <span class="hljs-keyword">return</span> JSONResponse(&#123;<span class="hljs-string">&quot;code&quot;</span>: <span class="hljs-string">&quot;internal_error&quot;</span>, <span class="hljs-string">&quot;message&quot;</span>: <span class="hljs-string">&quot;服务内部错误&quot;</span>&#125;, <span class="hljs-number">500</span>)<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>库代码里不要 <code>print</code> 也不要 <code>logging</code><strong>。库应该抛异常，让调用方决定怎么记录。</strong>库自己打日志会导致同一个错误被记录多次，且格式不可控。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>顶层兜底要区分「可重试」和「不可重试」</strong>。数据库连接超时可以重试，参数错误重试一万次也没用。</p>
+</blockquote>
+<h2 id="四、日志：结构化才有价值"><a href="#四、日志：结构化才有价值" class="headerlink" title="四、日志：结构化才有价值"></a>四、日志：结构化才有价值</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">import</span> logging, json, sys<br><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">JsonFormatter</span>(logging.Formatter):<br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">format</span>(<span class="hljs-params">self, record</span>):<br>        payload = &#123;<br>            <span class="hljs-string">&quot;ts&quot;</span>: <span class="hljs-variable language_">self</span>.formatTime(record, <span class="hljs-string">&quot;%Y-%m-%dT%H:%M:%S%z&quot;</span>),<br>            <span class="hljs-string">&quot;level&quot;</span>: record.levelname,<br>            <span class="hljs-string">&quot;logger&quot;</span>: record.name,<br>            <span class="hljs-string">&quot;msg&quot;</span>: record.getMessage(),<br>        &#125;<br>        <span class="hljs-comment"># 业务字段通过 extra=&#123;&#125; 注入</span><br>        <span class="hljs-keyword">for</span> k, v <span class="hljs-keyword">in</span> record.__dict__.items():<br>            <span class="hljs-keyword">if</span> k <span class="hljs-keyword">in</span> (<span class="hljs-string">&quot;trace_id&quot;</span>, <span class="hljs-string">&quot;user_id&quot;</span>, <span class="hljs-string">&quot;path&quot;</span>, <span class="hljs-string">&quot;code&quot;</span>, <span class="hljs-string">&quot;duration_ms&quot;</span>):<br>                payload[k] = v<br>        <span class="hljs-keyword">if</span> record.exc_info:<br>            payload[<span class="hljs-string">&quot;exc&quot;</span>] = <span class="hljs-variable language_">self</span>.formatException(record.exc_info)<br>        <span class="hljs-keyword">return</span> json.dumps(payload, ensure_ascii=<span class="hljs-literal">False</span>)<br><br>handler = logging.StreamHandler(sys.stdout)<br>handler.setFormatter(JsonFormatter())<br>logging.basicConfig(level=logging.INFO, handlers=[handler])<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>级别</th>
+<th>用途</th>
+<th>生产建议</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>DEBUG</td>
+<td>变量值、分支细节</td>
+<td>默认关闭，按需开启</td>
+</tr>
+<tr>
+<td>INFO</td>
+<td>关键业务事件</td>
+<td>保留，但控制量</td>
+</tr>
+<tr>
+<td>WARNING</td>
+<td>可恢复的异常</td>
+<td>保留</td>
+</tr>
+<tr>
+<td>ERROR</td>
+<td>需要人工介入</td>
+<td>保留并告警</td>
+</tr>
+<tr>
+<td>CRITICAL</td>
+<td>服务不可用</td>
+<td>立即告警</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>logger.exception()</code> 只能在 <code>except</code> 块里用</strong>。它依赖 <code>sys.exc_info()</code>，在块外用会记录 <code>NoneType: None</code>，误导排查。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>用 <code>%s</code> 占位符而不是 f-string</strong>。<code>logger.info(f&quot;user=&#123;uid&#125;&quot;)</code> 会在日志级别关闭时仍然执行字符串拼接；<code>logger.info(&quot;user=%s&quot;, uid)</code> 只在真正输出时才格式化。</p>
+</blockquote>
+<h2 id="五、trace-id：把一次请求串起来"><a href="#五、trace-id：把一次请求串起来" class="headerlink" title="五、trace_id：把一次请求串起来"></a>五、trace_id：把一次请求串起来</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">import</span> contextvars, uuid<br><br>trace_id_var = contextvars.ContextVar(<span class="hljs-string">&quot;trace_id&quot;</span>, default=<span class="hljs-string">&quot;-&quot;</span>)<br><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">TraceFilter</span>(logging.Filter):<br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">filter</span>(<span class="hljs-params">self, record</span>):<br>        record.trace_id = trace_id_var.get()<br>        <span class="hljs-keyword">return</span> <span class="hljs-literal">True</span><br><br><span class="hljs-comment"># 中间件里设置</span><br><span class="hljs-meta">@app.middleware(<span class="hljs-params"><span class="hljs-string">&quot;http&quot;</span></span>)</span><br><span class="hljs-keyword">async</span> <span class="hljs-keyword">def</span> <span class="hljs-title function_">add_trace</span>(<span class="hljs-params">request, call_next</span>):<br>    trace_id_var.<span class="hljs-built_in">set</span>(request.headers.get(<span class="hljs-string">&quot;x-trace-id&quot;</span>) <span class="hljs-keyword">or</span> uuid.uuid4().<span class="hljs-built_in">hex</span>[:<span class="hljs-number">16</span>])<br>    response = <span class="hljs-keyword">await</span> call_next(request)<br>    response.headers[<span class="hljs-string">&quot;x-trace-id&quot;</span>] = trace_id_var.get()<br>    <span class="hljs-keyword">return</span> response<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>机制</th>
+<th>适用</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>contextvars</code></td>
+<td>asyncio</td>
+<td>协程安全，推荐</td>
+</tr>
+<tr>
+<td><code>threading.local</code></td>
+<td>多线程</td>
+<td>线程安全，但 asyncio 里会串</td>
+</tr>
+<tr>
+<td>显式传参</td>
+<td>简单脚本</td>
+<td>最可靠但最啰嗦</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>asyncio 里用 <code>threading.local</code> 会串号</strong>。一个线程上跑多个协程，<code>threading.local</code> 是线程级的，不同请求会共享同一个 trace_id。<strong>必须用 <code>contextvars</code>。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>trace_id 要能被上游传入</strong>。如果网关已经生成了 trace_id，服务要复用而不是重新生成，否则跨服务串不起来。</p>
+</blockquote>
+<h2 id="六、指标与健康检查"><a href="#六、指标与健康检查" class="headerlink" title="六、指标与健康检查"></a>六、指标与健康检查</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">from</span> prometheus_client <span class="hljs-keyword">import</span> Counter, Histogram, generate_latest<br><br>REQUESTS = Counter(<span class="hljs-string">&quot;http_requests_total&quot;</span>, <span class="hljs-string">&quot;请求总数&quot;</span>, [<span class="hljs-string">&quot;method&quot;</span>, <span class="hljs-string">&quot;path&quot;</span>, <span class="hljs-string">&quot;status&quot;</span>])<br>LATENCY = Histogram(<span class="hljs-string">&quot;http_request_duration_seconds&quot;</span>, <span class="hljs-string">&quot;请求耗时&quot;</span>, [<span class="hljs-string">&quot;path&quot;</span>],<br>                    buckets=(<span class="hljs-number">0.01</span>, <span class="hljs-number">0.05</span>, <span class="hljs-number">0.1</span>, <span class="hljs-number">0.5</span>, <span class="hljs-number">1</span>, <span class="hljs-number">5</span>))<br><br><span class="hljs-meta">@app.middleware(<span class="hljs-params"><span class="hljs-string">&quot;http&quot;</span></span>)</span><br><span class="hljs-keyword">async</span> <span class="hljs-keyword">def</span> <span class="hljs-title function_">metrics</span>(<span class="hljs-params">request, call_next</span>):<br>    <span class="hljs-keyword">with</span> LATENCY.labels(request.url.path).time():<br>        response = <span class="hljs-keyword">await</span> call_next(request)<br>    REQUESTS.labels(request.method, request.url.path, response.status_code).inc()<br>    <span class="hljs-keyword">return</span> response<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>指标类型</th>
+<th>用途</th>
+<th>例子</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Counter</td>
+<td>只增不减的累计量</td>
+<td>请求数、错误数</td>
+</tr>
+<tr>
+<td>Gauge</td>
+<td>可增可减的瞬时值</td>
+<td>连接数、队列长度</td>
+</tr>
+<tr>
+<td>Histogram</td>
+<td>分布统计</td>
+<td>延迟分位数</td>
+</tr>
+<tr>
+<td>Summary</td>
+<td>客户端分位数</td>
+<td>少用，聚合困难</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>别把 <code>user_id</code>、<code>trace_id</code> 做成标签</strong>。标签基数爆炸会让 Prometheus 内存直接吃满。<strong>标签只用低基数的维度</strong>（method、path 模板、status）。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>路径要用模板而非真实值</strong>。<code>/users/123</code> 和 <code>/users/456</code> 是两个标签，会无限增长。用 <code>/users/&#123;id&#125;</code>。</p>
+</blockquote>
+<h2 id="七、线上排障的固定顺序"><a href="#七、线上排障的固定顺序" class="headerlink" title="七、线上排障的固定顺序"></a>七、线上排障的固定顺序</h2><table>
+<thead>
+<tr>
+<th>步骤</th>
+<th>看什么</th>
+<th>常见结论</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>错误率 &#x2F; 延迟曲线</td>
+<td>是突增还是缓升</td>
+</tr>
+<tr>
+<td>2</td>
+<td>最近的变更</td>
+<td>90% 的问题来自最近一次发布</td>
+</tr>
+<tr>
+<td>3</td>
+<td>日志按 trace_id 过滤</td>
+<td>定位单次请求的完整链路</td>
+</tr>
+<tr>
+<td>4</td>
+<td>异常链的根因</td>
+<td>看 <code>__cause__</code> 最底层</td>
+</tr>
+<tr>
+<td>5</td>
+<td>资源指标</td>
+<td>CPU &#x2F; 内存 &#x2F; 连接池 &#x2F; 磁盘</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>先看变更再看日志</strong>。日志量大的时候，从「最近改了什么」倒推比从「错误日志里找规律」快得多。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> <code>except Exception: pass</code> 吞掉错误</li>
+<li><input disabled="" type="checkbox"> <code>raise e</code> 而不是裸 <code>raise</code>，丢失原始堆栈</li>
+<li><input disabled="" type="checkbox"> <code>raise ... from None</code> 切断因果，排障时找不到根因</li>
+<li><input disabled="" type="checkbox"> 业务异常继承 <code>BaseException</code>，<code>except Exception</code> 捕不到</li>
+<li><input disabled="" type="checkbox"> 在 <code>except</code> 块外调用 <code>logger.exception()</code></li>
+<li><input disabled="" type="checkbox"> 用 f-string 拼日志，级别关闭时仍执行格式化</li>
+<li><input disabled="" type="checkbox"> asyncio 里用 <code>threading.local</code> 存 trace_id，跨请求串号</li>
+<li><input disabled="" type="checkbox"> 服务自己重新生成 trace_id，不接上游的</li>
+<li><input disabled="" type="checkbox"> 把 <code>user_id</code> &#x2F; <code>trace_id</code> 做成 Prometheus 标签，基数爆炸</li>
+<li><input disabled="" type="checkbox"> 指标路径用真实值而非模板</li>
+<li><input disabled="" type="checkbox"> 库代码里自己打日志，导致重复记录</li>
+<li><input disabled="" type="checkbox"> 异常消息里拼接 SQL &#x2F; 内部 URL，泄露敏感信息</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><ul>
+<li><a target="_blank" rel="noopener" href="https://docs.python.org/3/tutorial/errors.html">Python 官方文档 · 异常处理</a></li>
+<li><a target="_blank" rel="noopener" href="https://peps.python.org/pep-3134/">PEP 3134 · Exception Chaining and Embedded Tracebacks</a></li>
+<li><a target="_blank" rel="noopener" href="https://docs.python.org/3/library/logging.html">Python 官方文档 · <code>logging</code></a></li>
+<li><a target="_blank" rel="noopener" href="https://docs.python.org/3/library/contextvars.html">Python 官方文档 · <code>contextvars</code></a></li>
+<li><a target="_blank" rel="noopener" href="https://prometheus.io/docs/concepts/metric_types/">Prometheus · 指标类型</a></li>
+<li><a target="_blank" rel="noopener" href="https://opentelemetry.io/docs/languages/python/">OpenTelemetry · Python</a></li>
+</ul>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/python/" class="category-chain-item">python</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/python/" class="print-no-link">#python</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 136 · Python（十二）：异常链、日志与可观测性</div>
+      <div>https://ethan-iopasd.github.io/2026/10/21/每日技术博客136-Python异常链日志与可观测性/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月21日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/21/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2135-Python%E4%B8%8A%E4%B8%8B%E6%96%87%E7%AE%A1%E7%90%86%E5%99%A8%E4%B8%8E%E8%B5%84%E6%BA%90%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/" title="每日技术博客 135 · Python（十一）：上下文管理器与资源生命周期">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 135 · Python（十一）：上下文管理器与资源生命周期</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

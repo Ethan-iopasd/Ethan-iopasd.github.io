@@ -1,0 +1,1016 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-21 · 第 133 篇 Vue 3 系列第十一篇。reactive 不是「深度监听」，是在读取时记录依赖、在写入时通知依赖。理解了 effect 与 dep 的双向映射，shallowRef、toRaw、以及「为什么改了不更新」就都不需要背了。  📚 Vue 3 系列目录   章节 主题 状态    一 组合式 API 与响应式基础 已发布   二 组件通信">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 133 · Vue 3（十一）：响应式原理与依赖收集">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/21/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2133-Vue3%E5%93%8D%E5%BA%94%E5%BC%8F%E5%8E%9F%E7%90%86%E4%B8%8E%E4%BE%9D%E8%B5%96%E6%94%B6%E9%9B%86/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-21 · 第 133 篇 Vue 3 系列第十一篇。reactive 不是「深度监听」，是在读取时记录依赖、在写入时通知依赖。理解了 effect 与 dep 的双向映射，shallowRef、toRaw、以及「为什么改了不更新」就都不需要背了。  📚 Vue 3 系列目录   章节 主题 状态    一 组合式 API 与响应式基础 已发布   二 组件通信">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-21T02:40:00.000Z">
+<meta property="article:modified_time" content="2026-10-21T01:48:06.193Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="vue3">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 133 · Vue 3（十一）：响应式原理与依赖收集 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 133 · Vue 3（十一）：响应式原理与依赖收集"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-21 10:40" pubdate>
+          2026年10月21日 上午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.1k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          18 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 133 · Vue 3（十一）：响应式原理与依赖收集</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-21 · 第 133 篇</p>
+<p>Vue 3 系列第十一篇。<code>reactive</code> 不是「深度监听」，是<strong>在读取时记录依赖、在写入时通知依赖</strong>。理解了 effect 与 dep 的双向映射，<code>shallowRef</code>、<code>toRaw</code>、以及「为什么改了不更新」就都不需要背了。</p>
+</blockquote>
+<h2 id="📚-Vue-3-系列目录"><a href="#📚-Vue-3-系列目录" class="headerlink" title="📚 Vue 3 系列目录"></a>📚 Vue 3 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>组合式 API 与响应式基础</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>组件通信的三种方式</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>Vue Router 路由与守卫</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td>Pinia 状态管理</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>五</td>
+<td>性能优化与编译期优化</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>六</td>
+<td>组合式函数与逻辑复用</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>七</td>
+<td>测试、调试与开发工具</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>八</td>
+<td>组件设计模式与渲染机制</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>九</td>
+<td>国际化、SSR 与微前端</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>十</td>
+<td>自定义指令、Teleport 与插件</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>十一</td>
+<td>响应式原理与依赖收集</td>
+<td><strong>本篇</strong></td>
+</tr>
+<tr>
+<td>十二</td>
+<td>编译原理与模板到渲染函数</td>
+<td>已发布</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>响应式的全部机制就是两个 Map：<code>target → key → dep</code>，以及 <code>dep → 一组 effect</code>。</strong> 读取时把当前 effect 塞进对应 dep，写入时把 dep 里的 effect 全跑一遍。所谓「响应式系统」，就是这套订阅关系的维护代码。</p>
+<h2 id="一、Proxy-相比-defineProperty-解决了什么"><a href="#一、Proxy-相比-defineProperty-解决了什么" class="headerlink" title="一、Proxy 相比 defineProperty 解决了什么"></a>一、Proxy 相比 defineProperty 解决了什么</h2><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>Vue 2 <code>defineProperty</code></th>
+<th>Vue 3 <code>Proxy</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>新增属性</td>
+<td>检测不到，需 <code>$set</code></td>
+<td>天然支持</td>
+</tr>
+<tr>
+<td>删除属性</td>
+<td>检测不到，需 <code>$delete</code></td>
+<td>天然支持</td>
+</tr>
+<tr>
+<td>数组下标</td>
+<td>需重写数组方法</td>
+<td>天然支持</td>
+</tr>
+<tr>
+<td>索引越界</td>
+<td>不支持</td>
+<td>支持</td>
+</tr>
+<tr>
+<td>初始化成本</td>
+<td>递归遍历所有属性</td>
+<td>惰性，访问到才代理</td>
+</tr>
+<tr>
+<td>拦截范围</td>
+<td>只能拦截 get&#x2F;set</td>
+<td>get&#x2F;set&#x2F;has&#x2F;delete&#x2F;ownKeys 等</td>
+</tr>
+</tbody></table>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs javascript"><span class="hljs-comment">// Vue 2 的写法：必须预先递归定义所有属性</span><br><span class="hljs-title class_">Object</span>.<span class="hljs-title function_">defineProperty</span>(obj, <span class="hljs-string">&#x27;count&#x27;</span>, &#123;<br>  <span class="hljs-title function_">get</span>(<span class="hljs-params"></span>) &#123; <span class="hljs-keyword">return</span> value &#125;,<br>  <span class="hljs-title function_">set</span>(<span class="hljs-params">v</span>) &#123; value = v; dep.<span class="hljs-title function_">notify</span>() &#125;,<br>&#125;)<br><br><span class="hljs-comment">// Vue 3：代理整个对象，任意操作都能拦截</span><br><span class="hljs-keyword">const</span> proxy = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Proxy</span>(raw, &#123;<br>  <span class="hljs-title function_">get</span>(<span class="hljs-params">target, key, receiver</span>) &#123; <span class="hljs-title function_">track</span>(target, key); <span class="hljs-keyword">return</span> <span class="hljs-title class_">Reflect</span>.<span class="hljs-title function_">get</span>(target, key, receiver) &#125;,<br>  <span class="hljs-title function_">set</span>(<span class="hljs-params">target, key, value, receiver</span>) &#123; <span class="hljs-comment">/* ... */</span> <span class="hljs-keyword">return</span> <span class="hljs-title class_">Reflect</span>.<span class="hljs-title function_">set</span>(target, key, value, receiver) &#125;,<br>&#125;)<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>Proxy</code> 是惰性的</strong>。只有被访问到的嵌套对象才会被代理，这大幅降低了初始化成本。Vue 2 在 <code>data</code> 初始化时要递归遍历所有属性，大对象上启动明显更慢。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>Reflect</code> 不能省</strong>。<code>Reflect.get(target, key, receiver)</code> 里的 <code>receiver</code> 保证了 getter&#x2F;setter 里 <code>this</code> 指向代理对象，否则继承场景下会读到原始对象、绕过代理。</p>
+</blockquote>
+<h2 id="二、三个全局容器"><a href="#二、三个全局容器" class="headerlink" title="二、三个全局容器"></a>二、三个全局容器</h2><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><code class="hljs javascript"><span class="hljs-comment">// 1. targetMap: 原始对象 -&gt; Map&lt;key, Set&lt;effect&gt;&gt;</span><br><span class="hljs-keyword">const</span> targetMap = <span class="hljs-keyword">new</span> <span class="hljs-title class_">WeakMap</span>()<br><br><span class="hljs-comment">// 2. 当前正在执行的 effect（副作用函数）</span><br><span class="hljs-keyword">let</span> activeEffect = <span class="hljs-literal">null</span><br><br><span class="hljs-comment">// 3. 栈：支持 effect 嵌套（组件嵌套渲染）</span><br><span class="hljs-keyword">const</span> effectStack = []<br><br><span class="hljs-keyword">function</span> <span class="hljs-title function_">track</span>(<span class="hljs-params">target, key</span>) &#123;<br>  <span class="hljs-keyword">if</span> (!activeEffect) <span class="hljs-keyword">return</span><br>  <span class="hljs-keyword">let</span> depsMap = targetMap.<span class="hljs-title function_">get</span>(target)<br>  <span class="hljs-keyword">if</span> (!depsMap) targetMap.<span class="hljs-title function_">set</span>(target, (depsMap = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Map</span>()))<br>  <span class="hljs-keyword">let</span> dep = depsMap.<span class="hljs-title function_">get</span>(key)<br>  <span class="hljs-keyword">if</span> (!dep) depsMap.<span class="hljs-title function_">set</span>(key, (dep = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Set</span>()))<br>  dep.<span class="hljs-title function_">add</span>(activeEffect)<br>  activeEffect.<span class="hljs-property">deps</span>.<span class="hljs-title function_">push</span>(dep)   <span class="hljs-comment">// 反向记录，便于清理</span><br>&#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>结构</th>
+<th>键</th>
+<th>值</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>targetMap</code></td>
+<td>原始对象</td>
+<td><code>Map&lt;key, Set&lt;effect&gt;&gt;</code></td>
+<td>最外层索引</td>
+</tr>
+<tr>
+<td><code>depsMap</code></td>
+<td>属性名</td>
+<td><code>Set&lt;effect&gt;</code></td>
+<td>该属性被谁依赖</td>
+</tr>
+<tr>
+<td><code>dep</code></td>
+<td>——</td>
+<td>effect 集合</td>
+<td>触发时全部重跑</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ **用 <code>WeakMap</code> 而不是 <code>Map</code>**。这样对象被回收时，其依赖记录能被 GC 自动清理，否则会造成内存泄漏（响应式对象永远不释放）。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>activeEffect.deps</code> 的反向记录是为了清理</strong>。每次重新执行 effect 前要先清空旧依赖，否则条件分支切换后（<code>if (flag) use(a) else use(b)</code>）会残留无效依赖，导致 <code>b</code> 变化时也触发更新。</p>
+</blockquote>
+<h2 id="三、effect-与调度器"><a href="#三、effect-与调度器" class="headerlink" title="三、effect 与调度器"></a>三、effect 与调度器</h2><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><code class="hljs javascript"><span class="hljs-keyword">function</span> <span class="hljs-title function_">effect</span>(<span class="hljs-params">fn, options = &#123;&#125;</span>) &#123;<br>  <span class="hljs-keyword">const</span> e = <span class="hljs-keyword">function</span> <span class="hljs-title function_">reactiveEffect</span>(<span class="hljs-params"></span>) &#123;<br>    <span class="hljs-keyword">if</span> (!effectStack.<span class="hljs-title function_">includes</span>(e)) &#123;<br>      <span class="hljs-title function_">cleanup</span>(e)                       <span class="hljs-comment">// 清掉旧依赖</span><br>      <span class="hljs-keyword">try</span> &#123;<br>        effectStack.<span class="hljs-title function_">push</span>(e)<br>        activeEffect = e<br>        <span class="hljs-keyword">return</span> <span class="hljs-title function_">fn</span>()<br>      &#125; <span class="hljs-keyword">finally</span> &#123;<br>        effectStack.<span class="hljs-title function_">pop</span>()<br>        activeEffect = effectStack[effectStack.<span class="hljs-property">length</span> - <span class="hljs-number">1</span>]<br>      &#125;<br>    &#125;<br>  &#125;<br>  e.<span class="hljs-property">deps</span> = []<br>  e.<span class="hljs-property">scheduler</span> = options.<span class="hljs-property">scheduler</span><br>  <span class="hljs-title function_">e</span>()<br>  <span class="hljs-keyword">return</span> e<br>&#125;<br><br><span class="hljs-keyword">function</span> <span class="hljs-title function_">trigger</span>(<span class="hljs-params">target, key</span>) &#123;<br>  <span class="hljs-keyword">const</span> depsMap = targetMap.<span class="hljs-title function_">get</span>(target)<br>  <span class="hljs-keyword">const</span> dep = depsMap?.<span class="hljs-title function_">get</span>(key)<br>  <span class="hljs-keyword">if</span> (!dep) <span class="hljs-keyword">return</span><br>  <span class="hljs-keyword">const</span> effects = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Set</span>(dep)<br>  effects.<span class="hljs-title function_">forEach</span>(<span class="hljs-function"><span class="hljs-params">e</span> =&gt;</span> &#123;<br>    <span class="hljs-keyword">if</span> (e !== activeEffect) &#123;          <span class="hljs-comment">// 防止自触发死循环</span><br>      e.<span class="hljs-property">scheduler</span> ? e.<span class="hljs-title function_">scheduler</span>(e) : <span class="hljs-title function_">e</span>()<br>    &#125;<br>  &#125;)<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>机制</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>effectStack</code></td>
+<td>支持嵌套 effect，恢复外层 <code>activeEffect</code></td>
+</tr>
+<tr>
+<td><code>cleanup</code></td>
+<td>每次执行前清空旧依赖，避免残留</td>
+</tr>
+<tr>
+<td><code>e !== activeEffect</code></td>
+<td>防止 effect 内部修改自己的依赖导致无限递归</td>
+</tr>
+<tr>
+<td><code>scheduler</code></td>
+<td>把「立即执行」换成「放进队列」，组件更新就靠它</td>
+</tr>
+<tr>
+<td><code>new Set(dep)</code></td>
+<td>拷贝一份再遍历，避免执行中修改集合导致死循环</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>trigger</code> 里必须拷贝 dep</strong>。如果在遍历 <code>Set</code> 的过程中 effect 又触发 <code>track</code> 往同一个 <code>Set</code> 里加元素，会无限循环。Vue 3 源码里用 <code>new Set(dep)</code> 或按索引遍历规避。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>scheduler</code> 是组件更新与 <code>watch</code> 的分水岭</strong>。组件渲染 effect 的 scheduler 会把任务推进微任务队列（合并同一轮多次修改），<code>watch</code> 的 scheduler 则决定是同步还是异步回调。</p>
+</blockquote>
+<h2 id="四、ref-与-reactive-的真实区别"><a href="#四、ref-与-reactive-的真实区别" class="headerlink" title="四、ref 与 reactive 的真实区别"></a>四、<code>ref</code> 与 <code>reactive</code> 的真实区别</h2><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><code class="hljs javascript"><span class="hljs-keyword">function</span> <span class="hljs-title function_">ref</span>(<span class="hljs-params">value</span>) &#123;<br>  <span class="hljs-keyword">if</span> (<span class="hljs-title function_">isRef</span>(value)) <span class="hljs-keyword">return</span> value<br>  <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">RefImpl</span>(value)<br>&#125;<br><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">RefImpl</span> &#123;<br>  <span class="hljs-title function_">constructor</span>(<span class="hljs-params">value</span>) &#123;<br>    <span class="hljs-variable language_">this</span>.<span class="hljs-property">_value</span> = <span class="hljs-title function_">isObject</span>(value) ? <span class="hljs-title function_">reactive</span>(value) : value<br>    <span class="hljs-variable language_">this</span>.<span class="hljs-property">dep</span> = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Set</span>()<br>  &#125;<br>  <span class="hljs-keyword">get</span> <span class="hljs-title function_">value</span>() &#123;<br>    <span class="hljs-title function_">track</span>(<span class="hljs-variable language_">this</span>, <span class="hljs-string">&#x27;value&#x27;</span>)     <span class="hljs-comment">// 注意：track 的是 this，不是 _value</span><br>    <span class="hljs-keyword">return</span> <span class="hljs-variable language_">this</span>.<span class="hljs-property">_value</span><br>  &#125;<br>  <span class="hljs-keyword">set</span> <span class="hljs-title function_">value</span>(<span class="hljs-params">v</span>) &#123;<br>    <span class="hljs-keyword">if</span> (<span class="hljs-title function_">hasChanged</span>(v, <span class="hljs-variable language_">this</span>.<span class="hljs-property">_value</span>)) &#123;<br>      <span class="hljs-variable language_">this</span>.<span class="hljs-property">_value</span> = <span class="hljs-title function_">isObject</span>(v) ? <span class="hljs-title function_">reactive</span>(v) : v<br>      <span class="hljs-title function_">trigger</span>(<span class="hljs-variable language_">this</span>, <span class="hljs-string">&#x27;value&#x27;</span>)<br>    &#125;<br>  &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>对比</th>
+<th><code>ref</code></th>
+<th><code>reactive</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>支持类型</td>
+<td>任意（含基本类型）</td>
+<td>仅对象&#x2F;数组&#x2F;Map&#x2F;Set</td>
+</tr>
+<tr>
+<td>访问方式</td>
+<td><code>.value</code></td>
+<td>直接访问</td>
+</tr>
+<tr>
+<td>模板中</td>
+<td>自动解包</td>
+<td>直接访问</td>
+</tr>
+<tr>
+<td>解构</td>
+<td>保持响应（因为是一个对象）</td>
+<td><strong>丢失响应</strong></td>
+</tr>
+<tr>
+<td>替换整个对象</td>
+<td><code>x.value = &#123;&#125;</code> 生效</td>
+<td><code>Object.assign</code> 或重新赋值变量</td>
+</tr>
+<tr>
+<td>实现</td>
+<td><code>get/set value</code> 拦截</td>
+<td><code>Proxy</code></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>reactive</code> 解构会丢响应</strong>。<code>const &#123; count &#125; = reactive(&#123; count: 0 &#125;)</code> 拿到的是普通数字，后续更新不会反映。需要解构时用 <code>toRefs</code>，或者直接用 <code>ref</code>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>reactive</code> 对象整体重新赋值会断链</strong>。<code>let state = reactive(&#123;...&#125;); state = reactive(&#123;...&#125;)</code> 之后，模板里绑定的是旧代理。<strong>要么用 <code>Object.assign(state, newObj)</code>，要么改用 <code>ref</code>。</strong></p>
+</blockquote>
+<h2 id="五、shallowRef-markRaw-toRaw"><a href="#五、shallowRef-markRaw-toRaw" class="headerlink" title="五、shallowRef &#x2F; markRaw &#x2F; toRaw"></a>五、<code>shallowRef</code> &#x2F; <code>markRaw</code> &#x2F; <code>toRaw</code></h2><table>
+<thead>
+<tr>
+<th>API</th>
+<th>作用</th>
+<th>场景</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>shallowRef</code></td>
+<td>只有 <code>.value</code> 替换才触发，内部不深层代理</td>
+<td>大数组、第三方实例</td>
+</tr>
+<tr>
+<td><code>shallowReactive</code></td>
+<td>只有顶层属性响应</td>
+<td>扁平配置对象</td>
+</tr>
+<tr>
+<td><code>markRaw</code></td>
+<td>永久标记为不可代理</td>
+<td>类实例、图表实例、路由对象</td>
+</tr>
+<tr>
+<td><code>toRaw</code></td>
+<td>拿到原始对象</td>
+<td>传给不兼容 Proxy 的库</td>
+</tr>
+<tr>
+<td><code>readonly</code></td>
+<td>只读代理，写入警告</td>
+<td>对外暴露的配置</td>
+</tr>
+</tbody></table>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs javascript"><span class="hljs-keyword">import</span> &#123; shallowRef, markRaw, toRaw &#125; <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;vue&#x27;</span><br><br><span class="hljs-comment">// 大列表：只在整体替换时更新，避免深层代理开销</span><br><span class="hljs-keyword">const</span> list = <span class="hljs-title function_">shallowRef</span>([])<br>list.<span class="hljs-property">value</span> = <span class="hljs-keyword">await</span> <span class="hljs-title function_">fetchHugeList</span>()      <span class="hljs-comment">// 触发更新</span><br>list.<span class="hljs-property">value</span>.<span class="hljs-title function_">push</span>(item)                   <span class="hljs-comment">// 不触发（需要手动 list.value = [...list.value, item]）</span><br><br><span class="hljs-comment">// 第三方实例：代理它会破坏内部逻辑</span><br><span class="hljs-keyword">const</span> chart = <span class="hljs-title function_">markRaw</span>(<span class="hljs-keyword">new</span> <span class="hljs-title class_">Chart</span>(el, options))<br><br><span class="hljs-comment">// 传给需要原始对象的库</span><br><span class="hljs-title function_">someLibrary</span>(<span class="hljs-title function_">toRaw</span>(state))<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>shallowRef</code> 里 <code>push</code> 不触发更新</strong>，这是最常见的困惑。要么整体替换数组，要么用 <code>triggerRef(list)</code> 手动触发。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>把第三方实例放进 <code>reactive</code> 是定时炸弹</strong>。ECharts、地图、Monaco 这类库内部有大量 DOM 引用和私有字段，被 Proxy 包裹后行为异常。<strong>一律 <code>markRaw</code>。</strong></p>
+</blockquote>
+<h2 id="六、计算属性与侦听器的底层"><a href="#六、计算属性与侦听器的底层" class="headerlink" title="六、计算属性与侦听器的底层"></a>六、计算属性与侦听器的底层</h2><table>
+<thead>
+<tr>
+<th>API</th>
+<th>本质</th>
+<th>缓存机制</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>computed</code></td>
+<td>带缓存的 effect（<code>ComputedRefImpl</code>）</td>
+<td><code>_dirty</code> 标记，依赖变化才重算</td>
+</tr>
+<tr>
+<td><code>watch</code></td>
+<td>手动指定源的 effect + scheduler</td>
+<td>无缓存，源变化即回调</td>
+</tr>
+<tr>
+<td><code>watchEffect</code></td>
+<td>自动收集依赖的 effect</td>
+<td>无缓存，立即执行一次</td>
+</tr>
+</tbody></table>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><code class="hljs javascript"><span class="hljs-comment">// computed 的脏标记逻辑（简化）</span><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">ComputedRefImpl</span> &#123;<br>  <span class="hljs-title function_">constructor</span>(<span class="hljs-params">getter</span>) &#123;<br>    <span class="hljs-variable language_">this</span>.<span class="hljs-property">_dirty</span> = <span class="hljs-literal">true</span><br>    <span class="hljs-variable language_">this</span>.<span class="hljs-property">effect</span> = <span class="hljs-title function_">effect</span>(getter, &#123;<br>      <span class="hljs-attr">scheduler</span>: <span class="hljs-function">() =&gt;</span> &#123; <span class="hljs-variable language_">this</span>.<span class="hljs-property">_dirty</span> = <span class="hljs-literal">true</span> &#125;,   <span class="hljs-comment">// 依赖变化只打标记，不立即重算</span><br>    &#125;)<br>  &#125;<br>  <span class="hljs-keyword">get</span> <span class="hljs-title function_">value</span>() &#123;<br>    <span class="hljs-keyword">if</span> (<span class="hljs-variable language_">this</span>.<span class="hljs-property">_dirty</span>) &#123;<br>      <span class="hljs-variable language_">this</span>.<span class="hljs-property">_value</span> = <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">effect</span>()<br>      <span class="hljs-variable language_">this</span>.<span class="hljs-property">_dirty</span> = <span class="hljs-literal">false</span><br>    &#125;<br>    <span class="hljs-keyword">return</span> <span class="hljs-variable language_">this</span>.<span class="hljs-property">_value</span><br>  &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>computed</code> 的缓存是「脏标记」而非「值比较」</strong>。依赖变了就标脏，下次读取才重算 —— 所以多次读取只算一次，但依赖变化本身不立即计算。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>computed</code> 里不要写副作用</strong>。它可能被缓存、可能不被求值、可能被多次重算。副作用放 <code>watch</code> 或 <code>watchEffect</code>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>watch</code> 的 <code>deep: true</code> 有性能代价</strong>。它会递归遍历整个对象来建立依赖，大对象上开销明显。能监听具体路径就不要 <code>deep</code>。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> <code>reactive</code> 解构后丢失响应</li>
+<li><input disabled="" type="checkbox"> <code>reactive</code> 对象整体重新赋值，模板绑定断链</li>
+<li><input disabled="" type="checkbox"> <code>shallowRef</code> 内部 <code>push</code> 不触发更新</li>
+<li><input disabled="" type="checkbox"> 把 ECharts &#x2F; Monaco 等实例放进 <code>reactive</code></li>
+<li><input disabled="" type="checkbox"> <code>computed</code> 里写副作用（发请求、改状态）</li>
+<li><input disabled="" type="checkbox"> <code>watch</code> 无脑 <code>deep: true</code>，大对象上性能崩</li>
+<li><input disabled="" type="checkbox"> 在 <code>trigger</code> 遍历 dep 时不拷贝，导致死循环</li>
+<li><input disabled="" type="checkbox"> 以为 <code>Proxy</code> 是深度监听的（实际是惰性按需）</li>
+<li><input disabled="" type="checkbox"> 用 <code>Map</code> 而非 <code>WeakMap</code> 存依赖，造成内存泄漏</li>
+<li><input disabled="" type="checkbox"> effect 执行前不清理旧依赖，条件分支残留</li>
+<li><input disabled="" type="checkbox"> 忘了 <code>Reflect</code> 的 <code>receiver</code>，继承场景绕过代理</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><ul>
+<li><a target="_blank" rel="noopener" href="https://cn.vuejs.org/guide/extras/reactivity-in-depth.html">Vue 3 · 深入响应式系统</a></li>
+<li><a target="_blank" rel="noopener" href="https://cn.vuejs.org/api/reactivity-advanced.html">Vue 3 · 响应式 API：进阶</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/vuejs/core/tree/main/packages/reactivity/src">Vue 3 源码 · <code>reactivity</code> 包</a></li>
+<li><a target="_blank" rel="noopener" href="https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Proxy">MDN · <code>Proxy</code></a></li>
+<li><a target="_blank" rel="noopener" href="https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Reflect">MDN · <code>Reflect</code></a></li>
+</ul>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/vue3/" class="category-chain-item">vue3</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/vue3/" class="print-no-link">#vue3</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 133 · Vue 3（十一）：响应式原理与依赖收集</div>
+      <div>https://ethan-iopasd.github.io/2026/10/21/每日技术博客133-Vue3响应式原理与依赖收集/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月21日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2098-Vue3%E8%87%AA%E5%AE%9A%E4%B9%89%E6%8C%87%E4%BB%A4%E4%B8%8E%E6%8F%92%E4%BB%B6%E6%9C%BA%E5%88%B6/" title="每日技术博客 098 · Vue 3（十）：自定义指令、Teleport 与插件机制">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 098 · Vue 3（十）：自定义指令、Teleport 与插件机制</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2026/10/21/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2134-Vue3%E7%BC%96%E8%AF%91%E5%8E%9F%E7%90%86%E4%B8%8E%E6%B8%B2%E6%9F%93%E5%87%BD%E6%95%B0/" title="每日技术博客 134 · Vue 3（十二）：编译原理与模板到渲染函数">
+                        <span class="hidden-mobile">每日技术博客 134 · Vue 3（十二）：编译原理与模板到渲染函数</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

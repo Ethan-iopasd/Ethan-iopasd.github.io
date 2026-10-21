@@ -1,0 +1,1037 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-21 · 第 134 篇 Vue 3 系列第十二篇。模板不是「运行时解释执行」，它在构建时就被编译成了渲染函数。理解了 parse → transform → generate 三个阶段，静态提升、patchFlag、Block Tree 这些优化为什么有效就一目了然。  📚 Vue 3 系列目录   章节 主题 状态    一 组合式 API 与响应式基础">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 134 · Vue 3（十二）：编译原理与模板到渲染函数">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/21/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2134-Vue3%E7%BC%96%E8%AF%91%E5%8E%9F%E7%90%86%E4%B8%8E%E6%B8%B2%E6%9F%93%E5%87%BD%E6%95%B0/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-21 · 第 134 篇 Vue 3 系列第十二篇。模板不是「运行时解释执行」，它在构建时就被编译成了渲染函数。理解了 parse → transform → generate 三个阶段，静态提升、patchFlag、Block Tree 这些优化为什么有效就一目了然。  📚 Vue 3 系列目录   章节 主题 状态    一 组合式 API 与响应式基础">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-21T02:55:00.000Z">
+<meta property="article:modified_time" content="2026-10-21T01:48:22.364Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="vue3">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 134 · Vue 3（十二）：编译原理与模板到渲染函数 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 134 · Vue 3（十二）：编译原理与模板到渲染函数"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-21 10:55" pubdate>
+          2026年10月21日 上午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.1k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          18 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 134 · Vue 3（十二）：编译原理与模板到渲染函数</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-21 · 第 134 篇</p>
+<p>Vue 3 系列第十二篇。模板不是「运行时解释执行」，它在构建时就被编译成了渲染函数。理解了 parse → transform → generate 三个阶段，静态提升、patchFlag、Block Tree 这些优化为什么有效就一目了然。</p>
+</blockquote>
+<h2 id="📚-Vue-3-系列目录"><a href="#📚-Vue-3-系列目录" class="headerlink" title="📚 Vue 3 系列目录"></a>📚 Vue 3 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>组合式 API 与响应式基础</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>组件通信的三种方式</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>Vue Router 路由与守卫</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td>Pinia 状态管理</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>五</td>
+<td>性能优化与编译期优化</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>六</td>
+<td>组合式函数与逻辑复用</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>七</td>
+<td>测试、调试与开发工具</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>八</td>
+<td>组件设计模式与渲染机制</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>九</td>
+<td>国际化、SSR 与微前端</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>十</td>
+<td>自定义指令、Teleport 与插件</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>十一</td>
+<td>响应式原理与依赖收集</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>十二</td>
+<td>编译原理与模板到渲染函数</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>Vue 3 的性能优势大半来自编译器：它在编译期就知道「哪个节点是动态的」，于是运行时只需要 diff 那一小块。</strong> 这也是为什么 <code>h()</code> 手写渲染函数反而可能更慢 —— 你丢掉了编译器的静态分析信息。</p>
+<h2 id="一、三个阶段"><a href="#一、三个阶段" class="headerlink" title="一、三个阶段"></a>一、三个阶段</h2><table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>输入</th>
+<th>输出</th>
+<th>做什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>parse</td>
+<td>模板字符串</td>
+<td>AST</td>
+<td>词法 + 语法分析，产出节点树</td>
+</tr>
+<tr>
+<td>transform</td>
+<td>AST</td>
+<td>增强后的 AST</td>
+<td>遍历打补丁：静态提升、patchFlag、指令转换</td>
+</tr>
+<tr>
+<td>generate</td>
+<td>AST</td>
+<td>渲染函数代码字符串</td>
+<td>拼接 <code>createElementVNode</code> 调用</td>
+</tr>
+</tbody></table>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs javascript"><span class="hljs-keyword">import</span> &#123; compile &#125; <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@vue/compiler-dom&#x27;</span><br><br><span class="hljs-keyword">const</span> &#123; code &#125; = <span class="hljs-title function_">compile</span>(<span class="hljs-string">`&lt;div&gt;&lt;p&gt;static&lt;/p&gt;&lt;p&gt;&#123;&#123; msg &#125;&#125;&lt;/p&gt;&lt;/div&gt;`</span>)<br><span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(code)<br></code></pre></td></tr></table></figure>
+
+<p>输出大致是：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs javascript"><span class="hljs-keyword">import</span> &#123; createElementVNode <span class="hljs-keyword">as</span> _createElementVNode, toDisplayString <span class="hljs-keyword">as</span> _toDisplayString, openBlock <span class="hljs-keyword">as</span> _openBlock, createElementBlock <span class="hljs-keyword">as</span> _createElementBlock &#125; <span class="hljs-keyword">from</span> <span class="hljs-string">&quot;vue&quot;</span><br><br><span class="hljs-keyword">export</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">render</span>(<span class="hljs-params">_ctx, _cache</span>) &#123;<br>  <span class="hljs-keyword">return</span> (<span class="hljs-title function_">_openBlock</span>(), <span class="hljs-title function_">_createElementBlock</span>(<span class="hljs-string">&quot;div&quot;</span>, <span class="hljs-literal">null</span>, [<br>    <span class="hljs-title function_">_createElementVNode</span>(<span class="hljs-string">&quot;p&quot;</span>, <span class="hljs-literal">null</span>, <span class="hljs-string">&quot;static&quot;</span>),<br>    <span class="hljs-title function_">_createElementVNode</span>(<span class="hljs-string">&quot;p&quot;</span>, <span class="hljs-literal">null</span>, <span class="hljs-title function_">_toDisplayString</span>(_ctx.<span class="hljs-property">msg</span>), <span class="hljs-number">1</span> <span class="hljs-comment">/* TEXT */</span>)<br>  ]))<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>注意第二个 <code>p</code> 末尾的 <code>1 /* TEXT */</code> —— 这就是 <strong>patchFlag</strong>，告诉运行时「这个节点的文本是动态的，只需比对文本」。</p>
+<blockquote>
+<p>⚠️ <strong>编译发生在构建时</strong>，不是运行时。<code>vue-loader</code> &#x2F; <code>@vitejs/plugin-vue</code> 在打包阶段就把它转成渲染函数。只有用运行时 + 模板字符串（CDN 全量版）时才在浏览器里编译。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>vue</code> 包有多个构建产物</strong>。<code>vue.runtime.esm-bundler.js</code> 不含编译器（更小），<code>vue.esm-bundler.js</code> 含编译器。<strong>用 SFC 时走的是 runtime-only，模板已在构建期编译完。</strong></p>
+</blockquote>
+<h2 id="二、静态提升（hoistStatic）"><a href="#二、静态提升（hoistStatic）" class="headerlink" title="二、静态提升（hoistStatic）"></a>二、静态提升（hoistStatic）</h2><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><code class="hljs javascript"><span class="hljs-comment">// 编译前</span><br>&lt;div&gt;<br>  <span class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>永远不变<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span></span><br>  <span class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>&#123;&#123; dynamic &#125;&#125;<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span></span><br>&lt;/div&gt;<br><br><span class="hljs-comment">// 编译后：静态节点被提到 render 函数外部，只创建一次</span><br><span class="hljs-keyword">const</span> _hoisted_1 = <span class="hljs-title function_">_createElementVNode</span>(<span class="hljs-string">&quot;p&quot;</span>, <span class="hljs-literal">null</span>, <span class="hljs-string">&quot;永远不变&quot;</span>, -<span class="hljs-number">1</span> <span class="hljs-comment">/* HOISTED */</span>)<br><br><span class="hljs-keyword">export</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">render</span>(<span class="hljs-params">_ctx</span>) &#123;<br>  <span class="hljs-keyword">return</span> (<span class="hljs-title function_">_openBlock</span>(), <span class="hljs-title function_">_createElementBlock</span>(<span class="hljs-string">&quot;div&quot;</span>, <span class="hljs-literal">null</span>, [<br>    _hoisted_1,                                        <span class="hljs-comment">// 复用同一 vnode</span><br>    <span class="hljs-title function_">_createElementVNode</span>(<span class="hljs-string">&quot;p&quot;</span>, <span class="hljs-literal">null</span>, <span class="hljs-title function_">_toDisplayString</span>(_ctx.<span class="hljs-property">dynamic</span>), <span class="hljs-number">1</span>)<br>  ]))<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>优化</th>
+<th>条件</th>
+<th>收益</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>静态节点提升</td>
+<td>节点及其子节点完全静态</td>
+<td>只创建一次，后续复用</td>
+</tr>
+<tr>
+<td>静态属性提升</td>
+<td>属性值静态（如 <code>class=&quot;btn&quot;</code>）</td>
+<td>属性对象只创建一次</td>
+</tr>
+<tr>
+<td>字符串化</td>
+<td>纯文本静态子树</td>
+<td>直接产出 HTML 字符串，跳过 vnode</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>静态提升的 vnode 是共享的</strong>。这意味着你不能修改它的属性 —— 所以对静态节点做 DOM 操作要小心，Vue 认为它永远不变。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>-1 /* HOISTED */</code> 这个 patchFlag 表示「永不 diff」</strong>。运行时看到它就跳过整个子树，这是收益最大的一处优化。</p>
+</blockquote>
+<h2 id="三、patchFlag：精确到属性级"><a href="#三、patchFlag：精确到属性级" class="headerlink" title="三、patchFlag：精确到属性级"></a>三、patchFlag：精确到属性级</h2><table>
+<thead>
+<tr>
+<th>flag</th>
+<th>含义</th>
+<th>运行时行为</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>1</code> TEXT</td>
+<td>文本是动态的</td>
+<td>只比 <code>el.textContent</code></td>
+</tr>
+<tr>
+<td><code>2</code> CLASS</td>
+<td>class 动态</td>
+<td>只比 class</td>
+</tr>
+<tr>
+<td><code>4</code> STYLE</td>
+<td>style 动态</td>
+<td>只比 style</td>
+</tr>
+<tr>
+<td><code>8</code> PROPS</td>
+<td>有动态属性（带 key 信息）</td>
+<td>只比指定 key</td>
+</tr>
+<tr>
+<td><code>16</code> FULL_PROPS</td>
+<td>动态 key 未知</td>
+<td>全量比属性</td>
+</tr>
+<tr>
+<td><code>32</code> HYDRATE_EVENTS</td>
+<td>有事件监听</td>
+<td>SSR 水合专用</td>
+</tr>
+<tr>
+<td><code>64</code> STABLE_FRAGMENT</td>
+<td>子节点顺序稳定</td>
+<td>跳过 fragment 的特殊处理</td>
+</tr>
+<tr>
+<td><code>128</code> KEYED_FRAGMENT</td>
+<td>带 key 的 fragment</td>
+<td>走 keyed diff</td>
+</tr>
+<tr>
+<td><code>512</code> NEED_PATCH</td>
+<td>有 ref &#x2F; 指令</td>
+<td>需要额外处理</td>
+</tr>
+</tbody></table>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs javascript"><span class="hljs-comment">// :class 与 :id 同时动态 -&gt; 8 /* PROPS */, [&quot;class&quot;, &quot;id&quot;]</span><br><span class="hljs-title function_">_createElementVNode</span>(<span class="hljs-string">&quot;div&quot;</span>, &#123;<br>  <span class="hljs-attr">class</span>: <span class="hljs-title function_">_normalizeClass</span>(_ctx.<span class="hljs-property">cls</span>),<br>  <span class="hljs-attr">id</span>: _ctx.<span class="hljs-property">id</span>,<br>&#125;, <span class="hljs-literal">null</span>, <span class="hljs-number">8</span>, [<span class="hljs-string">&quot;class&quot;</span>, <span class="hljs-string">&quot;id&quot;</span>])<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>8</code> 后面那个字符串数组就是「需要比对的属性名」</strong>。所以 <code>&lt;div :class=&quot;a&quot; :id=&quot;b&quot; :title=&quot;c&quot;&gt;</code> 只比这三个属性，其余全部跳过 —— 这就是 Vue 3 diff 快的原因。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>v-bind=&quot;obj&quot;</code> 会退化成 <code>16 /* FULL_PROPS */</code><strong>。因为编译器不知道 <code>obj</code> 里有哪些 key，只能全量比对。</strong>能写具体属性就别用对象展开。</strong></p>
+</blockquote>
+<h2 id="四、Block-Tree：把动态节点拍平"><a href="#四、Block-Tree：把动态节点拍平" class="headerlink" title="四、Block Tree：把动态节点拍平"></a>四、Block Tree：把动态节点拍平</h2><p>Vue 2 的问题：模板嵌套多深，diff 就要递归多深。Vue 3 的解法：<strong>用一个数组收集所有带 patchFlag 的动态节点</strong>。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs javascript"><span class="hljs-keyword">export</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">render</span>(<span class="hljs-params">_ctx, _cache</span>) &#123;<br>  <span class="hljs-keyword">return</span> (<span class="hljs-title function_">_openBlock</span>(), <span class="hljs-title function_">_createElementBlock</span>(<span class="hljs-string">&quot;div&quot;</span>, <span class="hljs-literal">null</span>, [<br>    <span class="hljs-title function_">_createElementVNode</span>(<span class="hljs-string">&quot;section&quot;</span>, <span class="hljs-literal">null</span>, [<br>      <span class="hljs-title function_">_createElementVNode</span>(<span class="hljs-string">&quot;p&quot;</span>, <span class="hljs-literal">null</span>, <span class="hljs-title function_">_toDisplayString</span>(_ctx.<span class="hljs-property">a</span>), <span class="hljs-number">1</span>),   <span class="hljs-comment">// 进 block</span><br>      <span class="hljs-title function_">_createElementVNode</span>(<span class="hljs-string">&quot;div&quot;</span>, <span class="hljs-literal">null</span>, [<br>        <span class="hljs-title function_">_createElementVNode</span>(<span class="hljs-string">&quot;span&quot;</span>, <span class="hljs-literal">null</span>, <span class="hljs-title function_">_toDisplayString</span>(_ctx.<span class="hljs-property">b</span>), <span class="hljs-number">1</span>),  <span class="hljs-comment">// 也进同一个 block</span><br>      ]),<br>    ]),<br>  ]))<br>&#125;<br><span class="hljs-comment">// 运行时：block 里只存了 2 个动态节点，diff 只遍历这 2 个</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Block</td>
+<td>一个 <code>openBlock()</code> &#x2F; <code>closeBlock()</code> 之间的节点集合</td>
+</tr>
+<tr>
+<td><code>dynamicChildren</code></td>
+<td>Block 内所有动态节点的扁平数组</td>
+</tr>
+<tr>
+<td>v-if &#x2F; v-for</td>
+<td>会创建新的 Block（因为结构可能变）</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>v-if</code> &#x2F; <code>v-for</code> 会打断 Block 的拍平</strong>。因为它们让子结构不确定，编译器只能退回到「逐个 diff」。所以<strong>把 <code>v-if</code> 放在动态节点越内层越好</strong>，能保留更多外层优化。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>v-for</code> 的 key 依然重要</strong>。Block Tree 优化的是「跳过静态节点」，但列表内部的复用仍然依赖 key。没有 key 会退化为就地复用，状态会错位。</p>
+</blockquote>
+<h2 id="五、编译器的可配置项"><a href="#五、编译器的可配置项" class="headerlink" title="五、编译器的可配置项"></a>五、编译器的可配置项</h2><table>
+<thead>
+<tr>
+<th>选项</th>
+<th>作用</th>
+<th>影响</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>hoistStatic</code></td>
+<td>静态提升</td>
+<td>关闭后包体积略小，运行稍慢</td>
+</tr>
+<tr>
+<td><code>cacheHandlers</code></td>
+<td>事件处理函数缓存</td>
+<td>避免每次渲染创建新函数</td>
+</tr>
+<tr>
+<td><code>prefixIdentifiers</code></td>
+<td>变量加 <code>_ctx.</code> 前缀</td>
+<td>runtime-only 必须开启</td>
+</tr>
+<tr>
+<td><code>mode: &#39;module&#39;</code></td>
+<td>输出 ESM</td>
+<td>默认</td>
+</tr>
+<tr>
+<td><code>isCustomElement</code></td>
+<td>自定义元素白名单</td>
+<td>避免被当成组件解析</td>
+</tr>
+</tbody></table>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs javascript"><span class="hljs-comment">// vite.config.js</span><br><span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> &#123;<br>  <span class="hljs-attr">plugins</span>: [<span class="hljs-title function_">vue</span>(&#123;<br>    <span class="hljs-attr">template</span>: &#123;<br>      <span class="hljs-attr">compilerOptions</span>: &#123;<br>        <span class="hljs-attr">isCustomElement</span>: <span class="hljs-function">(<span class="hljs-params">tag</span>) =&gt;</span> tag.<span class="hljs-title function_">startsWith</span>(<span class="hljs-string">&#x27;my-&#x27;</span>),<br>      &#125;,<br>    &#125;,<br>  &#125;)],<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>cacheHandlers</code> 默认开启</strong>，它把 <code>@click=&quot;handler&quot;</code> 缓存成同一个函数。但如果你写 <code>@click=&quot;() =&gt; doSomething(id)&quot;</code>（内联箭头函数），缓存会失效，每次渲染都创建新函数。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>自定义元素不注册 <code>isCustomElement</code> 会报错</strong>。编译器会把它当成未注册组件去解析，控制台出现 “Failed to resolve component”。</p>
+</blockquote>
+<h2 id="六、手写渲染函数-vs-模板"><a href="#六、手写渲染函数-vs-模板" class="headerlink" title="六、手写渲染函数 vs 模板"></a>六、手写渲染函数 vs 模板</h2><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>模板</th>
+<th><code>h()</code> &#x2F; JSX</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>编译期优化</td>
+<td><strong>有</strong>（patchFlag、Block）</td>
+<td>无（全量 diff）</td>
+</tr>
+<tr>
+<td>可读性</td>
+<td>高（贴近 HTML）</td>
+<td>中（灵活但啰嗦）</td>
+</tr>
+<tr>
+<td>动态性</td>
+<td>受模板语法限制</td>
+<td>完全自由</td>
+</tr>
+<tr>
+<td>适用</td>
+<td>95% 的场景</td>
+<td>高度动态、需要程序化生成结构</td>
+</tr>
+</tbody></table>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs javascript"><span class="hljs-keyword">import</span> &#123; h, defineComponent &#125; <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;vue&#x27;</span><br><br><span class="hljs-comment">// 需要根据数据结构动态生成层级时，渲染函数更合适</span><br><span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> <span class="hljs-title function_">defineComponent</span>(&#123;<br>  <span class="hljs-attr">props</span>: &#123; <span class="hljs-attr">depth</span>: <span class="hljs-title class_">Number</span> &#125;,<br>  <span class="hljs-title function_">setup</span>(<span class="hljs-params">props, &#123; slots &#125;</span>) &#123;<br>    <span class="hljs-keyword">return</span> <span class="hljs-function">() =&gt;</span> props.<span class="hljs-property">depth</span> &gt; <span class="hljs-number">3</span><br>      ? slots.<span class="hljs-property">default</span>?.()<br>      : <span class="hljs-title function_">h</span>(<span class="hljs-string">&#x27;div&#x27;</span>, &#123; <span class="hljs-attr">class</span>: <span class="hljs-string">`level-<span class="hljs-subst">$&#123;props.depth&#125;</span>`</span> &#125;, [slots.<span class="hljs-property">default</span>?.()])<br>  &#125;,<br>&#125;)<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>h()</code> 里没有 patchFlag</strong>，运行时只能全量比对。<strong>能用模板就用模板</strong>，除非确实需要程序化生成结构。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>渲染函数里访问响应式数据必须在 <code>render</code> 期间</strong>，否则依赖收集不到。在 <code>setup</code> 顶层提前读出来存成普通变量，后续更新不会触发重渲染。</p>
+</blockquote>
+<h2 id="七、调试编译产物"><a href="#七、调试编译产物" class="headerlink" title="七、调试编译产物"></a>七、调试编译产物</h2><table>
+<thead>
+<tr>
+<th>手段</th>
+<th>用法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>@vue/compiler-dom</code> 在线编译</td>
+<td>看生成的渲染函数</td>
+</tr>
+<tr>
+<td>Vue DevTools</td>
+<td>看组件树与更新原因</td>
+</tr>
+<tr>
+<td><code>__VUE_PROD_DEVTOOLS__</code></td>
+<td>生产环境开启调试</td>
+</tr>
+<tr>
+<td>源码 <code>packages/compiler-core</code></td>
+<td>研究 transform 的具体实现</td>
+</tr>
+</tbody></table>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs javascript"><span class="hljs-comment">// 快速查看编译结果</span><br><span class="hljs-keyword">import</span> &#123; compile &#125; <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@vue/compiler-dom&#x27;</span><br><span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-title function_">compile</span>(<span class="hljs-string">`&lt;div :class=&quot;c&quot;&gt;&#123;&#123; t &#125;&#125;&lt;/div&gt;`</span>).<span class="hljs-property">code</span>)<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>生产构建里模板会被内联成渲染函数</strong>，DevTools 看不到原始模板。想看编译产物就单独跑 <code>compile()</code>。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 以为模板是运行时解释执行的</li>
+<li><input disabled="" type="checkbox"> 用 <code>v-bind=&quot;obj&quot;</code> 导致退化为 <code>FULL_PROPS</code> 全量 diff</li>
+<li><input disabled="" type="checkbox"> <code>v-if</code> 写在最外层，打断 Block 优化</li>
+<li><input disabled="" type="checkbox"> <code>v-for</code> 不写 key，列表状态错位</li>
+<li><input disabled="" type="checkbox"> 内联箭头函数事件，破坏 <code>cacheHandlers</code> 缓存</li>
+<li><input disabled="" type="checkbox"> 修改被静态提升的 vnode 属性</li>
+<li><input disabled="" type="checkbox"> 自定义元素没配 <code>isCustomElement</code>，报组件未注册</li>
+<li><input disabled="" type="checkbox"> 在渲染函数里提前读取响应式数据，依赖收集不到</li>
+<li><input disabled="" type="checkbox"> 用 runtime-only 构建却写模板字符串</li>
+<li><input disabled="" type="checkbox"> 以为手写 <code>h()</code> 一定比模板快（丢了编译期优化）</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><ul>
+<li><a target="_blank" rel="noopener" href="https://cn.vuejs.org/guide/extras/rendering-mechanism.html">Vue 3 · 渲染机制与优化</a></li>
+<li><a target="_blank" rel="noopener" href="https://cn.vuejs.org/api/compile-time-flags.html">Vue 3 · 编译器选项</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/vuejs/core/tree/main/packages/compiler-core/src">Vue 3 源码 · <code>compiler-core</code></a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/vuejs/core/tree/main/packages/compiler-dom/src">Vue 3 源码 · <code>compiler-dom</code></a></li>
+<li><a target="_blank" rel="noopener" href="https://cn.vuejs.org/guide/extras/render-function.html">Vue 3 · 渲染函数与 JSX</a></li>
+</ul>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/vue3/" class="category-chain-item">vue3</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/vue3/" class="print-no-link">#vue3</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 134 · Vue 3（十二）：编译原理与模板到渲染函数</div>
+      <div>https://ethan-iopasd.github.io/2026/10/21/每日技术博客134-Vue3编译原理与渲染函数/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月21日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/21/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2133-Vue3%E5%93%8D%E5%BA%94%E5%BC%8F%E5%8E%9F%E7%90%86%E4%B8%8E%E4%BE%9D%E8%B5%96%E6%94%B6%E9%9B%86/" title="每日技术博客 133 · Vue 3（十一）：响应式原理与依赖收集">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 133 · Vue 3（十一）：响应式原理与依赖收集</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

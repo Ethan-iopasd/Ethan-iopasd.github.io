@@ -1,0 +1,993 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-21 · 第 135 篇 Python 系列第十一篇。with 不只是「自动关闭文件」的语法糖，它是一套可组合的资源生命周期协议。理解了 __enter__ &#x2F; __exit__ 的返回值语义，异常抑制、事务回滚、临时状态切换都能写得很干净。  📚 Python 系列目录   章节 主题 状态    一 依赖管理与虚拟环境 已发布   二 类型注解与">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 135 · Python（十一）：上下文管理器与资源生命周期">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/21/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2135-Python%E4%B8%8A%E4%B8%8B%E6%96%87%E7%AE%A1%E7%90%86%E5%99%A8%E4%B8%8E%E8%B5%84%E6%BA%90%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-21 · 第 135 篇 Python 系列第十一篇。with 不只是「自动关闭文件」的语法糖，它是一套可组合的资源生命周期协议。理解了 __enter__ &#x2F; __exit__ 的返回值语义，异常抑制、事务回滚、临时状态切换都能写得很干净。  📚 Python 系列目录   章节 主题 状态    一 依赖管理与虚拟环境 已发布   二 类型注解与">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-21T03:10:00.000Z">
+<meta property="article:modified_time" content="2026-10-21T01:48:38.287Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="python">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 135 · Python（十一）：上下文管理器与资源生命周期 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 135 · Python（十一）：上下文管理器与资源生命周期"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-21 11:10" pubdate>
+          2026年10月21日 上午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          1.7k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          15 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 135 · Python（十一）：上下文管理器与资源生命周期</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-21 · 第 135 篇</p>
+<p>Python 系列第十一篇。<code>with</code> 不只是「自动关闭文件」的语法糖，它是一套可组合的<strong>资源生命周期协议</strong>。理解了 <code>__enter__</code> &#x2F; <code>__exit__</code> 的返回值语义，异常抑制、事务回滚、临时状态切换都能写得很干净。</p>
+</blockquote>
+<h2 id="📚-Python-系列目录"><a href="#📚-Python-系列目录" class="headerlink" title="📚 Python 系列目录"></a>📚 Python 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td>依赖管理与虚拟环境</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td>类型注解与静态检查</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td>异步编程 asyncio</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td>GIL、线程与进程</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>五</td>
+<td>性能剖析与优化</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>六</td>
+<td>装饰器、元编程与描述符</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>七</td>
+<td>打包、发布与项目工程化</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>八</td>
+<td>文件、路径与数据处理</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>九</td>
+<td>WSGI、ASGI 与 Web 服务请求生命周期</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>十</td>
+<td>标准库、缓存与性能实战</td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>十一</td>
+<td>上下文管理器与资源生命周期</td>
+<td><strong>本篇</strong></td>
+</tr>
+<tr>
+<td>十二</td>
+<td>异常链、日志与可观测性</td>
+<td>已发布</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong><code>with</code> 保证的是「退出时一定执行清理」，即使发生了 <code>return</code>、<code>break</code>、<code>continue</code> 或异常。</strong> 而 <code>__exit__</code> 的返回值决定异常是否被吞掉 —— 这是它最容易被误用的一处。</p>
+<h2 id="一、协议本身"><a href="#一、协议本身" class="headerlink" title="一、协议本身"></a>一、协议本身</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">class</span> <span class="hljs-title class_">Resource</span>:<br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">__enter__</span>(<span class="hljs-params">self</span>):<br>        <span class="hljs-comment"># 返回值会绑定给 as 后面的变量</span><br>        <span class="hljs-keyword">return</span> <span class="hljs-variable language_">self</span><br><br>    <span class="hljs-keyword">def</span> <span class="hljs-title function_">__exit__</span>(<span class="hljs-params">self, exc_type, exc_val, exc_tb</span>):<br>        <span class="hljs-comment"># 返回 True 表示「异常已处理」，不再向外传播</span><br>        <span class="hljs-comment"># 返回 False 或 None 表示「继续传播」</span><br>        <span class="hljs-keyword">return</span> <span class="hljs-literal">False</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>位置</th>
+<th>语义</th>
+<th>注意</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>__enter__</code> 返回值</td>
+<td>绑定到 <code>as</code> 变量</td>
+<td>不返回 <code>self</code> 也可以</td>
+</tr>
+<tr>
+<td><code>__exit__</code> 参数</td>
+<td>异常三元组，无异常时全为 <code>None</code></td>
+<td>三个都要接收</td>
+</tr>
+<tr>
+<td><code>__exit__</code> 返回 <code>True</code></td>
+<td><strong>吞掉异常</strong></td>
+<td>慎用，容易掩盖 bug</td>
+</tr>
+<tr>
+<td><code>__exit__</code> 抛异常</td>
+<td>替换原异常</td>
+<td>会丢失原始堆栈上下文</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>__exit__</code> 返回 <code>True</code> 会静默吞掉异常</strong>。这是 Python 里最容易写出「bug 消失但问题还在」的地方。<strong>除非你在写 <code>contextlib.suppress</code> 这类明确语义的工具，否则一律返回 <code>False</code> &#x2F; <code>None</code>。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>__exit__</code> 里抛出的异常会覆盖原始异常</strong>。如果清理逻辑可能失败，用 <code>try/except</code> 包住并记录日志，别让清理失败掩盖真正的错误。</p>
+</blockquote>
+<h2 id="二、contextlib-的四个常用工具"><a href="#二、contextlib-的四个常用工具" class="headerlink" title="二、contextlib 的四个常用工具"></a>二、<code>contextlib</code> 的四个常用工具</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">from</span> contextlib <span class="hljs-keyword">import</span> contextmanager, suppress, ExitStack, closing<br><br><span class="hljs-meta">@contextmanager</span><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">transaction</span>(<span class="hljs-params">conn</span>):<br>    <span class="hljs-keyword">try</span>:<br>        <span class="hljs-keyword">yield</span> conn<br>        conn.commit()<br>    <span class="hljs-keyword">except</span> Exception:<br>        conn.rollback()<br>        <span class="hljs-keyword">raise</span>            <span class="hljs-comment"># 必须重新抛出，否则异常被吞</span><br><br><span class="hljs-keyword">with</span> suppress(FileNotFoundError):<br>    os.remove(<span class="hljs-string">&quot;maybe-missing.txt&quot;</span>)<br><br><span class="hljs-comment"># 动态数量资源：用 ExitStack</span><br><span class="hljs-keyword">with</span> ExitStack() <span class="hljs-keyword">as</span> stack:<br>    files = [stack.enter_context(<span class="hljs-built_in">open</span>(p)) <span class="hljs-keyword">for</span> p <span class="hljs-keyword">in</span> paths]<br>    <span class="hljs-comment"># 退出时按相反顺序全部关闭</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>工具</th>
+<th>用途</th>
+<th>要点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>@contextmanager</code></td>
+<td>用生成器写上下文管理器</td>
+<td><code>yield</code> 之前是 enter，之后是 exit</td>
+</tr>
+<tr>
+<td><code>suppress(*exc)</code></td>
+<td>忽略指定异常</td>
+<td>比 <code>try/except: pass</code> 语义清晰</td>
+</tr>
+<tr>
+<td><code>ExitStack</code></td>
+<td>动态管理多个资源</td>
+<td>后进先出关闭</td>
+</tr>
+<tr>
+<td><code>closing(obj)</code></td>
+<td>退出时调用 <code>obj.close()</code></td>
+<td>适配没有上下文协议的旧对象</td>
+</tr>
+<tr>
+<td><code>nullcontext()</code></td>
+<td>什么都不做的占位</td>
+<td>让可选资源写法统一</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ **<code>@contextmanager</code> 里必须用 <code>try/finally</code> 或重新 <code>raise</code>**。如果 <code>yield</code> 之后的代码抛异常却不重新抛出，原异常会被静默吞掉 —— 效果等同于 <code>__exit__</code> 返回 <code>True</code>。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>@contextmanager</code> 只能 <code>yield</code> 一次</strong>。yield 两次会抛 <code>RuntimeError: generator didn&#39;t stop</code>。需要多次进入的场景用类实现，或用 <code>ExitStack</code>。</p>
+</blockquote>
+<h2 id="三、ExitStack：动态资源管理"><a href="#三、ExitStack：动态资源管理" class="headerlink" title="三、ExitStack：动态资源管理"></a>三、<code>ExitStack</code>：动态资源管理</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">from</span> contextlib <span class="hljs-keyword">import</span> ExitStack<br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">process_all</span>(<span class="hljs-params">paths</span>):<br>    <span class="hljs-keyword">with</span> ExitStack() <span class="hljs-keyword">as</span> stack:<br>        handles = []<br>        <span class="hljs-keyword">for</span> p <span class="hljs-keyword">in</span> paths:<br>            <span class="hljs-keyword">try</span>:<br>                handles.append(stack.enter_context(<span class="hljs-built_in">open</span>(p)))<br>            <span class="hljs-keyword">except</span> OSError <span class="hljs-keyword">as</span> e:<br>                log.warning(<span class="hljs-string">&quot;跳过 %s: %s&quot;</span>, p, e)<br>                <span class="hljs-keyword">continue</span><br>        <span class="hljs-comment"># 全部打开成功后再处理</span><br>        <span class="hljs-keyword">for</span> h <span class="hljs-keyword">in</span> handles:<br>            <span class="hljs-keyword">yield</span> <span class="hljs-keyword">from</span> h<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>为什么需要 <code>ExitStack</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>资源数量运行时才知道</td>
+<td><code>with a, b, c</code> 写不出来</td>
+</tr>
+<tr>
+<td>部分资源可能打开失败</td>
+<td>已打开的要能正确回滚</td>
+</tr>
+<tr>
+<td>需要提前释放某个资源</td>
+<td><code>stack.pop_all()</code> &#x2F; <code>close()</code></td>
+</tr>
+<tr>
+<td>注册回调而非上下文管理器</td>
+<td><code>stack.callback(fn, *args)</code></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>ExitStack</code> 的回调是后进先出（LIFO）</strong>。注册顺序是 A、B、C，退出时执行 C、B、A。<strong>资源之间的依赖顺序要靠注册顺序保证。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>enter_context</code> 失败时不会注册回调</strong>。所以循环里某个资源打不开，之前打开的资源仍然会被正确清理 —— 这正是它比手写 <code>try/finally</code> 嵌套更可靠的地方。</p>
+</blockquote>
+<h2 id="四、异步上下文管理器"><a href="#四、异步上下文管理器" class="headerlink" title="四、异步上下文管理器"></a>四、异步上下文管理器</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">class</span> <span class="hljs-title class_">AsyncSession</span>:<br>    <span class="hljs-keyword">async</span> <span class="hljs-keyword">def</span> <span class="hljs-title function_">__aenter__</span>(<span class="hljs-params">self</span>):<br>        <span class="hljs-variable language_">self</span>.conn = <span class="hljs-keyword">await</span> connect()<br>        <span class="hljs-keyword">return</span> <span class="hljs-variable language_">self</span>.conn<br><br>    <span class="hljs-keyword">async</span> <span class="hljs-keyword">def</span> <span class="hljs-title function_">__aexit__</span>(<span class="hljs-params">self, exc_type, exc, tb</span>):<br>        <span class="hljs-keyword">await</span> <span class="hljs-variable language_">self</span>.conn.close()<br>        <span class="hljs-keyword">return</span> <span class="hljs-literal">False</span><br><br><span class="hljs-comment"># 或者用装饰器</span><br><span class="hljs-keyword">from</span> contextlib <span class="hljs-keyword">import</span> asynccontextmanager<br><br><span class="hljs-meta">@asynccontextmanager</span><br><span class="hljs-keyword">async</span> <span class="hljs-keyword">def</span> <span class="hljs-title function_">lifespan</span>(<span class="hljs-params">app</span>):<br>    pool = <span class="hljs-keyword">await</span> create_pool()<br>    app.state.pool = pool<br>    <span class="hljs-keyword">try</span>:<br>        <span class="hljs-keyword">yield</span> app<br>    <span class="hljs-keyword">finally</span>:<br>        <span class="hljs-keyword">await</span> pool.close()<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>方法</th>
+<th>使用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>同步</td>
+<td><code>__enter__</code> &#x2F; <code>__exit__</code></td>
+<td><code>with</code></td>
+</tr>
+<tr>
+<td>异步</td>
+<td><code>__aenter__</code> &#x2F; <code>__aexit__</code></td>
+<td><code>async with</code></td>
+</tr>
+<tr>
+<td>混合</td>
+<td><code>contextlib.AsyncExitStack</code></td>
+<td>动态异步资源</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>不能用 <code>with</code> 管理异步资源</strong>，反之亦然。<code>async with</code> 内部会 <code>await</code>，在同步函数里会直接语法错误。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>FastAPI 的 <code>lifespan</code> 本质就是一个异步上下文管理器</strong>。把连接池、后台任务的创建与销毁放进去，比 <code>@app.on_event(&quot;startup&quot;)</code> 更可靠（能保证 finally 执行）。</p>
+</blockquote>
+<h2 id="五、几个实战模式"><a href="#五、几个实战模式" class="headerlink" title="五、几个实战模式"></a>五、几个实战模式</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment"># 1. 临时切换工作目录</span><br><span class="hljs-meta">@contextmanager</span><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">chdir</span>(<span class="hljs-params">path</span>):<br>    old = os.getcwd()<br>    os.chdir(path)<br>    <span class="hljs-keyword">try</span>:<br>        <span class="hljs-keyword">yield</span><br>    <span class="hljs-keyword">finally</span>:<br>        os.chdir(old)<br><br><span class="hljs-comment"># 2. 临时修改环境变量</span><br><span class="hljs-meta">@contextmanager</span><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">env</span>(<span class="hljs-params">**kwargs</span>):<br>    old = &#123;k: os.environ.get(k) <span class="hljs-keyword">for</span> k <span class="hljs-keyword">in</span> kwargs&#125;<br>    os.environ.update(&#123;k: <span class="hljs-built_in">str</span>(v) <span class="hljs-keyword">for</span> k, v <span class="hljs-keyword">in</span> kwargs.items()&#125;)<br>    <span class="hljs-keyword">try</span>:<br>        <span class="hljs-keyword">yield</span><br>    <span class="hljs-keyword">finally</span>:<br>        <span class="hljs-keyword">for</span> k, v <span class="hljs-keyword">in</span> old.items():<br>            <span class="hljs-keyword">if</span> v <span class="hljs-keyword">is</span> <span class="hljs-literal">None</span>:<br>                os.environ.pop(k, <span class="hljs-literal">None</span>)<br>            <span class="hljs-keyword">else</span>:<br>                os.environ[k] = v<br><br><span class="hljs-comment"># 3. 计时器</span><br><span class="hljs-meta">@contextmanager</span><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">timed</span>(<span class="hljs-params">label, logger=log</span>):<br>    start = time.perf_counter()<br>    <span class="hljs-keyword">try</span>:<br>        <span class="hljs-keyword">yield</span><br>    <span class="hljs-keyword">finally</span>:<br>        logger.info(<span class="hljs-string">&quot;%s 耗时 %.1f ms&quot;</span>, label, (time.perf_counter() - start) * <span class="hljs-number">1000</span>)<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>模式</th>
+<th>关键点</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>状态切换</td>
+<td>记录旧值，<code>finally</code> 恢复</td>
+</tr>
+<tr>
+<td>环境变量</td>
+<td>区分「原本不存在」和「存在但为空」</td>
+</tr>
+<tr>
+<td>计时</td>
+<td>用 <code>perf_counter</code> 而非 <code>time.time</code></td>
+</tr>
+<tr>
+<td>事务</td>
+<td>成功提交、异常回滚、<strong>异常要重新抛出</strong></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>恢复环境变量时要区分 <code>None</code> 和空字符串</strong>。<code>os.environ.get(k)</code> 返回 <code>None</code> 说明原本不存在，应该 <code>pop</code> 而不是赋值空串。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ **计时用 <code>time.perf_counter()</code>**。<code>time.time()</code> 受系统时钟调整影响，可能返回负数间隔。</p>
+</blockquote>
+<h2 id="六、常见反模式"><a href="#六、常见反模式" class="headerlink" title="六、常见反模式"></a>六、常见反模式</h2><table>
+<thead>
+<tr>
+<th>反模式</th>
+<th>问题</th>
+<th>正确做法</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>__exit__</code> 返回 <code>True</code></td>
+<td>吞掉所有异常</td>
+<td>返回 <code>False</code></td>
+</tr>
+<tr>
+<td><code>@contextmanager</code> 不重新抛出</td>
+<td>异常被静默丢弃</td>
+<td><code>try/finally</code> 或 <code>raise</code></td>
+</tr>
+<tr>
+<td><code>try/except: pass</code> 代替 <code>suppress</code></td>
+<td>意图不明确</td>
+<td><code>with suppress(E):</code></td>
+</tr>
+<tr>
+<td>手动 <code>close()</code> 不用 <code>with</code></td>
+<td>异常时泄漏</td>
+<td>一律用 <code>with</code></td>
+</tr>
+<tr>
+<td>在 <code>__exit__</code> 里做耗时操作</td>
+<td>拖慢退出路径</td>
+<td>只做清理</td>
+</tr>
+<tr>
+<td>用 <code>__del__</code> 代替上下文管理器</td>
+<td>回收时机不确定</td>
+<td>显式 <code>with</code></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>__del__</code> 不能当资源清理的保障</strong>。GC 时机不确定，解释器退出时甚至不保证调用。<strong>资源清理必须显式，<code>with</code> 是唯一可靠的方式。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>contextlib.suppress</code> 只抑制指定异常</strong>。<code>suppress(Exception)</code> 等价于吞掉一切，和 <code>except Exception: pass</code> 一样危险。<strong>要写具体异常类型。</strong></p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> <code>__exit__</code> 返回 <code>True</code>，把所有异常静默吞掉</li>
+<li><input disabled="" type="checkbox"> <code>@contextmanager</code> 里 <code>yield</code> 后不 <code>raise</code>，异常丢失</li>
+<li><input disabled="" type="checkbox"> <code>@contextmanager</code> 里 <code>yield</code> 两次，报 RuntimeError</li>
+<li><input disabled="" type="checkbox"> <code>__exit__</code> 里抛异常，覆盖原始错误</li>
+<li><input disabled="" type="checkbox"> 恢复环境变量时把 <code>None</code> 写成空字符串</li>
+<li><input disabled="" type="checkbox"> 用 <code>time.time()</code> 计时，遇到时钟回拨</li>
+<li><input disabled="" type="checkbox"> 用 <code>__del__</code> 做资源清理，实际不保证执行</li>
+<li><input disabled="" type="checkbox"> <code>suppress(Exception)</code> 吞掉一切异常</li>
+<li><input disabled="" type="checkbox"> 动态资源数量硬写 <code>with a, b, c</code>，不用 <code>ExitStack</code></li>
+<li><input disabled="" type="checkbox"> 用 <code>with</code> 管理异步资源，或用 <code>async with</code> 管理同步资源</li>
+<li><input disabled="" type="checkbox"> 在 <code>__exit__</code> 里做耗时操作，拖慢退出</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><ul>
+<li><a target="_blank" rel="noopener" href="https://docs.python.org/3/reference/compound_stmts.html#the-with-statement">Python 官方文档 · <code>with</code> 语句</a></li>
+<li><a target="_blank" rel="noopener" href="https://docs.python.org/3/library/contextlib.html">Python 官方文档 · <code>contextlib</code></a></li>
+<li><a target="_blank" rel="noopener" href="https://peps.python.org/pep-0343/">PEP 343 · The “with” Statement</a></li>
+<li><a target="_blank" rel="noopener" href="https://peps.python.org/pep-0492/">PEP 492 · <code>async with</code></a></li>
+<li><a target="_blank" rel="noopener" href="https://fastapi.tiangolo.com/advanced/events/">FastAPI · Lifespan Events</a></li>
+</ul>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/python/" class="category-chain-item">python</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/python/" class="print-no-link">#python</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 135 · Python（十一）：上下文管理器与资源生命周期</div>
+      <div>https://ethan-iopasd.github.io/2026/10/21/每日技术博客135-Python上下文管理器与资源生命周期/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月21日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/19/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2126-Python%E6%A0%87%E5%87%86%E5%BA%93%E7%BC%93%E5%AD%98%E4%B8%8E%E6%80%A7%E8%83%BD%E5%AE%9E%E6%88%98/" title="每日技术博客 126 · Python（十）：标准库、缓存与性能实战">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 126 · Python（十）：标准库、缓存与性能实战</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2026/10/21/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2136-Python%E5%BC%82%E5%B8%B8%E9%93%BE%E6%97%A5%E5%BF%97%E4%B8%8E%E5%8F%AF%E8%A7%82%E6%B5%8B%E6%80%A7/" title="每日技术博客 136 · Python（十二）：异常链、日志与可观测性">
+                        <span class="hidden-mobile">每日技术博客 136 · Python（十二）：异常链、日志与可观测性</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
