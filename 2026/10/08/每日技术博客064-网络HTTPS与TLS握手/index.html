@@ -27,7 +27,7 @@
 <meta property="og:description" content="每日技术博客 · 2026-10-08 · 第 064 篇 网络系列第三篇。混合加密的原理、TLS 1.2 与 1.3 的握手差异、证书链与 SAN、SNI &#x2F; ALPN、OCSP stapling、openssl 排查与常见报错。  📚 网络 系列目录   章节 主题 状态    一 TCP&#x2F;IP 与三次握手 已发布   二 DNS、CDN 与抓包排查 已发布   三 H">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-10-08T03:55:00.000Z">
-<meta property="article:modified_time" content="2026-10-21T02:14:24.666Z">
+<meta property="article:modified_time" content="2026-10-26T06:23:44.062Z">
 <meta property="article:author" content="iopasd">
 <meta property="article:tag" content="network">
 <meta name="twitter:card" content="summary_large_image">
@@ -302,6 +302,16 @@
 <td>三</td>
 <td>HTTPS 与 TLS 握手</td>
 <td><strong>本篇</strong></td>
+</tr>
+<tr>
+<td>四</td>
+<td><a href="/2026/10/26/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2151-HTTP3%E4%B8%8EQUIC%E7%9A%84%E4%BC%A0%E8%BE%93%E5%B1%82%E9%87%8D%E6%9E%84/">HTTP&#x2F;3 与 QUIC 的传输层重构</a></td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>五</td>
+<td><a href="/2026/10/26/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2152-%E5%BC%B1%E7%BD%91%E4%BC%98%E5%8C%96%E4%B8%8E%E4%BC%A0%E8%BE%93%E5%B1%82%E8%B0%83%E4%BC%98/">弱网优化与传输层调优</a></td>
+<td>已发布</td>
 </tr>
 </tbody></table>
 <h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p>HTTPS &#x3D; 用<strong>非对称加密</strong>安全地交换出一个<strong>对称密钥</strong>，之后用对称加密传数据；TLS 1.3 把握手压到 1-RTT，并删掉了所有不提供前向保密的密钥交换。几乎所有「证书报错」都出在证书链和 SAN。</p>
@@ -753,6 +763,12 @@
                   </article>
                   <article class="post-next col-6">
                     
+                    
+                      <a href="/2026/10/26/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2151-HTTP3%E4%B8%8EQUIC%E7%9A%84%E4%BC%A0%E8%BE%93%E5%B1%82%E9%87%8D%E6%9E%84/" title="每日技术博客 151 · 网络（四）：HTTP/3 与 QUIC 的传输层重构">
+                        <span class="hidden-mobile">每日技术博客 151 · 网络（四）：HTTP/3 与 QUIC 的传输层重构</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
                     
                   </article>
                 </div>

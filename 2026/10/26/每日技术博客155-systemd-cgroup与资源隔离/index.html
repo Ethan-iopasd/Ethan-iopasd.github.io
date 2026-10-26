@@ -1,0 +1,1120 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-26 · 第 155 篇 Linux 系列第五篇。容器不是虚拟化，它靠 cgroup 限制资源 + namespace 隔离视图。理解了这两层，OOMKilled 和「容器里看不到宿主进程」就都不再神秘。  📚 Linux 系列目录   章节 主题 状态    一 权限、进程与磁盘排查 已发布   二 systemd、日志与定时任务 已发布   三 grep">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 155 · Linux（五）：systemd、cgroup 与资源隔离">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/26/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2155-systemd-cgroup%E4%B8%8E%E8%B5%84%E6%BA%90%E9%9A%94%E7%A6%BB/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-26 · 第 155 篇 Linux 系列第五篇。容器不是虚拟化，它靠 cgroup 限制资源 + namespace 隔离视图。理解了这两层，OOMKilled 和「容器里看不到宿主进程」就都不再神秘。  📚 Linux 系列目录   章节 主题 状态    一 权限、进程与磁盘排查 已发布   二 systemd、日志与定时任务 已发布   三 grep">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-26T07:40:00.000Z">
+<meta property="article:modified_time" content="2026-10-26T06:23:44.060Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="linux">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 155 · Linux（五）：systemd、cgroup 与资源隔离 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 155 · Linux（五）：systemd、cgroup 与资源隔离"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-26 15:40" pubdate>
+          2026年10月26日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          1.6k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          14 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 155 · Linux（五）：systemd、cgroup 与资源隔离</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-26 · 第 155 篇</p>
+<p>Linux 系列第五篇。容器不是虚拟化，它靠 <strong>cgroup 限制资源 + namespace 隔离视图</strong>。理解了这两层，<code>OOMKilled</code> 和「容器里看不到宿主进程」就都不再神秘。</p>
+</blockquote>
+<h2 id="📚-Linux-系列目录"><a href="#📚-Linux-系列目录" class="headerlink" title="📚 Linux 系列目录"></a>📚 Linux 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td><a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2016-Linux%E6%9D%83%E9%99%90%E8%BF%9B%E7%A8%8B%E7%A3%81%E7%9B%98/">权限、进程与磁盘排查</a></td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td><a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2017-Linux%E6%9C%8D%E5%8A%A1%E4%B8%8E%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1/">systemd、日志与定时任务</a></td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td><a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2053-Linux%E6%96%87%E6%9C%AC%E4%B8%89%E5%89%91%E5%AE%A2/">grep &#x2F; sed &#x2F; awk 三剑客</a></td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td><a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2108-Linux%E6%80%A7%E8%83%BD%E6%8E%92%E6%9F%A5%E4%B8%8EeBPF/">性能排查与 eBPF 工具</a></td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>五</td>
+<td>systemd、cgroup 与资源隔离</td>
+<td><strong>本篇</strong></td>
+</tr>
+<tr>
+<td>六</td>
+<td><a href="/2026/10/26/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2156-%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9FIO%E8%B0%83%E5%BA%A6%E4%B8%8E%E7%A3%81%E7%9B%98%E6%8E%92%E6%9F%A5/">文件系统、IO 调度与磁盘排查</a></td>
+<td>已发布</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>cgroup 管「用多少」，namespace 管「看得见什么」。</strong> 容器 &#x3D; 进程 + 这两层约束。<code>OOMKilled</code> 是 cgroup 内存限制触发，而「容器里 ps 看不到宿主进程」是 PID namespace 的效果。</p>
+<h2 id="一、systemd：不只是-init"><a href="#一、systemd：不只是-init" class="headerlink" title="一、systemd：不只是 init"></a>一、systemd：不只是 init</h2><table>
+<thead>
+<tr>
+<th>单元类型</th>
+<th>后缀</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>service</td>
+<td><code>.service</code></td>
+<td>常驻服务</td>
+</tr>
+<tr>
+<td>timer</td>
+<td><code>.timer</code></td>
+<td>定时任务（替代 cron）</td>
+</tr>
+<tr>
+<td>socket</td>
+<td><code>.socket</code></td>
+<td>按需激活</td>
+</tr>
+<tr>
+<td>mount</td>
+<td><code>.mount</code></td>
+<td>挂载点</td>
+</tr>
+<tr>
+<td>target</td>
+<td><code>.target</code></td>
+<td>分组（类似运行级别）</td>
+</tr>
+<tr>
+<td>slice</td>
+<td><code>.slice</code></td>
+<td>cgroup 层级分组</td>
+</tr>
+</tbody></table>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><code class="hljs ini"><span class="hljs-comment"># /etc/systemd/system/myapp.service</span><br><span class="hljs-section">[Unit]</span><br><span class="hljs-attr">Description</span>=My App<br><span class="hljs-attr">After</span>=network-<span class="hljs-literal">on</span>line.target<br><span class="hljs-attr">Wants</span>=network-<span class="hljs-literal">on</span>line.target<br><br><span class="hljs-section">[Service]</span><br><span class="hljs-attr">Type</span>=notify<br><span class="hljs-attr">User</span>=app<br><span class="hljs-attr">WorkingDirectory</span>=/opt/myapp<br><span class="hljs-attr">ExecStart</span>=/opt/myapp/bin/server --config /etc/myapp/config.yml<br><span class="hljs-attr">Restart</span>=<span class="hljs-literal">on</span>-failure<br><span class="hljs-attr">RestartSec</span>=<span class="hljs-number">5</span>s<br><span class="hljs-attr">TimeoutStopSec</span>=<span class="hljs-number">30</span>s<br><br><span class="hljs-comment"># 资源限制（直接映射到 cgroup）</span><br><span class="hljs-attr">MemoryMax</span>=<span class="hljs-number">1</span>G<br><span class="hljs-attr">CPUQuota</span>=<span class="hljs-number">200</span>%<br><span class="hljs-attr">TasksMax</span>=<span class="hljs-number">512</span><br><br><span class="hljs-comment"># 安全加固</span><br><span class="hljs-attr">NoNewPrivileges</span>=<span class="hljs-literal">true</span><br><span class="hljs-attr">PrivateTmp</span>=<span class="hljs-literal">true</span><br><span class="hljs-attr">ProtectSystem</span>=strict<br><span class="hljs-attr">ProtectHome</span>=<span class="hljs-literal">true</span><br><span class="hljs-attr">ReadWritePaths</span>=/var/lib/myapp<br><br><span class="hljs-section">[Install]</span><br><span class="hljs-attr">WantedBy</span>=multi-user.target<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>指令</th>
+<th>作用</th>
+<th>常见误用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Restart=on-failure</code></td>
+<td>异常退出重启</td>
+<td><code>always</code> 会导致正常退出也重启</td>
+</tr>
+<tr>
+<td><code>TimeoutStopSec</code></td>
+<td>停止超时后 SIGKILL</td>
+<td>设太短，优雅停机来不及</td>
+</tr>
+<tr>
+<td><code>MemoryMax</code></td>
+<td>内存硬限制</td>
+<td>与 <code>MemoryHigh</code> 混淆</td>
+</tr>
+<tr>
+<td><code>CPUQuota</code></td>
+<td>CPU 配额（百分比）</td>
+<td><code>200%</code> 表示 2 核</td>
+</tr>
+<tr>
+<td><code>TasksMax</code></td>
+<td>最大进程&#x2F;线程数</td>
+<td>默认可能限制并发</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>MemoryHigh</code> 是软限制，<code>MemoryMax</code> 是硬限制</strong>。超过 <code>MemoryHigh</code> 会被限流回收，超过 <code>MemoryMax</code> 直接 OOM kill。<strong>想要「尽量不超过」用 High，想「绝不超」用 Max。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ **<code>Type=notify</code> 需要应用支持 <code>sd_notify</code>**。不支持的用 <code>Type=simple</code>，否则 systemd 会一直等启动信号直到超时。</p>
+</blockquote>
+<h2 id="二、timer-替代-cron"><a href="#二、timer-替代-cron" class="headerlink" title="二、timer 替代 cron"></a>二、timer 替代 cron</h2><figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs ini"><span class="hljs-comment"># /etc/systemd/system/backup.timer</span><br><span class="hljs-section">[Unit]</span><br><span class="hljs-attr">Description</span>=Daily backup<br><br><span class="hljs-section">[Timer]</span><br><span class="hljs-attr">OnCalendar</span>=*-*-* <span class="hljs-number">03</span>:<span class="hljs-number">00</span>:<span class="hljs-number">00</span><br><span class="hljs-attr">Persistent</span>=<span class="hljs-literal">true</span>          <span class="hljs-comment"># 错过则开机后补跑</span><br><span class="hljs-attr">RandomizedDelaySec</span>=<span class="hljs-number">300</span>   <span class="hljs-comment"># 打散，避免同时启动</span><br><br><span class="hljs-section">[Install]</span><br><span class="hljs-attr">WantedBy</span>=timers.target<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash">systemctl list-timers --all<br>systemctl status backup.timer<br>journalctl -u backup.service --since today<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>能力</th>
+<th>cron</th>
+<th>systemd timer</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>错过补跑</td>
+<td>❌</td>
+<td>✅ <code>Persistent</code></td>
+</tr>
+<tr>
+<td>随机延迟</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>日志</td>
+<td>需自己重定向</td>
+<td>✅ journald</td>
+</tr>
+<tr>
+<td>资源限制</td>
+<td>❌</td>
+<td>✅ cgroup</td>
+</tr>
+<tr>
+<td>依赖管理</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>秒级精度</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>Persistent=true</code> 依赖时间戳文件</strong>。如果机器长时间关机，重启后会补跑一次（不是补跑多次）。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>OnCalendar</code> 的时区跟随系统时区</strong>。容器里常是 UTC，容易算错时间。</p>
+</blockquote>
+<h2 id="三、cgroup-v2：资源限制的骨架"><a href="#三、cgroup-v2：资源限制的骨架" class="headerlink" title="三、cgroup v2：资源限制的骨架"></a>三、cgroup v2：资源限制的骨架</h2><table>
+<thead>
+<tr>
+<th>控制器</th>
+<th>文件</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>CPU</td>
+<td><code>cpu.max</code></td>
+<td>配额（quota&#x2F;period）</td>
+</tr>
+<tr>
+<td>CPU</td>
+<td><code>cpu.weight</code></td>
+<td>相对权重（1~10000）</td>
+</tr>
+<tr>
+<td>内存</td>
+<td><code>memory.max</code></td>
+<td>硬限制</td>
+</tr>
+<tr>
+<td>内存</td>
+<td><code>memory.high</code></td>
+<td>软限制（限流）</td>
+</tr>
+<tr>
+<td>内存</td>
+<td><code>memory.current</code></td>
+<td>当前用量</td>
+</tr>
+<tr>
+<td>IO</td>
+<td><code>io.max</code></td>
+<td>每设备 IOPS&#x2F;带宽</td>
+</tr>
+<tr>
+<td>进程</td>
+<td><code>pids.max</code></td>
+<td>最大进程数</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 查看某个 cgroup 的内存使用</span><br><span class="hljs-built_in">cat</span> /sys/fs/cgroup/system.slice/myapp.service/memory.current<br><span class="hljs-built_in">cat</span> /sys/fs/cgroup/system.slice/myapp.service/memory.max<br><br><span class="hljs-comment"># 容器（Docker）的 cgroup 路径</span><br><span class="hljs-built_in">cat</span> /sys/fs/cgroup/system.slice/docker-&lt;<span class="hljs-built_in">id</span>&gt;.scope/memory.max<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs text">cgroup v1 vs v2：<br>v1：每个控制器一棵树（cpu/、memory/、blkio/ 各自独立）<br>v2：统一层级，一个进程只属于一个 cgroup，控制器作为文件<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>memory.current</code> 包含 page cache</strong>。看起来「内存用满」其实大部分是缓存，会在压力下自动回收。<strong>判断真实内存压力要看 <code>memory.stat</code> 里的 <code>anon</code>。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>cgroup v1 和 v2 的路径完全不同</strong>。排查脚本要能区分，否则在 v2 系统上找不到文件。</p>
+</blockquote>
+<h2 id="四、OOM：为什么被杀了"><a href="#四、OOM：为什么被杀了" class="headerlink" title="四、OOM：为什么被杀了"></a>四、OOM：为什么被杀了</h2><table>
+<thead>
+<tr>
+<th>概念</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>OOM Killer</td>
+<td>内存不足时内核选进程杀掉</td>
+</tr>
+<tr>
+<td><code>oom_score</code></td>
+<td>被杀优先级（越大越先死）</td>
+</tr>
+<tr>
+<td>cgroup OOM</td>
+<td>容器内存超限，只杀容器内进程</td>
+</tr>
+<tr>
+<td><code>OOMKilled</code></td>
+<td>容器退出码 137 + 该标记</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 查看容器是否 OOM</span><br>docker inspect &lt;container&gt; --format <span class="hljs-string">&#x27;&#123;&#123;.State.OOMKilled&#125;&#125;&#x27;</span><br><br><span class="hljs-comment"># 内核日志里的 OOM 记录</span><br>dmesg -T | grep -i <span class="hljs-string">&quot;oom\|killed process&quot;</span><br><br><span class="hljs-comment"># cgroup 内存事件</span><br><span class="hljs-built_in">cat</span> /sys/fs/cgroup/.../memory.events<br><span class="hljs-comment"># low/high/max/oom/oom_kill 计数</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>现象</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>容器反复重启</td>
+<td>内存限制太低或泄漏</td>
+</tr>
+<tr>
+<td>进程被杀但系统内存充足</td>
+<td>cgroup 限制触发</td>
+</tr>
+<tr>
+<td><code>memory.current</code> 接近 <code>max</code></td>
+<td>即将 OOM</td>
+</tr>
+<tr>
+<td><code>oom_kill</code> 计数增长</td>
+<td>已经发生过</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ **Java 应用在容器里要设 <code>-XX:MaxRAMPercentage</code>**。老版本 JVM 会按宿主机内存算堆大小，容器限制 1G 却开了 4G 堆，必然 OOM。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>memory.max</code> 不含 swap 的语义在 v2 有变化</strong>。<code>memory.swap.max</code> 单独控制，别以为设了 <code>max</code> 就不会用 swap。</p>
+</blockquote>
+<h2 id="五、namespace：看得见什么"><a href="#五、namespace：看得见什么" class="headerlink" title="五、namespace：看得见什么"></a>五、namespace：看得见什么</h2><table>
+<thead>
+<tr>
+<th>namespace</th>
+<th>隔离</th>
+<th>表现</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>PID</td>
+<td>进程 ID</td>
+<td>容器内 PID 1 是应用</td>
+</tr>
+<tr>
+<td>Mount</td>
+<td>挂载点</td>
+<td>独立的文件系统视图</td>
+</tr>
+<tr>
+<td>Network</td>
+<td>网卡&#x2F;端口</td>
+<td>独立 IP 与端口空间</td>
+</tr>
+<tr>
+<td>UTS</td>
+<td>主机名</td>
+<td>独立 hostname</td>
+</tr>
+<tr>
+<td>IPC</td>
+<td>信号量&#x2F;消息队列</td>
+<td>独立 IPC</td>
+</tr>
+<tr>
+<td>User</td>
+<td>UID&#x2F;GID 映射</td>
+<td>root 映射为非 root</td>
+</tr>
+<tr>
+<td>Cgroup</td>
+<td>cgroup 视图</td>
+<td>看不到宿主其他 cgroup</td>
+</tr>
+<tr>
+<td>Time</td>
+<td>时钟偏移</td>
+<td>较新，少用</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 查看进程属于哪些 namespace</span><br><span class="hljs-built_in">ls</span> -l /proc/&lt;pid&gt;/ns/<br><br><span class="hljs-comment"># 进入容器的 namespace 排查</span><br>nsenter -t &lt;pid&gt; -n -p -- ip addr<br>nsenter -t &lt;pid&gt; -m -p -- /bin/sh<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>docker exec</code> 依赖 namespace</strong>。容器没有 shell（distroless 镜像）时，用 <code>nsenter</code> 从宿主机进。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>User namespace 的 root 不是真 root</strong>。容器内 uid 0 映射到宿主机的普通用户，但<strong>默认 Docker 没开 user namespace remapping</strong>，容器内 root 就是宿主 root。</p>
+</blockquote>
+<h2 id="六、排查实战"><a href="#六、排查实战" class="headerlink" title="六、排查实战"></a>六、排查实战</h2><table>
+<thead>
+<tr>
+<th>现象</th>
+<th>排查命令</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>容器被杀</td>
+<td><code>dmesg</code>、<code>memory.events</code>、<code>docker inspect</code></td>
+</tr>
+<tr>
+<td>CPU 被限流</td>
+<td><code>cpu.stat</code> 里的 <code>nr_throttled</code></td>
+</tr>
+<tr>
+<td>进程数打满</td>
+<td><code>pids.current</code> vs <code>pids.max</code></td>
+</tr>
+<tr>
+<td>启动超时</td>
+<td><code>journalctl -u xxx</code>、<code>TimeoutStartSec</code></td>
+</tr>
+<tr>
+<td>服务不重启</td>
+<td>检查 <code>Restart=</code> 与退出码</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># CPU 被节流的证据</span><br><span class="hljs-built_in">cat</span> /sys/fs/cgroup/.../cpu.stat<br><span class="hljs-comment"># nr_periods / nr_throttled / throttled_usec</span><br><br><span class="hljs-comment"># systemd 服务的资源使用</span><br>systemctl status myapp<br>systemd-cgtop<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>nr_throttled</code> 持续增长说明 CPU 配额不足</strong>。表现为「延迟抖动但 CPU 使用率不高」—— 因为被强行限流了。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>TasksMax</code> 打满会让服务无法创建线程</strong>。Java&#x2F;Go 应用线程多，默认值可能不够，表现为 <code>fork: Resource temporarily unavailable</code>。</p>
+</blockquote>
+<h2 id="七、安全加固基线"><a href="#七、安全加固基线" class="headerlink" title="七、安全加固基线"></a>七、安全加固基线</h2><table>
+<thead>
+<tr>
+<th>指令</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>NoNewPrivileges=true</code></td>
+<td>禁止提权（setuid 失效）</td>
+</tr>
+<tr>
+<td><code>ProtectSystem=strict</code></td>
+<td>整个 &#x2F; 只读</td>
+</tr>
+<tr>
+<td><code>ProtectHome=true</code></td>
+<td>隐藏 &#x2F;home</td>
+</tr>
+<tr>
+<td><code>PrivateTmp=true</code></td>
+<td>独立 &#x2F;tmp</td>
+</tr>
+<tr>
+<td><code>PrivateDevices=true</code></td>
+<td>隐藏设备节点</td>
+</tr>
+<tr>
+<td><code>RestrictAddressFamilies=</code></td>
+<td>限制 socket 类型</td>
+</tr>
+<tr>
+<td><code>SystemCallFilter=</code></td>
+<td>限制系统调用</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>ProtectSystem=strict</code> 会让应用无法写任何路径</strong>。必须配 <code>ReadWritePaths=</code> 白名单，否则服务启动即失败。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>加固指令要逐个加并验证</strong>。一次性全开，排查起来不知道是哪条导致的失败。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> <code>Restart=always</code> 导致正常退出也被重启</li>
+<li><input disabled="" type="checkbox"> <code>TimeoutStopSec</code> 太短，优雅停机被打断</li>
+<li><input disabled="" type="checkbox"> 混淆 <code>MemoryHigh</code>（软）与 <code>MemoryMax</code>（硬）</li>
+<li><input disabled="" type="checkbox"> <code>Type=notify</code> 但应用不支持 <code>sd_notify</code>，启动超时</li>
+<li><input disabled="" type="checkbox"> <code>OnCalendar</code> 时区不对，定时任务跑错时间</li>
+<li><input disabled="" type="checkbox"> 看 <code>memory.current</code> 以为内存泄漏（其实含 page cache）</li>
+<li><input disabled="" type="checkbox"> cgroup v1&#x2F;v2 路径混用，脚本在 v2 上失效</li>
+<li><input disabled="" type="checkbox"> JVM 不设 <code>MaxRAMPercentage</code>，容器内 OOM</li>
+<li><input disabled="" type="checkbox"> 以为设了 <code>memory.max</code> 就不会用 swap</li>
+<li><input disabled="" type="checkbox"> 容器内 root 当真 root 用（默认没开 userns remap）</li>
+<li><input disabled="" type="checkbox"> <code>nr_throttled</code> 增长却以为是性能问题</li>
+<li><input disabled="" type="checkbox"> <code>TasksMax</code> 打满，服务无法创建线程</li>
+<li><input disabled="" type="checkbox"> <code>ProtectSystem=strict</code> 不配 <code>ReadWritePaths</code>，启动失败</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><ul>
+<li><a target="_blank" rel="noopener" href="https://www.freedesktop.org/software/systemd/man/systemd.service.html">systemd 官方文档 · service</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.freedesktop.org/software/systemd/man/systemd.timer.html">systemd 官方文档 · timer</a></li>
+<li><a target="_blank" rel="noopener" href="https://docs.kernel.org/admin-guide/cgroup-v2.html">cgroup v2 内核文档</a></li>
+<li><a target="_blank" rel="noopener" href="https://man7.org/linux/man-pages/man7/namespaces.7.html">namespaces(7) 手册</a></li>
+<li><a target="_blank" rel="noopener" href="https://docs.docker.com/config/containers/resource_constraints/">Docker · 资源约束</a></li>
+</ul>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/linux/" class="category-chain-item">linux</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/linux/" class="print-no-link">#linux</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 155 · Linux（五）：systemd、cgroup 与资源隔离</div>
+      <div>https://ethan-iopasd.github.io/2026/10/26/每日技术博客155-systemd-cgroup与资源隔离/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月26日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2108-Linux%E6%80%A7%E8%83%BD%E6%8E%92%E6%9F%A5%E4%B8%8EeBPF/" title="每日技术博客 108 · Linux（四）：性能排查与 eBPF 工具">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 108 · Linux（四）：性能排查与 eBPF 工具</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2026/10/26/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2156-%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9FIO%E8%B0%83%E5%BA%A6%E4%B8%8E%E7%A3%81%E7%9B%98%E6%8E%92%E6%9F%A5/" title="每日技术博客 156 · Linux（六）：文件系统、IO 调度与磁盘排查">
+                        <span class="hidden-mobile">每日技术博客 156 · Linux（六）：文件系统、IO 调度与磁盘排查</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

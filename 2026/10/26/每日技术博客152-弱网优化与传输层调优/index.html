@@ -1,0 +1,1065 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-26 · 第 152 篇 网络系列第五篇。弱网不是「带宽小」，而是丢包、抖动、RTT 三者同时恶化。带宽还能靠压缩缓解，丢包和抖动只能靠协议层设计。  📚 网络 系列目录   章节 主题 状态    一 TCP&#x2F;IP 与三次握手 已发布   二 DNS、CDN 与抓包排查 已发布   三 HTTPS 与 TLS 握手 已发布   四 HTTP&amp;#x2">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 152 · 网络（五）：弱网优化与传输层调优">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/26/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2152-%E5%BC%B1%E7%BD%91%E4%BC%98%E5%8C%96%E4%B8%8E%E4%BC%A0%E8%BE%93%E5%B1%82%E8%B0%83%E4%BC%98/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-26 · 第 152 篇 网络系列第五篇。弱网不是「带宽小」，而是丢包、抖动、RTT 三者同时恶化。带宽还能靠压缩缓解，丢包和抖动只能靠协议层设计。  📚 网络 系列目录   章节 主题 状态    一 TCP&#x2F;IP 与三次握手 已发布   二 DNS、CDN 与抓包排查 已发布   三 HTTPS 与 TLS 握手 已发布   四 HTTP&amp;#x2">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-26T06:55:00.000Z">
+<meta property="article:modified_time" content="2026-10-26T06:23:44.063Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="network">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 152 · 网络（五）：弱网优化与传输层调优 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 152 · 网络（五）：弱网优化与传输层调优"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-26 14:55" pubdate>
+          2026年10月26日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          1.7k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          15 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 152 · 网络（五）：弱网优化与传输层调优</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-26 · 第 152 篇</p>
+<p>网络系列第五篇。弱网不是「带宽小」，而是<strong>丢包、抖动、RTT 三者同时恶化</strong>。带宽还能靠压缩缓解，丢包和抖动只能靠协议层设计。</p>
+</blockquote>
+<h2 id="📚-网络-系列目录"><a href="#📚-网络-系列目录" class="headerlink" title="📚 网络 系列目录"></a>📚 网络 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td><a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2046-%E7%BD%91%E7%BB%9CTCP%E4%B8%8E%E6%8F%A1%E6%89%8B/">TCP&#x2F;IP 与三次握手</a></td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td><a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2047-%E7%BD%91%E7%BB%9CDNS%E4%B8%8ECDN/">DNS、CDN 与抓包排查</a></td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td><a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2064-%E7%BD%91%E7%BB%9CHTTPS%E4%B8%8ETLS%E6%8F%A1%E6%89%8B/">HTTPS 与 TLS 握手</a></td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td><a href="/2026/10/26/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2151-HTTP3%E4%B8%8EQUIC%E7%9A%84%E4%BC%A0%E8%BE%93%E5%B1%82%E9%87%8D%E6%9E%84/">HTTP&#x2F;3 与 QUIC 的传输层重构</a></td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>五</td>
+<td>弱网优化与传输层调优</td>
+<td><strong>本篇</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>弱网下最致命的不是带宽，是「等待」。</strong> 一个 RTT 300ms 的链路，串行 5 次请求就是 1.5 秒 —— 无论带宽多大。所以优化的第一优先级永远是<strong>减少往返次数</strong>，其次才是压缩体积。</p>
+<h2 id="一、先量化：弱网到底差在哪"><a href="#一、先量化：弱网到底差在哪" class="headerlink" title="一、先量化：弱网到底差在哪"></a>一、先量化：弱网到底差在哪</h2><table>
+<thead>
+<tr>
+<th>指标</th>
+<th>良好</th>
+<th>一般</th>
+<th>弱网</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>RTT</td>
+<td>&lt; 50ms</td>
+<td>50~150ms</td>
+<td>&gt; 300ms</td>
+</tr>
+<tr>
+<td>丢包率</td>
+<td>&lt; 0.1%</td>
+<td>0.1~1%</td>
+<td>&gt; 2%</td>
+</tr>
+<tr>
+<td>抖动</td>
+<td>&lt; 10ms</td>
+<td>10~50ms</td>
+<td>&gt; 100ms</td>
+</tr>
+<tr>
+<td>带宽</td>
+<td>&gt; 10Mbps</td>
+<td>1~10Mbps</td>
+<td>&lt; 1Mbps</td>
+</tr>
+</tbody></table>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs text">用户体验的关键阈值：<br>- 首字节 &lt; 1s（否则感知为「慢」）<br>- 交互响应 &lt; 100ms（否则感知为「卡」）<br>- 加载完成 &lt; 3s（超过 3s 有 50% 用户离开）<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>丢包比带宽更影响体验</strong>。TCP 在 2% 丢包下，吞吐可能掉到理论值的 1&#x2F;5（CUBIC 的经典问题）。<strong>带宽翻倍不如把丢包从 2% 降到 0.5%。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>「4G 满格」不代表网络好</strong>。信号强度与丢包、抖动无关。<strong>必须实测 RTT 与丢包率。</strong></p>
+</blockquote>
+<h2 id="二、减少往返：收益最大的一类优化"><a href="#二、减少往返：收益最大的一类优化" class="headerlink" title="二、减少往返：收益最大的一类优化"></a>二、减少往返：收益最大的一类优化</h2><table>
+<thead>
+<tr>
+<th>手段</th>
+<th>省掉</th>
+<th>效果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>连接复用（keep-alive）</td>
+<td>TCP + TLS 握手</td>
+<td>省 2~3 RTT</td>
+</tr>
+<tr>
+<td>TLS 1.3 &#x2F; 0-RTT</td>
+<td>握手往返</td>
+<td>省 1~2 RTT</td>
+</tr>
+<tr>
+<td>HTTP&#x2F;3</td>
+<td>队头阻塞</td>
+<td>弱网下显著</td>
+</tr>
+<tr>
+<td>DNS 预解析 &#x2F; 预连接</td>
+<td>DNS 查询</td>
+<td>省 1 RTT</td>
+</tr>
+<tr>
+<td>请求合并（BFF &#x2F; GraphQL）</td>
+<td>多次请求</td>
+<td>省 N-1 RTT</td>
+</tr>
+<tr>
+<td>服务端渲染 &#x2F; 首屏内联</td>
+<td>额外请求</td>
+<td>省多轮</td>
+</tr>
+</tbody></table>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs html"><span class="hljs-comment">&lt;!-- 预连接：提前建好连接 --&gt;</span><br><span class="hljs-tag">&lt;<span class="hljs-name">link</span> <span class="hljs-attr">rel</span>=<span class="hljs-string">&quot;preconnect&quot;</span> <span class="hljs-attr">href</span>=<span class="hljs-string">&quot;https://api.example.com&quot;</span> <span class="hljs-attr">crossorigin</span>&gt;</span><br><span class="hljs-tag">&lt;<span class="hljs-name">link</span> <span class="hljs-attr">rel</span>=<span class="hljs-string">&quot;dns-prefetch&quot;</span> <span class="hljs-attr">href</span>=<span class="hljs-string">&quot;https://cdn.example.com&quot;</span>&gt;</span><br><br><span class="hljs-comment">&lt;!-- 预加载关键资源 --&gt;</span><br><span class="hljs-tag">&lt;<span class="hljs-name">link</span> <span class="hljs-attr">rel</span>=<span class="hljs-string">&quot;preload&quot;</span> <span class="hljs-attr">href</span>=<span class="hljs-string">&quot;/app.js&quot;</span> <span class="hljs-attr">as</span>=<span class="hljs-string">&quot;script&quot;</span>&gt;</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong><code>preconnect</code> 不要滥用</strong>。每个预连接都占一个 socket 和一次握手，<strong>只对确定会用到的域名用，控制在 2~4 个。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>HTTP&#x2F;2 的「多路复用」在弱网下是负优化</strong>。丢一个包卡住所有流，反而不如多条连接。<strong>弱网场景优先 HTTP&#x2F;3。</strong></p>
+</blockquote>
+<h2 id="三、压缩与增量：减少字节数"><a href="#三、压缩与增量：减少字节数" class="headerlink" title="三、压缩与增量：减少字节数"></a>三、压缩与增量：减少字节数</h2><table>
+<thead>
+<tr>
+<th>手段</th>
+<th>压缩比</th>
+<th>CPU 成本</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>gzip</td>
+<td>3~5×</td>
+<td>低</td>
+<td>通用</td>
+</tr>
+<tr>
+<td>brotli（静态）</td>
+<td>5~8×</td>
+<td>中</td>
+<td>静态资源，构建时压</td>
+</tr>
+<tr>
+<td>brotli（动态）</td>
+<td>4~6×</td>
+<td>高</td>
+<td>谨慎，动态压缩耗 CPU</td>
+</tr>
+<tr>
+<td>zstd</td>
+<td>4~7×</td>
+<td>低</td>
+<td>现代替代方案</td>
+</tr>
+<tr>
+<td>图片 WebP&#x2F;AVIF</td>
+<td>2~5×</td>
+<td>——</td>
+<td>图片</td>
+</tr>
+<tr>
+<td>增量更新</td>
+<td>视改动量</td>
+<td>低</td>
+<td>大 JSON &#x2F; 大文件</td>
+</tr>
+</tbody></table>
+<figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs nginx"><span class="hljs-comment"># 静态资源预压缩，直接发 .br 文件，不在请求时压缩</span><br><span class="hljs-attribute">brotli_static</span> <span class="hljs-literal">on</span>;<br><span class="hljs-attribute">gzip_static</span> <span class="hljs-literal">on</span>;<br><br><span class="hljs-comment"># 动态内容只对较大响应压缩</span><br><span class="hljs-attribute">gzip</span> <span class="hljs-literal">on</span>;<br><span class="hljs-attribute">gzip_min_length</span> <span class="hljs-number">1024</span>;<br><span class="hljs-attribute">gzip_types</span> text/css application/javascript application/json;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>小响应压缩是负优化</strong>。几百字节的 JSON 压缩后可能更大，还多花 CPU。<strong>设 <code>min_length</code> 阈值（1KB 以上）。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>动态 brotli 的 CPU 开销被严重低估</strong>。高 QPS 下动态 brotli 可能吃掉 30% CPU。<strong>静态资源预压缩，动态内容用 gzip 或 zstd。</strong></p>
+</blockquote>
+<h2 id="四、传输层参数调优"><a href="#四、传输层参数调优" class="headerlink" title="四、传输层参数调优"></a>四、传输层参数调优</h2><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>作用</th>
+<th>弱网建议</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>TCP 初始拥塞窗口</td>
+<td>起步能发多少</td>
+<td>10（<code>initcwnd</code>）</td>
+</tr>
+<tr>
+<td><code>tcp_slow_start_after_idle</code></td>
+<td>空闲后是否重置 cwnd</td>
+<td>关闭</td>
+</tr>
+<tr>
+<td>拥塞控制算法</td>
+<td>CUBIC &#x2F; BBR</td>
+<td><strong>BBR</strong>（弱网优势明显）</td>
+</tr>
+<tr>
+<td><code>tcp_notsent_lowat</code></td>
+<td>减少缓冲膨胀</td>
+<td>调小</td>
+</tr>
+<tr>
+<td>SO_RCVBUF &#x2F; SO_SNDBUF</td>
+<td>缓冲区</td>
+<td>按 BDP 调大</td>
+</tr>
+<tr>
+<td>TCP Fast Open</td>
+<td>握手时带数据</td>
+<td>有中间设备兼容问题</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 启用 BBR</span><br>sysctl -w net.ipv4.tcp_congestion_control=bbr<br>sysctl -w net.core.default_qdisc=fq<br><br><span class="hljs-comment"># 关闭空闲后重置 cwnd（避免突发流量重新慢启动）</span><br>sysctl -w net.ipv4.tcp_slow_start_after_idle=0<br><br><span class="hljs-comment"># 查看当前算法</span><br>sysctl net.ipv4.tcp_congestion_control<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>算法</th>
+<th>弱网表现</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>CUBIC</td>
+<td>丢包即降速</td>
+<td>默认，公平性好</td>
+</tr>
+<tr>
+<td>BBR</td>
+<td>按带宽时延建模</td>
+<td><strong>弱网优势明显</strong>，但可能不公平</td>
+</tr>
+<tr>
+<td>BBRv2</td>
+<td>改进公平性</td>
+<td>部署较少</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>BBR 在高丢包链路上优势最大，但也更「霸道」</strong>。它会抢走 CUBIC 流量的带宽，共享链路上要评估。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>tcp_slow_start_after_idle</code> 默认开启</strong>。长连接空闲几秒后再发数据，cwnd 被重置到初始值，表现为「间歇性卡顿」。</p>
+</blockquote>
+<h2 id="五、应用层容错设计"><a href="#五、应用层容错设计" class="headerlink" title="五、应用层容错设计"></a>五、应用层容错设计</h2><table>
+<thead>
+<tr>
+<th>策略</th>
+<th>做法</th>
+<th>注意</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>超时分级</td>
+<td>连接超时短、读超时长</td>
+<td>避免一刀切</td>
+</tr>
+<tr>
+<td>重试 + 退避</td>
+<td>指数退避 + 抖动</td>
+<td>只对幂等</td>
+</tr>
+<tr>
+<td>请求去重</td>
+<td>幂等键</td>
+<td>防重复提交</td>
+</tr>
+<tr>
+<td>降级</td>
+<td>返回缓存&#x2F;兜底内容</td>
+<td>保可用性</td>
+</tr>
+<tr>
+<td>断点续传</td>
+<td>Range 请求</td>
+<td>大文件</td>
+</tr>
+<tr>
+<td>本地缓存</td>
+<td>先展示旧数据</td>
+<td>感知速度</td>
+</tr>
+</tbody></table>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">import</span> random<br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">retry_delay</span>(<span class="hljs-params">attempt, base=<span class="hljs-number">0.2</span>, cap=<span class="hljs-number">5.0</span></span>):<br>    <span class="hljs-string">&quot;&quot;&quot;指数退避 + 抖动，避免重试风暴。&quot;&quot;&quot;</span><br>    delay = <span class="hljs-built_in">min</span>(cap, base * (<span class="hljs-number">2</span> ** attempt))<br>    <span class="hljs-keyword">return</span> delay * (<span class="hljs-number">0.5</span> + random.random() * <span class="hljs-number">0.5</span>)   <span class="hljs-comment"># 50%~100% 抖动</span><br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>没有抖动的重试会形成「同步风暴」</strong>。所有客户端同时失败、同时重试，把刚恢复的服务再次打垮。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>超时要逐层递减</strong>。网关 5s、服务 3s、下游 2s。<strong>都设 5s 等于没有预算分配，最外层先超时，内层还在白跑。</strong></p>
+</blockquote>
+<h2 id="六、弱网下的前端体验"><a href="#六、弱网下的前端体验" class="headerlink" title="六、弱网下的前端体验"></a>六、弱网下的前端体验</h2><table>
+<thead>
+<tr>
+<th>手段</th>
+<th>效果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>骨架屏</td>
+<td>降低「空白等待」的焦虑</td>
+</tr>
+<tr>
+<td>乐观更新</td>
+<td>立即反馈，后台确认</td>
+</tr>
+<tr>
+<td>离线优先</td>
+<td>Service Worker 缓存</td>
+</tr>
+<tr>
+<td>图片懒加载 + 低清占位</td>
+<td>首屏更快</td>
+</tr>
+<tr>
+<td>请求优先级</td>
+<td>关键接口先发</td>
+</tr>
+<tr>
+<td>分页&#x2F;虚拟列表</td>
+<td>减少单次数据量</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>乐观更新必须能回滚</strong>。请求失败时要撤回 UI 状态并提示，否则用户以为成功了。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>Service Worker 缓存策略要谨慎</strong>。缓存了 HTML 却忘了更新，用户会长期看到旧版本。<strong>用版本化 + 强制更新机制。</strong></p>
+</blockquote>
+<h2 id="七、弱网测试怎么做"><a href="#七、弱网测试怎么做" class="headerlink" title="七、弱网测试怎么做"></a>七、弱网测试怎么做</h2><table>
+<thead>
+<tr>
+<th>方法</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Chrome DevTools</td>
+<td>Network 面板限速 + 丢包模拟</td>
+</tr>
+<tr>
+<td><code>tc netem</code></td>
+<td>Linux 上模拟延迟&#x2F;丢包&#x2F;抖动</td>
+</tr>
+<tr>
+<td>真机 + 弱网卡</td>
+<td>最真实</td>
+</tr>
+<tr>
+<td>云真机平台</td>
+<td>远程弱网环境</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 模拟 300ms 延迟 + 2% 丢包 + 50ms 抖动</span><br>tc qdisc add dev eth0 root netem delay 300ms 50ms loss 2%<br><br><span class="hljs-comment"># 查看</span><br>tc qdisc show dev eth0<br><br><span class="hljs-comment"># 清除</span><br>tc qdisc del dev eth0 root<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ **只在开发环境用 <code>tc</code>**。生产机器上误加规则会直接影响线上流量。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>只测延迟不测丢包是自欺欺人</strong>。真实弱网是三者叠加，<strong>必须同时模拟延迟、丢包、抖动。</strong></p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 只优化带宽，不减少往返次数</li>
+<li><input disabled="" type="checkbox"> 忽略丢包影响，2% 丢包下吞吐掉到 1&#x2F;5</li>
+<li><input disabled="" type="checkbox"> <code>preconnect</code> 滥用，占满连接数</li>
+<li><input disabled="" type="checkbox"> 弱网下仍用 HTTP&#x2F;2，队头阻塞更严重</li>
+<li><input disabled="" type="checkbox"> 对小响应也开压缩，负优化</li>
+<li><input disabled="" type="checkbox"> 动态 brotli 吃满 CPU</li>
+<li><input disabled="" type="checkbox"> <code>tcp_slow_start_after_idle</code> 未关闭，间歇性卡顿</li>
+<li><input disabled="" type="checkbox"> BBR 用在共享链路上，抢占其他流量</li>
+<li><input disabled="" type="checkbox"> 重试无抖动，形成同步风暴</li>
+<li><input disabled="" type="checkbox"> 超时层层都是 5s，没有预算分配</li>
+<li><input disabled="" type="checkbox"> 乐观更新无回滚，用户误以为成功</li>
+<li><input disabled="" type="checkbox"> Service Worker 缓存不更新，用户长期看旧版</li>
+<li><input disabled="" type="checkbox"> 弱网测试只模拟延迟不模拟丢包</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><ul>
+<li><a target="_blank" rel="noopener" href="https://www.rfc-editor.org/rfc/rfc9438.html">RFC 9438 · CUBIC</a></li>
+<li><a target="_blank" rel="noopener" href="https://research.google/pubs/pub47798/">BBR Congestion Control（Google）</a></li>
+<li><a target="_blank" rel="noopener" href="https://hpbn.co/">High Performance Browser Networking</a></li>
+<li><a target="_blank" rel="noopener" href="https://man7.org/linux/man-pages/man8/tc-netem.8.html">Linux <code>tc-netem</code> 手册</a></li>
+<li><a target="_blank" rel="noopener" href="https://web.dev/articles/preconnect-and-dns-prefetch">web.dev · 预连接与预加载</a></li>
+</ul>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/network/" class="category-chain-item">network</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/network/" class="print-no-link">#network</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 152 · 网络（五）：弱网优化与传输层调优</div>
+      <div>https://ethan-iopasd.github.io/2026/10/26/每日技术博客152-弱网优化与传输层调优/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月26日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/26/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2151-HTTP3%E4%B8%8EQUIC%E7%9A%84%E4%BC%A0%E8%BE%93%E5%B1%82%E9%87%8D%E6%9E%84/" title="每日技术博客 151 · 网络（四）：HTTP/3 与 QUIC 的传输层重构">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 151 · 网络（四）：HTTP/3 与 QUIC 的传输层重构</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

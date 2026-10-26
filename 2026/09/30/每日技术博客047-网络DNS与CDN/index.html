@@ -19,15 +19,15 @@
   <meta name="author" content="iopasd">
   <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
   
-    <meta name="description" content="每日技术博客 · 2026-09-30 · 第 047 篇 网络系列第二篇。域名是怎么变成 IP 的、CDN 到底缓没缓存、「我本地能访问线上不行」该按什么顺序查 —— 这一篇全是排查手法。  📚 网络 系列目录   章节 主题 状态    一 TCP&#x2F;IP 与三次握手 已发布   二 DNS、CDN 与抓包排查 本篇   三 HTTPS 与 TLS 握手 已发布   开场：一次请求">
+    <meta name="description" content="每日技术博客 · 2026-09-30 · 第 047 篇 网络系列第二篇。域名是怎么变成 IP 的、CDN 到底缓没缓存、「我本地能访问线上不行」该按什么顺序查 —— 这一篇全是排查手法。  📚 网络 系列目录   章节 主题 状态    一 TCP&#x2F;IP 与三次握手 已发布   二 DNS、CDN 与抓包排查 本篇   三 HTTPS 与 TLS 握手 已发布   四 HTTP&amp;">
 <meta property="og:type" content="article">
 <meta property="og:title" content="每日技术博客 047 · 网络（二）：DNS、CDN 与抓包排查">
 <meta property="og:url" content="https://ethan-iopasd.github.io/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2047-%E7%BD%91%E7%BB%9CDNS%E4%B8%8ECDN/index.html">
 <meta property="og:site_name" content="Ethan-iopasd">
-<meta property="og:description" content="每日技术博客 · 2026-09-30 · 第 047 篇 网络系列第二篇。域名是怎么变成 IP 的、CDN 到底缓没缓存、「我本地能访问线上不行」该按什么顺序查 —— 这一篇全是排查手法。  📚 网络 系列目录   章节 主题 状态    一 TCP&#x2F;IP 与三次握手 已发布   二 DNS、CDN 与抓包排查 本篇   三 HTTPS 与 TLS 握手 已发布   开场：一次请求">
+<meta property="og:description" content="每日技术博客 · 2026-09-30 · 第 047 篇 网络系列第二篇。域名是怎么变成 IP 的、CDN 到底缓没缓存、「我本地能访问线上不行」该按什么顺序查 —— 这一篇全是排查手法。  📚 网络 系列目录   章节 主题 状态    一 TCP&#x2F;IP 与三次握手 已发布   二 DNS、CDN 与抓包排查 本篇   三 HTTPS 与 TLS 握手 已发布   四 HTTP&amp;">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2026-09-30T15:10:00.000Z">
-<meta property="article:modified_time" content="2026-10-21T02:14:24.666Z">
+<meta property="article:modified_time" content="2026-10-26T06:23:44.062Z">
 <meta property="article:author" content="iopasd">
 <meta property="article:tag" content="network">
 <meta name="twitter:card" content="summary_large_image">
@@ -301,6 +301,16 @@
 <tr>
 <td>三</td>
 <td><a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2064-%E7%BD%91%E7%BB%9CHTTPS%E4%B8%8ETLS%E6%8F%A1%E6%89%8B/">HTTPS 与 TLS 握手</a></td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td><a href="/2026/10/26/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2151-HTTP3%E4%B8%8EQUIC%E7%9A%84%E4%BC%A0%E8%BE%93%E5%B1%82%E9%87%8D%E6%9E%84/">HTTP&#x2F;3 与 QUIC 的传输层重构</a></td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>五</td>
+<td><a href="/2026/10/26/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2152-%E5%BC%B1%E7%BD%91%E4%BC%98%E5%8C%96%E4%B8%8E%E4%BC%A0%E8%BE%93%E5%B1%82%E8%B0%83%E4%BC%98/">弱网优化与传输层调优</a></td>
 <td>已发布</td>
 </tr>
 </tbody></table>
