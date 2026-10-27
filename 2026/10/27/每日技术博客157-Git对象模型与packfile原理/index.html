@@ -1,0 +1,1009 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/1.png">
+  <link rel="icon" href="/img/1.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="iopasd">
+  <meta name="keywords" content="Vue3,Python,Docker,SQL,HTTP,全栈,技术笔记">
+  
+    <meta name="description" content="每日技术博客 · 2026-10-27 · 第 157 篇 Git 系列第五篇。Git 不是「保存文件差异」，而是按内容寻址的对象数据库。理解了 blob &#x2F; tree &#x2F; commit 三层结构，reset 和 rebase 为什么「安全」就不再需要背。  📚 Git 系列目录   章节 主题 状态    一 分支模型与 rebase 已发布   二 撤销、找回与事故处理">
+<meta property="og:type" content="article">
+<meta property="og:title" content="每日技术博客 157 · Git（五）：对象模型、packfile 与底层原理">
+<meta property="og:url" content="https://ethan-iopasd.github.io/2026/10/27/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2157-Git%E5%AF%B9%E8%B1%A1%E6%A8%A1%E5%9E%8B%E4%B8%8Epackfile%E5%8E%9F%E7%90%86/index.html">
+<meta property="og:site_name" content="Ethan-iopasd">
+<meta property="og:description" content="每日技术博客 · 2026-10-27 · 第 157 篇 Git 系列第五篇。Git 不是「保存文件差异」，而是按内容寻址的对象数据库。理解了 blob &#x2F; tree &#x2F; commit 三层结构，reset 和 rebase 为什么「安全」就不再需要背。  📚 Git 系列目录   章节 主题 状态    一 分支模型与 rebase 已发布   二 撤销、找回与事故处理">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2026-10-27T01:35:00.000Z">
+<meta property="article:modified_time" content="2026-10-27T01:30:51.561Z">
+<meta property="article:author" content="iopasd">
+<meta property="article:tag" content="git">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>每日技术博客 157 · Git（五）：对象模型、packfile 与底层原理 - Ethan-iopasd</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ethan-iopasd.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Ethan</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/Naruto.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="每日技术博客 157 · Git（五）：对象模型、packfile 与底层原理"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-10-27 09:35" pubdate>
+          2026年10月27日 上午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          1.7k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          14 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">每日技术博客 157 · Git（五）：对象模型、packfile 与底层原理</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>每日技术博客 · 2026-10-27 · 第 157 篇</p>
+<p>Git 系列第五篇。Git 不是「保存文件差异」，而是<strong>按内容寻址的对象数据库</strong>。理解了 blob &#x2F; tree &#x2F; commit 三层结构，<code>reset</code> 和 <code>rebase</code> 为什么「安全」就不再需要背。</p>
+</blockquote>
+<h2 id="📚-Git-系列目录"><a href="#📚-Git-系列目录" class="headerlink" title="📚 Git 系列目录"></a>📚 Git 系列目录</h2><table>
+<thead>
+<tr>
+<th>章节</th>
+<th>主题</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一</td>
+<td><a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2018-Git%E5%88%86%E6%94%AF%E4%B8%8Erebase/">分支模型与 rebase</a></td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>二</td>
+<td><a href="/2026/09/30/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2019-Git%E6%92%A4%E9%94%80%E4%B8%8E%E4%BA%8B%E6%95%85%E5%A4%84%E7%90%86/">撤销、找回与事故处理</a></td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>三</td>
+<td><a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2054-Git%E5%8D%8F%E4%BD%9C%E5%B7%A5%E4%BD%9C%E6%B5%81/">协作工作流与 cherry-pick、bisect</a></td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>四</td>
+<td><a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2109-Git-monorepo%E4%B8%8E%E5%A4%A7%E4%BB%93%E5%BA%93%E7%AE%A1%E7%90%86/">monorepo 与大仓库管理</a></td>
+<td>已发布</td>
+</tr>
+<tr>
+<td>五</td>
+<td>对象模型、packfile 与底层原理</td>
+<td><strong>本篇</strong></td>
+</tr>
+<tr>
+<td>六</td>
+<td><a href="/2026/10/27/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2158-Git%E9%92%A9%E5%AD%90%E5%B1%9E%E6%80%A7%E4%B8%8E%E8%87%AA%E5%8A%A8%E5%8C%96/">钩子、属性与自动化</a></td>
+<td>已发布</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="开场：一句话结论"><a href="#开场：一句话结论" class="headerlink" title="开场：一句话结论"></a>开场：一句话结论</h2><p><strong>Git 存储的是「每个版本的完整快照」，不是差异。</strong> 每个文件内容变成一个 blob，目录结构变成 tree，提交变成 commit —— 全部按 SHA-1（或 SHA-256）内容寻址。所以分支只是一个 41 字节的文本文件。</p>
+<h2 id="一、四种对象"><a href="#一、四种对象" class="headerlink" title="一、四种对象"></a>一、四种对象</h2><table>
+<thead>
+<tr>
+<th>对象</th>
+<th>存什么</th>
+<th>指向</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>blob</td>
+<td>文件内容（不含文件名）</td>
+<td>无</td>
+</tr>
+<tr>
+<td>tree</td>
+<td>目录列表（名字 + 模式 + 对象 ID）</td>
+<td>blob &#x2F; tree</td>
+</tr>
+<tr>
+<td>commit</td>
+<td>快照 + 元信息</td>
+<td>一个 tree + 父 commit</td>
+</tr>
+<tr>
+<td>tag（附注）</td>
+<td>标签对象</td>
+<td>一个 commit</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 查看某个 commit 的对象类型</span><br>git cat-file -t HEAD<br><span class="hljs-comment"># commit</span><br><br><span class="hljs-comment"># 看 commit 内容</span><br>git cat-file -p HEAD<br><span class="hljs-comment"># tree 8f3a...</span><br><span class="hljs-comment"># parent 2b1c...</span><br><span class="hljs-comment"># author ...</span><br><span class="hljs-comment"># committer ...</span><br><br><span class="hljs-comment"># 看 tree</span><br>git cat-file -p HEAD^&#123;tree&#125;<br><span class="hljs-comment"># 100644 blob a1b2...    README.md</span><br><span class="hljs-comment"># 040000 tree c3d4...    src</span><br><br><span class="hljs-comment"># 看 blob</span><br>git cat-file -p a1b2...<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ <strong>blob 不含文件名</strong>。改名不会产生新 blob，只是 tree 里的名字变了。<strong>这就是 Git 能自动识别重命名的原因 —— 它比较的是内容。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>相同内容只存一份</strong>。两个文件内容完全一样，只有一个 blob，tree 里两条记录指向同一个 SHA。<strong>复制大文件不占额外空间。</strong></p>
+</blockquote>
+<h2 id="二、内容寻址：SHA-怎么算"><a href="#二、内容寻址：SHA-怎么算" class="headerlink" title="二、内容寻址：SHA 怎么算"></a>二、内容寻址：SHA 怎么算</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 对象哈希 = SHA1(&quot;blob &lt;长度&gt;\0&quot; + 内容)</span><br><span class="hljs-built_in">echo</span> -n <span class="hljs-string">&quot;hello&quot;</span> | git hash-object --stdin<br><span class="hljs-comment"># b6fc4c620b67d95f953a5c1c1230aaab5db5a1b0</span><br><br><span class="hljs-comment"># 完整计算过程</span><br>python -c <span class="hljs-string">&quot;</span><br><span class="hljs-string">import hashlib</span><br><span class="hljs-string">content = b&#x27;hello&#x27;</span><br><span class="hljs-string">header = b&#x27;blob %d\x00&#x27; % len(content)</span><br><span class="hljs-string">print(hashlib.sha1(header + content).hexdigest())</span><br><span class="hljs-string">&quot;</span><br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>特性</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>确定性</td>
+<td>相同内容永远得到相同 ID</td>
+</tr>
+<tr>
+<td>不可逆</td>
+<td>无法从 ID 反推内容</td>
+</tr>
+<tr>
+<td>防篡改</td>
+<td>内容变了 ID 必变</td>
+</tr>
+<tr>
+<td>全局唯一</td>
+<td>不同仓库同内容 ID 相同</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>SHA-1 已被证明存在碰撞攻击</strong>。Git 加了碰撞检测（<code>sha1dc</code>），但新仓库建议用 <code>--object-format=sha256</code>。<strong>目前生态兼容性还有限，迁移要谨慎。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>「同内容同 ID」意味着可以跨仓库去重</strong>。fork 时不会重复存储，这是 GitHub 存储效率高的原因之一。</p>
+</blockquote>
+<h2 id="三、引用与分支"><a href="#三、引用与分支" class="headerlink" title="三、引用与分支"></a>三、引用与分支</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 分支就是一个文件，内容是 commit SHA</span><br><span class="hljs-built_in">cat</span> .git/refs/heads/main<br><span class="hljs-comment"># 3f2a1b...</span><br><br><span class="hljs-comment"># HEAD 指向当前分支</span><br><span class="hljs-built_in">cat</span> .git/HEAD<br><span class="hljs-comment"># ref: refs/heads/main</span><br><br><span class="hljs-comment"># 打包后的引用在 packed-refs</span><br><span class="hljs-built_in">cat</span> .git/packed-refs<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>引用类型</th>
+<th>位置</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>分支</td>
+<td><code>refs/heads/*</code></td>
+<td>可移动</td>
+</tr>
+<tr>
+<td>远程分支</td>
+<td><code>refs/remotes/*</code></td>
+<td>本地缓存</td>
+</tr>
+<tr>
+<td>标签</td>
+<td><code>refs/tags/*</code></td>
+<td>通常不动</td>
+</tr>
+<tr>
+<td>HEAD</td>
+<td><code>.git/HEAD</code></td>
+<td>指向当前分支或 commit</td>
+</tr>
+<tr>
+<td>符号引用</td>
+<td><code>ref: ...</code></td>
+<td>指向另一个引用</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>detached HEAD</code> 就是 HEAD 直接指向 commit</strong>。此时提交不在任何分支上，切走就可能「丢失」（其实还能用 reflog 找回）。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>分支没有「重量」</strong>。创建分支 &#x3D; 写一个 41 字节文件，所以 Git 鼓励频繁建分支。</p>
+</blockquote>
+<h2 id="四、packfile：为什么-git-不会爆炸"><a href="#四、packfile：为什么-git-不会爆炸" class="headerlink" title="四、packfile：为什么 .git 不会爆炸"></a>四、packfile：为什么 .git 不会爆炸</h2><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs text">松散对象：.git/objects/ab/cdef...  （每个对象一个文件，zlib 压缩）<br>打包后：  .git/objects/pack/*.pack + *.idx<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 手动打包（gc 会自动做）</span><br>git gc<br>git repack -ad<br><br><span class="hljs-comment"># 查看 pack 内容</span><br>git verify-pack -v .git/objects/pack/*.idx | <span class="hljs-built_in">head</span> -20<br><br><span class="hljs-comment"># 统计对象数量与大小</span><br>git count-objects -vH<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>机制</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>增量压缩（delta）</td>
+<td>相似对象只存差异</td>
+</tr>
+<tr>
+<td>zlib 压缩</td>
+<td>每个对象再压一次</td>
+</tr>
+<tr>
+<td>索引（.idx）</td>
+<td>快速定位对象偏移</td>
+</tr>
+<tr>
+<td>位图（.bitmap）</td>
+<td>加速克隆与拉取</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>delta 是「存储层的差异」，不是「模型层的差异」</strong>。Git 逻辑上存完整快照，物理上为了省空间才存 delta。<strong>概念上别混。</strong></p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>git gc</code> 会自动清理不可达对象</strong>。跑之前确认没有需要保留的悬空提交（reflog 默认保留 90 天）。</p>
+</blockquote>
+<h2 id="五、commit-到底改了什么"><a href="#五、commit-到底改了什么" class="headerlink" title="五、commit 到底改了什么"></a>五、commit 到底改了什么</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 对比两次提交的 tree 差异</span><br>git diff-tree -r HEAD~1 HEAD<br><br><span class="hljs-comment"># 看某个文件的 blob 历史</span><br>git <span class="hljs-built_in">log</span> --follow --oneline -- path/to/file<br><br><span class="hljs-comment"># 查看对象图</span><br>git <span class="hljs-built_in">log</span> --graph --oneline --all<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs text">提交 = 新 tree + 指向父 commit<br><br>main:  A ← B ← C<br>              ↑<br>            HEAD<br><br>C 的 tree 包含完整快照（不只是 B→C 的改动）<br>但物理存储上，未变的文件复用同一个 blob<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>操作</th>
+<th>对象层面发生了什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>commit</code></td>
+<td>新建 commit + tree（未变文件复用旧 blob）</td>
+</tr>
+<tr>
+<td><code>branch</code></td>
+<td>新建一个 ref 文件</td>
+</tr>
+<tr>
+<td><code>reset --soft</code></td>
+<td>只移动 ref，index 与工作区不动</td>
+</tr>
+<tr>
+<td><code>reset --mixed</code></td>
+<td>移动 ref + 重置 index</td>
+</tr>
+<tr>
+<td><code>reset --hard</code></td>
+<td>移动 ref + 重置 index + 覆盖工作区</td>
+</tr>
+<tr>
+<td><code>rebase</code></td>
+<td>新建一系列 commit（新 SHA）</td>
+</tr>
+<tr>
+<td><code>merge</code></td>
+<td>新建一个双父 commit</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong><code>reset --hard</code> 不删对象</strong>。旧 commit 仍可达（reflog），<strong>只要没 gc 就能找回</strong>。这就是「Git 几乎不会真的丢数据」的原因。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>rebase</code> 会重写 SHA</strong>。所有被 rebase 的 commit 都变成新对象，<strong>已推送的分支 rebase 后必须 force push，且会打乱别人的历史。</strong></p>
+</blockquote>
+<h2 id="六、reflog：最后的安全网"><a href="#六、reflog：最后的安全网" class="headerlink" title="六、reflog：最后的安全网"></a>六、reflog：最后的安全网</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 查看 HEAD 的移动历史</span><br>git reflog<br><br><span class="hljs-comment"># 查看某个分支的 reflog</span><br>git reflog show main<br><br><span class="hljs-comment"># 找回被 reset 掉的提交</span><br>git reset --hard HEAD@&#123;3&#125;<br><span class="hljs-comment"># 或</span><br>git cherry-pick &lt;sha&gt;<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>恢复方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>reset --hard</code> 丢提交</td>
+<td><code>git reflog</code> 找 SHA</td>
+</tr>
+<tr>
+<td>误删分支</td>
+<td><code>git reflog</code> + <code>git branch new &lt;sha&gt;</code></td>
+</tr>
+<tr>
+<td>误 rebase</td>
+<td><code>git reflog</code> 回到 rebase 前</td>
+</tr>
+<tr>
+<td>误 commit 到错分支</td>
+<td>cherry-pick 到正确分支</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>reflog 是本地的，不随 clone 传递</strong>。换机器或删了 <code>.git</code> 就没了。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong>reflog 默认保留 90 天</strong>（不可达对象 30 天）。超过期限且 gc 过的对象真的找不回。</p>
+</blockquote>
+<h2 id="七、日常能用上的底层命令"><a href="#七、日常能用上的底层命令" class="headerlink" title="七、日常能用上的底层命令"></a>七、日常能用上的底层命令</h2><table>
+<thead>
+<tr>
+<th>命令</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>git cat-file -p &lt;obj&gt;</code></td>
+<td>查看任意对象内容</td>
+</tr>
+<tr>
+<td><code>git hash-object -w &lt;file&gt;</code></td>
+<td>手动写入 blob</td>
+</tr>
+<tr>
+<td><code>git ls-tree &lt;tree&gt;</code></td>
+<td>列出 tree 内容</td>
+</tr>
+<tr>
+<td><code>git rev-parse HEAD</code></td>
+<td>解析引用为 SHA</td>
+</tr>
+<tr>
+<td><code>git rev-list --count</code></td>
+<td>统计提交数</td>
+</tr>
+<tr>
+<td><code>git fsck --lost-found</code></td>
+<td>找悬空对象</td>
+</tr>
+<tr>
+<td><code>git verify-pack</code></td>
+<td>检查 pack 完整性</td>
+</tr>
+</tbody></table>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 找出仓库里最大的 10 个对象</span><br>git rev-list --objects --all \<br>  | git cat-file --batch-check=<span class="hljs-string">&#x27;%(objecttype) %(objectname) %(objectsize) %(rest)&#x27;</span> \<br>  | awk <span class="hljs-string">&#x27;/^blob/ &#123;print $3, $4&#125;&#x27;</span> | <span class="hljs-built_in">sort</span> -rn | <span class="hljs-built_in">head</span> -10<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>⚠️ **大文件一旦进了历史，删掉文件也不会减小 <code>.git</code>**。必须改写历史（<code>filter-repo</code>）并 gc。</p>
+</blockquote>
+<blockquote>
+<p>⚠️ <strong><code>git fsck</code> 在大仓库上很慢</strong>。只在怀疑损坏时跑，别放进日常脚本。</p>
+</blockquote>
+<h2 id="常见坑清单"><a href="#常见坑清单" class="headerlink" title="常见坑清单"></a>常见坑清单</h2><ul>
+<li><input disabled="" type="checkbox"> 以为 Git 存的是差异（实际存快照，物理上才用 delta）</li>
+<li><input disabled="" type="checkbox"> 以为改名会产生新 blob（内容不变则复用）</li>
+<li><input disabled="" type="checkbox"> 用 SHA-1 且不关注碰撞风险</li>
+<li><input disabled="" type="checkbox"> 在 detached HEAD 上提交后切走，以为丢了</li>
+<li><input disabled="" type="checkbox"> 已推送的分支 rebase 后 force push，打乱他人历史</li>
+<li><input disabled="" type="checkbox"> 大文件提交进历史，删了也不减 <code>.git</code></li>
+<li><input disabled="" type="checkbox"> 依赖 reflog 做长期备份（本地、有期限）</li>
+<li><input disabled="" type="checkbox"> <code>git gc</code> 前没确认悬空提交是否还要</li>
+<li><input disabled="" type="checkbox"> 以为 <code>reset --hard</code> 会删对象</li>
+<li><input disabled="" type="checkbox"> 在 clone 出来的仓库找 reflog 恢复（对方没有）</li>
+</ul>
+<h2 id="参考来源"><a href="#参考来源" class="headerlink" title="参考来源"></a>参考来源</h2><ul>
+<li><a target="_blank" rel="noopener" href="https://git-scm.com/book/zh/v2/Git-%E5%86%85%E9%83%A8%E5%8E%9F%E7%90%86-Git-%E5%AF%B9%E8%B1%A1">Pro Git · Git 内部原理</a></li>
+<li><a target="_blank" rel="noopener" href="https://git-scm.com/docs/git-cat-file">Git 官方文档 · <code>git-cat-file</code></a></li>
+<li><a target="_blank" rel="noopener" href="https://git-scm.com/docs/git-reflog">Git 官方文档 · <code>git-reflog</code></a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/cr-marcstevens/sha1collisiondetection">SHA-1 碰撞检测（sha1collisiondetection）</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/newren/git-filter-repo">git-filter-repo</a></li>
+</ul>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/git/" class="category-chain-item">git</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/git/" class="print-no-link">#git</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>每日技术博客 157 · Git（五）：对象模型、packfile 与底层原理</div>
+      <div>https://ethan-iopasd.github.io/2026/10/27/每日技术博客157-Git对象模型与packfile原理/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>iopasd</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2026年10月27日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2026/10/08/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2109-Git-monorepo%E4%B8%8E%E5%A4%A7%E4%BB%93%E5%BA%93%E7%AE%A1%E7%90%86/" title="每日技术博客 109 · Git（四）：monorepo 与大仓库管理">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">每日技术博客 109 · Git（四）：monorepo 与大仓库管理</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2026/10/27/%E6%AF%8F%E6%97%A5%E6%8A%80%E6%9C%AF%E5%8D%9A%E5%AE%A2158-Git%E9%92%A9%E5%AD%90%E5%B1%9E%E6%80%A7%E4%B8%8E%E8%87%AA%E5%8A%A8%E5%8C%96/" title="每日技术博客 158 · Git（六）：钩子、属性与自动化">
+                        <span class="hidden-mobile">每日技术博客 158 · Git（六）：钩子、属性与自动化</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <div id="valine"></div>
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#valine', function() {
+      Fluid.utils.createScript('https://lib.baomitu.com/valine/1.5.1/Valine.min.js', function() {
+        var options = Object.assign(
+          {"appId":"EVTXF0hnKpdU2Ilq9WAik3gi-gzGzoHsz","appKey":"78W0B9slNa1d9CX7qsxSGTiy","path":"window.location.pathname","placeholder":"请在这里留言","avatar":"retro","meta":["nick","mail","link"],"requiredFields":[],"pageSize":10,"lang":"zh-CN","highlight":false,"recordIP":false,"serverURLs":"","emojiCDN":null,"emojiMaps":null,"enableQQ":false},
+          {
+            el: "#valine",
+            path: window.location.pathname
+          }
+        )
+        new Valine(options);
+        Fluid.utils.waitElementVisible('#valine .vcontent', () => {
+          var imgSelector = '#valine .vcontent img:not(.vemoji)';
+          Fluid.plugins.imageCaption(imgSelector);
+          Fluid.plugins.fancyBox(imgSelector);
+        })
+      });
+    });
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/Ethan-iopasd/Ethan-iopasd.github.io" target="_blank" rel="nofollow noopener"><span>Ethan-iopasd</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
